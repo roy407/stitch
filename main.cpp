@@ -31,11 +31,11 @@ std::vector<std::string> camera_urls = {
 };
 
 std::vector<std::string> push_stream_urls = {
-    "rtsp://192.168.3.50:8554/cam0",
-    "rtsp://192.168.3.50:8554/cam1",
-    "rtsp://192.168.3.50:8554/cam2",
-    "rtsp://192.168.3.50:8554/cam3",
-    "rtsp://192.168.3.50:8554/cam4"
+    "rtsp://192.168.3.58:8554/cam0",
+    "rtsp://192.168.3.58:8554/cam1",
+    "rtsp://192.168.3.58:8554/cam2",
+    "rtsp://192.168.3.58:8554/cam3",
+    "rtsp://192.168.3.58:8554/cam4"
 };
 
 AVPacket* packet_queues[SIZE];
@@ -57,9 +57,23 @@ void push_stream(int cam_id, const std::string& output_url) {
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", output_url.c_str());
     AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
     avcodec_parameters_copy(out_stream->codecpar, camera_para[cam_id].codecpar);
-    av_dict_set(&out_ctx->metadata, "rtsp_transport", "tcp", 0); 
-    av_dict_set(&out_ctx->metadata, "muxdelay", "0.1", 0);
-    av_dict_set(&out_ctx->metadata, "use_wallclock_as_timestamps", "1", 0);
+    out_stream->time_base = camera_para[cam_id].time_base;
+
+    // 设置低延迟参数
+    av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
+    av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
+
+    int ret = avio_open(&out_ctx->pb, output_url.c_str(), AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        char error_msg[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, error_msg, sizeof(error_msg));
+        std::cerr << "[" << cam_id << "] Failed to open URL: " << error_msg << std::endl;
+        avformat_free_context(out_ctx);
+        return;
+    }
+    avformat_write_header(out_ctx, nullptr);
+
+    // 推流主循环
     while(running) {
         AVPacket* pkt = packet_queues[cam_id];
         if(pkt == nullptr) continue;
