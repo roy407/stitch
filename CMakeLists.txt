@@ -9,11 +9,16 @@ file(GLOB FFMPEG_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/lib/*.so")
 
 # 添加可执行文件
 add_executable(my_stitch_app main.cpp)
+# 添加子目录
+add_subdirectory(rtsp)
 
 target_include_directories(my_stitch_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cv2/include/opencv4)
 target_include_directories(my_stitch_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/include)
 
 # 链接库文件
-target_link_libraries(my_stitch_app PRIVATE ${OPENCV_LIBS})
-target_link_libraries(my_stitch_app PRIVATE ${FFMPEG_LIBS})
-target_link_libraries(my_stitch_app PRIVATE pthread)
+target_link_libraries(my_stitch_app PRIVATE 
+${OPENCV_LIBS}
+${FFMPEG_LIBS}
+pthread
+rtsp
+)
