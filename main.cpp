@@ -8,12 +8,13 @@
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
+    #include <libavutil/opt.h>
 }
 
 // 打印log
 bool is_log_print = true;
 // 推流
-bool is_push_stream = false;
+bool is_push_stream = true;
 
 #define SIZE (5)
 
@@ -63,15 +64,15 @@ void push_stream(int cam_id, const std::string& output_url) {
     av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
     av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
 
-    int ret = avio_open(&out_ctx->pb, output_url.c_str(), AVIO_FLAG_WRITE);
-    if (ret < 0) {
-        char error_msg[AV_ERROR_MAX_STRING_SIZE];
-        av_strerror(ret, error_msg, sizeof(error_msg));
-        std::cerr << "[" << cam_id << "] Failed to open URL: " << error_msg << std::endl;
-        avformat_free_context(out_ctx);
-        return;
-    }
-    avformat_write_header(out_ctx, nullptr);
+    // int ret = avio_open(&out_ctx->pb, output_url.c_str(), AVIO_FLAG_WRITE);
+    // if (ret < 0) {
+    //     char error_msg[AV_ERROR_MAX_STRING_SIZE];
+    //     av_strerror(ret, error_msg, sizeof(error_msg));
+    //     std::cerr << "[" << cam_id << "] Failed to open URL: " << error_msg << std::endl;
+    //     avformat_free_context(out_ctx);
+    //     return;
+    // }
+    int ret1 = avformat_write_header(out_ctx, nullptr);
 
     // 推流主循环
     while(running) {
