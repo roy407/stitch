@@ -9,7 +9,9 @@ extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
     #include <libavutil/opt.h>
+    #include <libavutil/log.h>
 }
+#include "rtsp.h"
 
 // 打印log
 bool is_log_print = true;
@@ -49,43 +51,6 @@ struct Camera_param camera_para[SIZE];
 
 std::atomic<bool> running{true}; // 全局运行标志
 
-void push_stream(int cam_id, const std::string& output_url) {
-    if (!camera_para[cam_id].codecpar || camera_para[cam_id].codecpar->codec_type != AVMEDIA_TYPE_VIDEO) {
-        std::cout << "Invalid codec parameters" << std::endl;
-        return;
-    }
-    AVFormatContext* out_ctx = nullptr;
-    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", output_url.c_str());
-    AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
-    avcodec_parameters_copy(out_stream->codecpar, camera_para[cam_id].codecpar);
-    out_stream->time_base = camera_para[cam_id].time_base;
-
-    // 设置低延迟参数
-    av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
-    av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
-
-    // int ret = avio_open(&out_ctx->pb, output_url.c_str(), AVIO_FLAG_WRITE);
-    // if (ret < 0) {
-    //     char error_msg[AV_ERROR_MAX_STRING_SIZE];
-    //     av_strerror(ret, error_msg, sizeof(error_msg));
-    //     std::cerr << "[" << cam_id << "] Failed to open URL: " << error_msg << std::endl;
-    //     avformat_free_context(out_ctx);
-    //     return;
-    // }
-    int ret1 = avformat_write_header(out_ctx, nullptr);
-
-    // 推流主循环
-    while(running) {
-        AVPacket* pkt = packet_queues[cam_id];
-        if(pkt == nullptr) continue;
-        pkt->pts = av_rescale_q(pkt->pts, camera_para[cam_id].time_base, out_stream->time_base);
-        pkt->dts = av_rescale_q(pkt->dts, camera_para[cam_id].time_base, out_stream->time_base);
-        av_interleaved_write_frame(out_ctx, pkt);
-        av_packet_unref(pkt);
-    }
-}
-
-// 线程处理函数
 void process_stream(const std::string& url, int cam_id) {
     AVFormatContext* fmt_ctx = avformat_alloc_context();
     AVDictionary* options = nullptr;
@@ -124,13 +89,13 @@ void process_stream(const std::string& url, int cam_id) {
                                 stream->time_base);
                             
                             pkt.pts = auto_pts.fetch_add(interval);
-                            pkt.dts = pkt.pts; // 保持PTS=DTS
+                            pkt.dts = pkt.pts;
                         }
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
                         pkt_copy->time_base = stream->time_base;
                         packet_queues[cam_id] = pkt_copy;
                         if(!is_rtsp_launched && is_push_stream) {
-                            t_rtsp = std::thread(push_stream ,cam_id, std::ref(push_stream_urls[cam_id]));
+                            t_rtsp = rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, &packet_queues[cam_id], push_stream_urls[cam_id]);
                             is_rtsp_launched = true;
                         }
                     }
@@ -160,8 +125,9 @@ void cout_message() {
 int main() {
     avformat_network_init(); // 初始化网络模块
     
+    av_log_set_level(AV_LOG_QUIET);
     std::vector<std::thread> workers;
-    
+    rtsp_server::init_server();
     for(int i=0; i<SIZE; ++i) {
         workers.emplace_back(process_stream, camera_urls[i], i);
     }
@@ -174,6 +140,6 @@ int main() {
     for(auto& t : workers) {
         if(t.joinable()) t.join();
     }
-    
+    rtsp_server::close_server();
     return 0;
 }
