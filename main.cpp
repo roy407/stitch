@@ -8,10 +8,20 @@
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
+    #include <libavutil/pixfmt.h> 
+    #include <libavutil/pixdesc.h> 
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
 }
 #include "rtsp.h"
+#include "Stitch.h"
+#include "image_decoder.h"
+#include "image_encoder.h"
+
+#define MYIP "127.0.0.1"
+
+image_decoder img;
+std::mutex mtx;
 
 // 打印log
 bool is_log_print = true;
@@ -34,20 +44,24 @@ std::vector<std::string> camera_urls = {
 };
 
 std::vector<std::string> push_stream_urls = {
-    "rtsp://192.168.3.58:8554/cam0",
-    "rtsp://192.168.3.58:8554/cam1",
-    "rtsp://192.168.3.58:8554/cam2",
-    "rtsp://192.168.3.58:8554/cam3",
-    "rtsp://192.168.3.58:8554/cam4"
+    "rtsp://" MYIP ":8554/cam0",
+    "rtsp://" MYIP ":8554/cam1",
+    "rtsp://" MYIP ":8554/cam2",
+    "rtsp://" MYIP ":8554/cam3",
+    "rtsp://" MYIP ":8554/cam4"
 };
 
-AVPacket* packet_queues[SIZE];
+void AVFrame_log(int cam_id, const AVFrame* frame);
+std::string push_stream_stitch_url = "rtsp://" MYIP ":8554/stitch";
 
+AVPacket* packet_queues[SIZE];
 double camera_timestamp[SIZE] = {0.0};
 int camera_fps[SIZE] = {0};
 std::pair<int,int> camera_res[SIZE];
 struct Camera_param camera_para[SIZE];
 
+std::queue<AVFrame*> images[SIZE];
+AVFrame* out_image = nullptr;
 
 std::atomic<bool> running{true}; // 全局运行标志
 
@@ -91,6 +105,13 @@ void process_stream(const std::string& url, int cam_id) {
                             pkt.pts = auto_pts.fetch_add(interval);
                             pkt.dts = pkt.pts;
                         }
+                        std::lock_guard<std::mutex> lock(mtx);
+                        img.set_parameter(codecpar);
+                        std::queue<AVFrame*> tmp_q = img.do_decode(&pkt);
+                        while(!tmp_q.empty()) {
+                            images[cam_id].push(tmp_q.front());
+                            tmp_q.pop();
+                        }
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
                         pkt_copy->time_base = stream->time_base;
                         packet_queues[cam_id] = pkt_copy;
@@ -104,6 +125,29 @@ void process_stream(const std::string& url, int cam_id) {
             }
         }
         avformat_close_input(&fmt_ctx);
+    }
+}
+
+void process_stitch_images(const std::string& url) {
+    Stitch stitch;
+    //image_encoder img_enc;
+    bool is_rtsp_launched = false;
+    std::thread t_rtsp;
+    while(running) {
+        AVFrame* inputs[SIZE] = {};
+        for(int i=0;i<SIZE;i++) {
+            if(!images[i].empty()) {
+                inputs[i] = images[i].front();
+            }
+        }
+        out_image = stitch.do_stitch(inputs);
+        // AVPacket* pkt = img_enc.do_encode(out_image);
+        for(int i=0;i<SIZE;i++) {
+            if(!images[i].empty()) {
+                av_frame_free(&images[i].front());
+                images[i].pop();
+            }
+        }
     }
 }
 
@@ -122,15 +166,37 @@ void cout_message() {
     }
 }
 
+void AVFrame_log(int cam_id, const AVFrame* frame) {
+if (frame) {
+    std::cout << "========= AVFrame Info (cam_id=" << cam_id << ") =========" << std::endl;
+    std::cout << "Format:         " << av_get_pix_fmt_name((AVPixelFormat)frame->format) << std::endl;
+    std::cout << "Width x Height: " << frame->width << " x " << frame->height << std::endl;
+    std::cout << "PTS:            " << frame->pts << std::endl;
+    std::cout << "DTS:            " << frame->pkt_dts << std::endl;
+    std::cout << "HW FramesCtx:   " << (frame->hw_frames_ctx ? "Yes (GPU frame)" : "No (CPU frame)") << std::endl;
+    
+    // 输出前 3 个 data/buf 指针状态
+    for (int i = 0; i < 3; ++i) {
+        std::cout << "data[" << i << "]:      " << static_cast<const void*>(frame->data[i]) << std::endl;
+        std::cout << "linesize[" << i << "]:  " << frame->linesize[i] << std::endl;
+    }
+
+    std::cout << "==========================================================" << std::endl;
+}
+}
+
 int main() {
     avformat_network_init(); // 初始化网络模块
     
     av_log_set_level(AV_LOG_QUIET);
     std::vector<std::thread> workers;
-    rtsp_server::init_server();
+    //rtsp_server::init_server();
+
     for(int i=0; i<SIZE; ++i) {
         workers.emplace_back(process_stream, camera_urls[i], i);
     }
+    workers.emplace_back(process_stitch_images, push_stream_stitch_url);
+
     if(is_log_print)
         workers.emplace_back(cout_message);
     
@@ -140,6 +206,6 @@ int main() {
     for(auto& t : workers) {
         if(t.joinable()) t.join();
     }
-    rtsp_server::close_server();
+    //rtsp_server::close_server();
     return 0;
 }

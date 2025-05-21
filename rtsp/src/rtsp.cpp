@@ -33,7 +33,6 @@ bool rtsp_server::init_server() {
         perror("execlp mediamtx failed");
         exit(EXIT_FAILURE);
     }
-
     // 父进程记录PID
     child_pid = pid;
     return true;
@@ -45,6 +44,7 @@ bool rtsp_server::close_server() {
         waitpid(child_pid, NULL, 0);
         child_pid = 0;
     }
+    return true;
 }
 
 void rtsp_server::push_stream() {
