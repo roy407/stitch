@@ -9,6 +9,8 @@ file(GLOB FFMPEG_LIBS "${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/lib/*.so")
 
 # 添加可执行文件
 add_executable(my_stitch_app main.cpp)
+# 添加子目录
+add_subdirectory(rtsp)
 
 # 添加子目录
 add_subdirectory(rtsp)
