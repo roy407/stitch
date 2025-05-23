@@ -3,11 +3,31 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include "safe_queue.hpp"
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
+}
+
+rtsp_server::rtsp_server(safe_queue<AVPacket*>& packet_queues) : packet_queues(packet_queues) {
+    running.store(false);
+    codecpar = nullptr; 
+    time_base = nullptr;
+}
+
+void rtsp_server::start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) {
+    if (running.load()) return;
+    this->codecpar = codecpar;
+    this->time_base = time_base;
+    this->output_url = push_stream_url;
+    running.store(true);
+    t_rtsp = std::thread(&rtsp_server::push_stream, this); 
+}
+
+void rtsp_server::close_rtsp_server() {
+    running.store(false);
 }
 
 bool rtsp_server::init_server() {
@@ -52,7 +72,6 @@ void rtsp_server::push_stream() {
         std::cout << "Invalid codec parameters" << std::endl;
         return;
     }
-    running.store(true);
     AVFormatContext* out_ctx = nullptr;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", output_url.c_str());
     AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
@@ -60,22 +79,21 @@ void rtsp_server::push_stream() {
     out_stream->time_base = *time_base;
     av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
     av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
-    int ret1 = avformat_write_header(out_ctx, nullptr);
+    int ret1 = avformat_write_header(out_ctx, NULL);
     while(running) {
-        AVPacket* pkt = *packet_queues;
-        if(pkt == nullptr) continue;
-        pkt->pts = av_rescale_q(pkt->pts, *time_base, out_stream->time_base);
-        pkt->dts = av_rescale_q(pkt->dts, *time_base, out_stream->time_base);
+        AVPacket* pkt;
+        if(!packet_queues.try_pop(pkt)) continue;
         av_interleaved_write_frame(out_ctx, pkt);
         av_packet_unref(pkt);
     }
 }
 
 rtsp_server::~rtsp_server() {
-    running.store(false);
-    if (this->joinable()) {
-        this->join();
+    close_rtsp_server();
+    if (t_rtsp.joinable()) {
+        t_rtsp.join();
     }
+    std::cout<<__func__<<" exit!"<<std::endl;
 }
 
 pid_t rtsp_server::child_pid = 0;

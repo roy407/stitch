@@ -9,12 +9,13 @@ extern "C" {
     #include <libavutil/log.h>
 }
 
+#include "safe_queue.hpp"
 
-class rtsp_server : public std::thread {
+class rtsp_server {
 public:
-    explicit rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, AVPacket** packet_queues, const std::string& push_stream_url)
-        : codecpar(codecpar),time_base(time_base),packet_queues(packet_queues),output_url(push_stream_url),std::thread(&rtsp_server::push_stream, this){
-    }
+    rtsp_server(safe_queue<AVPacket*>& packet_queues);
+    void start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
+    void close_rtsp_server();
     static bool init_server();
     static bool close_server();
     ~rtsp_server();
@@ -24,7 +25,8 @@ private:
     std::atomic_bool running;
     AVCodecParameters** codecpar; 
     AVRational* time_base;
-    AVPacket** packet_queues;
-    const std::string& output_url;
+    safe_queue<AVPacket*>& packet_queues;
+    std::string output_url;
     static pid_t child_pid;
+    std::thread t_rtsp;
 };

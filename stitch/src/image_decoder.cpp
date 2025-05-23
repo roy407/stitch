@@ -23,7 +23,7 @@ image_decoder::image_decoder(const std::string& codec_name) {
 
 image_decoder::~image_decoder() {
     avcodec_free_context(&codec_ctx);
-    av_frame_free(&frame);
+    std::cout<<__func__<<" exit!"<<std::endl;
 }
 
 void image_decoder::set_parameter(AVCodecParameters* codecpar) {

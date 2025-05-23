@@ -16,6 +16,7 @@ add_subdirectory(stitch)
 
 target_include_directories(my_stitch_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/cv2/include/opencv4)
 target_include_directories(my_stitch_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/include)
+target_include_directories(my_stitch_app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/safe_tools)
 
 # 链接库文件
 target_link_libraries(my_stitch_app PRIVATE 

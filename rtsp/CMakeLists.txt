@@ -4,6 +4,7 @@ add_library(rtsp STATIC
 
 target_include_directories(rtsp
   PUBLIC 
+    ${CMAKE_SOURCE_DIR}/safe_tools
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 

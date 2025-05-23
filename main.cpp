@@ -1,9 +1,9 @@
 #include <vector>
-#include <thread>
 #include <mutex>
 #include <atomic>
 #include <iostream>
 #include <queue>
+#include <chrono>
 
 extern "C" {
     #include <libavformat/avformat.h>
@@ -13,6 +13,7 @@ extern "C" {
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
 }
+#include "safe_queue.hpp"
 #include "rtsp.h"
 #include "Stitch.h"
 #include "image_decoder.h"
@@ -26,7 +27,13 @@ std::mutex mtx;
 // 打印log
 bool is_log_print = true;
 // 推流
-bool is_push_stream = true;
+#define IS_PUSH_STREAM
+//将拉流得到的rtsp数据保存在save_rtsp_data_path中 
+#define SAVE_RTSP_DATA
+const int save_rtsp_data_time = 10;
+const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
+// 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
+//#define DATA_REFEED
 
 #define SIZE (5)
 
@@ -54,31 +61,40 @@ std::vector<std::string> push_stream_urls = {
 void AVFrame_log(int cam_id, const AVFrame* frame);
 std::string push_stream_stitch_url = "rtsp://" MYIP ":8554/stitch";
 
-AVPacket* packet_queues[SIZE];
+safe_queue<AVPacket*> packet_queues[SIZE];
 double camera_timestamp[SIZE] = {0.0};
 int camera_fps[SIZE] = {0};
 std::pair<int,int> camera_res[SIZE];
 struct Camera_param camera_para[SIZE];
 
-std::queue<AVFrame*> images[SIZE];
+safe_queue<AVFrame*> images[SIZE];
 AVFrame* out_image = nullptr;
 
 std::atomic<bool> running{true}; // 全局运行标志
 
 void process_stream(const std::string& url, int cam_id) {
+    #ifndef DATA_REFEED
     AVFormatContext* fmt_ctx = avformat_alloc_context();
     AVDictionary* options = nullptr;
-    int frame_cnt = 0;
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
     av_dict_set(&options, "stimeout", "5000000", 0);
-    std::thread t_rtsp;
-    bool is_rtsp_launched = false;
+    #else
+    AVFormatContext *fmt_ctx = NULL;
+    std::string cam_path = save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
+    avformat_open_input(&fmt_ctx, cam_path.c_str(), NULL, NULL);
+    #endif
+    int frame_cnt = 0;
+    #ifdef IS_PUSH_STREAM
+    rtsp_server rtsp(packet_queues[cam_id]);
+    #endif
     while(running) {
+        #ifndef DATA_REFEED
         int ret = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &options);
         if(ret < 0) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             continue;
         }
+        #endif
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
@@ -89,6 +105,22 @@ void process_stream(const std::string& url, int cam_id) {
                 {
                     camera_res[cam_id] = {codecpar->width,codecpar->height};
                 }
+                #if defined(SAVE_RTSP_DATA) && !defined(DATA_REFEED)
+                AVFormatContext *output_ctx = NULL;
+                std::string cam_path = save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
+                avformat_alloc_output_context2(&output_ctx, NULL, "mp4", cam_path.c_str());
+                AVStream *out_stream = avformat_new_stream(output_ctx, NULL);
+                avcodec_parameters_copy(out_stream->codecpar, codecpar);
+                out_stream->time_base = stream->time_base;
+                if (!(output_ctx->oformat->flags & AVFMT_NOFILE)) {
+                    if (avio_open(&output_ctx->pb, cam_path.c_str(), AVIO_FLAG_WRITE) < 0) {
+                        std::cerr << "Could not open output file\n";
+                        return;
+                    }
+                }
+                avformat_write_header(output_ctx, NULL);
+                auto start_time = std::chrono::steady_clock::now();
+                #endif
                 AVPacket pkt;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                     if(pkt.stream_index == video_stream) {
@@ -96,59 +128,68 @@ void process_stream(const std::string& url, int cam_id) {
                         camera_timestamp[cam_id] = pts_sec;
                         frame_cnt ++;
                         camera_fps[cam_id] = frame_cnt / pts_sec;
-                        if (pkt.pts == AV_NOPTS_VALUE || pkt.dts == AV_NOPTS_VALUE) {
-                            static std::atomic<int64_t> auto_pts{0};
-                            const int64_t interval = av_rescale_q(1, 
-                                (AVRational){1, 20},
-                                stream->time_base);
-                            
-                            pkt.pts = auto_pts.fetch_add(interval);
-                            pkt.dts = pkt.pts;
-                        }
-                        std::lock_guard<std::mutex> lock(mtx);
-                        img.set_parameter(codecpar);
-                        std::queue<AVFrame*> tmp_q = img.do_decode(&pkt);
-                        while(!tmp_q.empty()) {
-                            images[cam_id].push(tmp_q.front());
-                            tmp_q.pop();
-                        }
+                        // std::lock_guard<std::mutex> lock(mtx);
+                        // img.set_parameter(codecpar);
+                        // std::queue<AVFrame*> tmp_q = img.do_decode(&pkt);
+                        // while(!tmp_q.empty()) {
+                        //     images[cam_id].push(tmp_q.front());
+                        //     tmp_q.pop();
+                        // }
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
                         pkt_copy->time_base = stream->time_base;
-                        packet_queues[cam_id] = pkt_copy;
-                        if(!is_rtsp_launched && is_push_stream) {
-                            t_rtsp = rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, &packet_queues[cam_id], push_stream_urls[cam_id]);
-                            is_rtsp_launched = true;
+                        std::unique_lock<std::mutex> lock(mtx);
+                        packet_queues[cam_id].push(pkt_copy);
+                        
+                        #ifdef IS_PUSH_STREAM
+                        rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_urls[cam_id]);
+                        #endif
+                        #if defined(SAVE_RTSP_DATA) && !defined(DATA_REFEED)
+                        av_packet_rescale_ts(&pkt, fmt_ctx->streams[video_stream]->time_base, out_stream->time_base);
+                        pkt.stream_index = out_stream->index;
+                        av_write_frame(output_ctx, &pkt);
+                        auto now = std::chrono::steady_clock::now();
+                        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
+                        if (elapsed >= save_rtsp_data_time) {
+                            #ifdef IS_PUSH_STREAM
+                            rtsp.close_rtsp_server();
+                            #endif
+                            running.store(false);
                         }
+                        #endif
                     }
                     av_packet_unref(&pkt);
                 }
+                #if defined(SAVE_RTSP_DATA) && !defined(DATA_REFEED)
+                av_write_trailer(output_ctx);
+                avformat_free_context(output_ctx);
+                #endif
             }
         }
         avformat_close_input(&fmt_ctx);
     }
+    std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
 void process_stitch_images(const std::string& url) {
     Stitch stitch;
-    //image_encoder img_enc;
+    image_encoder img_enc;
     bool is_rtsp_launched = false;
-    std::thread t_rtsp;
+    // std::thread t_rtsp;
     while(running) {
+        bool is_vaild = true;
         AVFrame* inputs[SIZE] = {};
         for(int i=0;i<SIZE;i++) {
-            if(!images[i].empty()) {
-                inputs[i] = images[i].front();
-            }
+            if(!images[i].try_pop(inputs[i])) is_vaild = false;
         }
+        if(is_vaild == false) continue;
         out_image = stitch.do_stitch(inputs);
+        //AVFrame_log(0,out_image);
         // AVPacket* pkt = img_enc.do_encode(out_image);
         for(int i=0;i<SIZE;i++) {
-            if(!images[i].empty()) {
-                av_frame_free(&images[i].front());
-                images[i].pop();
-            }
+            av_frame_free(&inputs[i]);
         }
     }
+    std::cout<<__func__<<" exit!"<<std::endl;
 }
 
 void cout_message() {
@@ -164,6 +205,7 @@ void cout_message() {
 
         }
     }
+    std::cout<<__func__<<" exit!"<<std::endl;
 }
 
 void AVFrame_log(int cam_id, const AVFrame* frame) {
@@ -188,9 +230,8 @@ if (frame) {
 int main() {
     avformat_network_init(); // 初始化网络模块
     
-    av_log_set_level(AV_LOG_QUIET);
     std::vector<std::thread> workers;
-    //rtsp_server::init_server();
+    // rtsp_server::init_server();
 
     for(int i=0; i<SIZE; ++i) {
         workers.emplace_back(process_stream, camera_urls[i], i);
@@ -200,12 +241,10 @@ int main() {
     if(is_log_print)
         workers.emplace_back(cout_message);
     
-    std::cin.get();
-    running = false;
-    
     for(auto& t : workers) {
         if(t.joinable()) t.join();
     }
-    //rtsp_server::close_server();
+    // rtsp_server::close_server();
+    std::cout<<__func__<<" exit!"<<std::endl;
     return 0;
 }
