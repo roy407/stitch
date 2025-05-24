@@ -12,6 +12,7 @@ extern "C" {
     #include <libavutil/pixdesc.h> 
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
+    #include <libavcodec/bsf.h>
 }
 #include "safe_queue.hpp"
 #include "rtsp.h"
@@ -29,11 +30,11 @@ bool is_log_print = true;
 // 推流
 #define IS_PUSH_STREAM
 //将拉流得到的rtsp数据保存在save_rtsp_data_path中 
-#define SAVE_RTSP_DATA
+// #define SAVE_RTSP_DATA
 const int save_rtsp_data_time = 10;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
-//#define DATA_REFEED
+// #define DATA_REFEED
 
 #define SIZE (5)
 
@@ -73,15 +74,11 @@ AVFrame* out_image = nullptr;
 std::atomic<bool> running{true}; // 全局运行标志
 
 void process_stream(const std::string& url, int cam_id) {
-    #ifndef DATA_REFEED
     AVFormatContext* fmt_ctx = avformat_alloc_context();
+    #ifndef DATA_REFEED
     AVDictionary* options = nullptr;
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
     av_dict_set(&options, "stimeout", "5000000", 0);
-    #else
-    AVFormatContext *fmt_ctx = NULL;
-    std::string cam_path = save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
-    avformat_open_input(&fmt_ctx, cam_path.c_str(), NULL, NULL);
     #endif
     int frame_cnt = 0;
     #ifdef IS_PUSH_STREAM
@@ -90,11 +87,14 @@ void process_stream(const std::string& url, int cam_id) {
     while(running) {
         #ifndef DATA_REFEED
         int ret = avformat_open_input(&fmt_ctx, url.c_str(), nullptr, &options);
+        #else
+        std::string cam_path = save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
+        int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), NULL, NULL);
+        #endif
         if(ret < 0) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             continue;
         }
-        #endif
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
@@ -118,8 +118,15 @@ void process_stream(const std::string& url, int cam_id) {
                         return;
                     }
                 }
+                AVBSFContext* bsf_ctx = nullptr;
+                const AVBitStreamFilter* bsf = av_bsf_get_by_name("h264_mp4toannexb");
+                av_bsf_alloc(bsf, &bsf_ctx);
+                avcodec_parameters_copy(bsf_ctx->par_in, codecpar);
+                bsf_ctx->time_base_in = stream->time_base;
+                av_bsf_init(bsf_ctx);
                 avformat_write_header(output_ctx, NULL);
                 auto start_time = std::chrono::steady_clock::now();
+                bool first_key_frame_found = false;
                 #endif
                 AVPacket pkt;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
@@ -144,9 +151,20 @@ void process_stream(const std::string& url, int cam_id) {
                         rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_urls[cam_id]);
                         #endif
                         #if defined(SAVE_RTSP_DATA) && !defined(DATA_REFEED)
-                        av_packet_rescale_ts(&pkt, fmt_ctx->streams[video_stream]->time_base, out_stream->time_base);
+                        if (!first_key_frame_found) {
+                            if (pkt.flags & AV_PKT_FLAG_KEY)
+                                first_key_frame_found = true;
+                            else {
+                                av_packet_unref(&pkt);
+                                continue;
+                            }
+                        }
+
                         pkt.stream_index = out_stream->index;
-                        av_write_frame(output_ctx, &pkt);
+                        av_bsf_send_packet(bsf_ctx, &pkt);
+                        while (av_bsf_receive_packet(bsf_ctx, &pkt) == 0) {
+                            av_interleaved_write_frame(output_ctx, &pkt);
+                        }
                         auto now = std::chrono::steady_clock::now();
                         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start_time).count();
                         if (elapsed >= save_rtsp_data_time) {
@@ -161,6 +179,8 @@ void process_stream(const std::string& url, int cam_id) {
                 }
                 #if defined(SAVE_RTSP_DATA) && !defined(DATA_REFEED)
                 av_write_trailer(output_ctx);
+                if (!(output_ctx->oformat->flags & AVFMT_NOFILE))
+                    avio_closep(&output_ctx->pb);
                 avformat_free_context(output_ctx);
                 #endif
             }
@@ -231,7 +251,7 @@ int main() {
     avformat_network_init(); // 初始化网络模块
     
     std::vector<std::thread> workers;
-    // rtsp_server::init_server();
+    rtsp_server::init_mediamtx();
 
     for(int i=0; i<SIZE; ++i) {
         workers.emplace_back(process_stream, camera_urls[i], i);
@@ -244,7 +264,7 @@ int main() {
     for(auto& t : workers) {
         if(t.joinable()) t.join();
     }
-    // rtsp_server::close_server();
+    avformat_network_deinit();
     std::cout<<__func__<<" exit!"<<std::endl;
     return 0;
 }

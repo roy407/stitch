@@ -30,41 +30,37 @@ void rtsp_server::close_rtsp_server() {
     running.store(false);
 }
 
-bool rtsp_server::init_server() {
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork failed");
-        return false;
-    }
-
-    if (pid == 0) {
-        int null_fd = open("/dev/null", O_RDWR);
-        if (null_fd == -1) {
-            perror("open /dev/null failed");
-            exit(EXIT_FAILURE);
+bool rtsp_server::init_mediamtx() {
+    auto getExecutableDir = [&]() -> std::string {
+        char buf[PATH_MAX];
+        ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
+        if (len == -1) {
+            std::cerr << "读取程序路径失败: " << strerror(errno) << std::endl;
+            return "";
         }
-        dup2(null_fd, STDIN_FILENO);
-        dup2(null_fd, STDOUT_FILENO);
-        dup2(null_fd, STDERR_FILENO);
-        close(null_fd);
-        execlp("mediamtx/mediamtx",
-               "mediamtx",
-               (char*)NULL);
-        perror("execlp mediamtx failed");
-        exit(EXIT_FAILURE);
+        buf[len] = '\0';
+        std::string exePath(buf);
+        size_t lastSlash = exePath.find_last_of('/');
+        return (lastSlash != std::string::npos) ? exePath.substr(0, lastSlash) : "";
+    };
+    std::string exeDir = getExecutableDir();
+    if (exeDir.empty()) {
+        std::cerr << "错误：无法获取程序路径！" << std::endl;
+        return EXIT_FAILURE;
     }
-    // 父进程记录PID
-    child_pid = pid;
-    return true;
-}
-
-bool rtsp_server::close_server() {
-    if (child_pid > 0) {
-        kill(child_pid, SIGTERM);
-        waitpid(child_pid, NULL, 0);
-        child_pid = 0;
+    std::string childPath = exeDir + "/mediamtx/mediamtx";
+    signal(SIGCHLD, SIG_IGN);
+    pid = fork();
+    if (pid == -1) {
+        std::cerr << "fork失败: " << strerror(errno) << std::endl;
+        return EXIT_FAILURE;
+    } else if (pid == 0) {
+        execl(childPath.c_str(), "mediamtx", nullptr);
+        std::cerr << "执行失败: " << strerror(errno) << std::endl;
+        _exit(EXIT_FAILURE);
     }
-    return true;
+    std::cout << "成功启动子进程 PID: " << pid << std::endl;
+    return EXIT_SUCCESS;
 }
 
 void rtsp_server::push_stream() {
@@ -96,4 +92,4 @@ rtsp_server::~rtsp_server() {
     std::cout<<__func__<<" exit!"<<std::endl;
 }
 
-pid_t rtsp_server::child_pid = 0;
+pid_t rtsp_server::pid = 0;

@@ -16,8 +16,7 @@ public:
     rtsp_server(safe_queue<AVPacket*>& packet_queues);
     void start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
     void close_rtsp_server();
-    static bool init_server();
-    static bool close_server();
+    static bool init_mediamtx();
     ~rtsp_server();
 private:
     void push_stream();
@@ -27,6 +26,6 @@ private:
     AVRational* time_base;
     safe_queue<AVPacket*>& packet_queues;
     std::string output_url;
-    static pid_t child_pid;
+    static pid_t pid;
     std::thread t_rtsp;
 };
