@@ -18,6 +18,7 @@ public:
     bool try_pop(T& result);
     void wait_and_pop(T& result);
     bool empty() const;
+    int size() const;
 
 private:
     mutable std::mutex mtx_;
@@ -56,3 +57,8 @@ bool safe_queue<T>::empty() const {
     return queue_.empty();
 }
 
+template<typename T>
+int safe_queue<T>::size() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return queue_.size();
+}
