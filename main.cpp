@@ -23,8 +23,6 @@ extern "C" {
 
 #define MYIP "127.0.0.1"
 
-image_decoder img;
-std::mutex mtx;
 
 // 打印log
 bool is_log_print = true;
@@ -35,7 +33,7 @@ bool is_log_print = true;
 const int save_rtsp_data_time = 10;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
-#define DATA_REFEED
+// #define DATA_REFEED
 
 #define SIZE (5)
 
@@ -82,6 +80,7 @@ void process_stream_from_mp4(int cam_id) {
     if(ret < 0) {
         std::cerr << "Could not open output file\n";
     }
+    image_decoder img_decoder(packet_queues[cam_id],images[cam_id]);
     if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
         int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
         if(video_stream >= 0) {
@@ -110,13 +109,7 @@ void process_stream_from_mp4(int cam_id) {
                     if (now < target_time) {
                         std::this_thread::sleep_until(target_time);
                     }
-                    std::lock_guard<std::mutex> lock(mtx);
-                    img.set_parameter(codecpar);
-                    std::queue<AVFrame*> tmp_q = img.do_decode(&pkt);
-                    while(!tmp_q.empty()) {
-                        images[cam_id].push(tmp_q.front());
-                        tmp_q.pop();
-                    }
+                    img_decoder.start_image_decoder(codecpar);
                 }
                 av_packet_unref(&pkt);
             }
@@ -203,6 +196,7 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             continue;
         }
+        image_decoder img_decoder(packet_queues[cam_id],images[cam_id]);
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
@@ -210,9 +204,7 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                 AVCodecParameters* codecpar = stream->codecpar;
                 camera_para[cam_id].codecpar = codecpar;
                 camera_para[cam_id].time_base = stream->time_base;
-                {
-                    camera_res[cam_id] = {codecpar->width,codecpar->height};
-                }
+                camera_res[cam_id] = {codecpar->width,codecpar->height};
                 AVPacket pkt;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                     if(pkt.stream_index == video_stream) {
@@ -220,13 +212,7 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                         camera_timestamp[cam_id] = pts_sec;
                         frame_cnt ++;
                         camera_fps[cam_id] = frame_cnt / pts_sec;
-                        std::lock_guard<std::mutex> lock(mtx);
-                        img.set_parameter(codecpar);
-                        std::queue<AVFrame*> tmp_q = img.do_decode(&pkt);
-                        while(!tmp_q.empty()) {
-                            images[cam_id].push(tmp_q.front());
-                            tmp_q.pop();
-                        }
+                        img_decoder.start_image_decoder(codecpar);
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
                         pkt_copy->time_base = stream->time_base;
                         packet_queues[cam_id].push(pkt_copy);
@@ -235,7 +221,6 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                         rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_urls[cam_id]);
                         #endif
                     }
-                    av_packet_unref(&pkt);
                 }
             }
         }
@@ -249,6 +234,7 @@ void process_stitch_images(const std::string& url) {
     image_encoder img_enc;
     bool is_rtsp_launched = false;
     // std::thread t_rtsp;
+    int cnt = 0;
     while(running) {
         bool is_vaild = true;
         AVFrame* inputs[SIZE] = {};
@@ -259,8 +245,8 @@ void process_stitch_images(const std::string& url) {
         for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
         }
-        // out_image = stitch.do_stitch(inputs);
-        // AVFrame_log("stitch",out_image);
+        out_image = stitch.do_stitch(inputs);
+        AVFrame_log("stitch",out_image);
         // AVPacket* pkt = img_enc.do_encode(out_image);
         for(int i=0;i<SIZE;i++) {
             av_frame_free(&inputs[i]);

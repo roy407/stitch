@@ -1,8 +1,9 @@
 
 #include "image_decoder.h"
 #include <vector>
+#include <thread>
 
-image_decoder::image_decoder(const std::string& codec_name) {
+image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFrame*>& out_frame, const std::string& codec_name) : in_packet(in_packet), out_frame(out_frame) {
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
         throw std::runtime_error("CUDA decoder not found: " + codec_name);
@@ -19,51 +20,65 @@ image_decoder::image_decoder(const std::string& codec_name) {
     }
     codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
     is_created.store(false);
+    running.store(false);
 }
 
 image_decoder::~image_decoder() {
     avcodec_free_context(&codec_ctx);
+    close_image_decoder();
+    if(t_img_decoder.joinable()) {
+        t_img_decoder.join();
+    }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
 
-void image_decoder::set_parameter(AVCodecParameters* codecpar) {
+void image_decoder::start_image_decoder(AVCodecParameters* codecpar) {
     if(!is_created) {
         avcodec_parameters_to_context(codec_ctx, codecpar);
         if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
             throw std::runtime_error("Failed to open codec");
         }
         is_created.store(true);
+        running.store(true);
+        t_img_decoder = std::thread(&image_decoder::do_decode,this);
     }
 }
 
-std::queue<AVFrame*> image_decoder::do_decode(const AVPacket* pkt) {
-    std::queue<AVFrame*> q;
-    int ret = avcodec_send_packet(codec_ctx, pkt);
-    if (ret < 0) {
-        char errbuf[256];
-        av_strerror(ret, errbuf, sizeof(errbuf));
-        std::cerr << "avcodec_send_packet error: " << errbuf << std::endl;
-        return q;
-    }
+void image_decoder::close_image_decoder() {
+    running.store(false);
+}
 
-    while (ret >= 0) {
-        frame = av_frame_alloc();
-        if (!frame) {
-            throw std::runtime_error("Could not allocate AVFrame");
-        }
-        ret = avcodec_receive_frame(codec_ctx, frame);
-        if (ret == 0) {
-            if (frame->format == AV_PIX_FMT_CUDA) {
-                q.push(frame);
-            }
-        } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-            break;
-        } else {
+void image_decoder::do_decode() {
+    AVPacket* pkt = nullptr;
+    while(running) {
+        if(!in_packet.try_pop(pkt)) continue;
+        int ret = avcodec_send_packet(codec_ctx, pkt);
+        if (ret < 0) {
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            std::cerr << "avcodec_receive_frame error: " << errbuf << std::endl;
-            break;
+            std::cerr << "avcodec_send_packet error: " << errbuf << std::endl;
+            return;
         }
+
+        while (ret >= 0) {
+            AVFrame* frame = av_frame_alloc();
+            if (!frame) {
+                throw std::runtime_error("Could not allocate AVFrame");
+            }
+            ret = avcodec_receive_frame(codec_ctx, frame);
+            if (ret == 0) {
+                if (frame->format == AV_PIX_FMT_CUDA) {
+                    out_frame.push(frame);
+                }
+            } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                break;
+            } else {
+                char errbuf[256];
+                av_strerror(ret, errbuf, sizeof(errbuf));
+                std::cerr << "avcodec_receive_frame error: " << errbuf << std::endl;
+                break;
+            }
+        }
+        av_packet_unref(pkt);
     }
-    return q;
 }

@@ -10,7 +10,8 @@ add_library(stitch STATIC
 
 target_include_directories(stitch
   PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/safe_tools
 )
 
 target_link_libraries(stitch
