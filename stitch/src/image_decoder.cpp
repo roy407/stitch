@@ -80,5 +80,6 @@ void image_decoder::do_decode() {
             }
         }
         av_packet_unref(pkt);
+        av_packet_free(&pkt); //堆中内存，需释放
     }
 }

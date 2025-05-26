@@ -8,10 +8,13 @@ add_library(stitch STATIC
   src/stitch.cu
 )
 
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/ffmpeg/lib)
+
 target_include_directories(stitch
   PUBLIC 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/safe_tools
+  ${CMAKE_SOURCE_DIR}/ffmpeg/include
 )
 
 target_link_libraries(stitch

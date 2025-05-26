@@ -7,13 +7,13 @@
 #include <cuda_runtime.h>
 
 extern "C" {
-    #include <libavformat/avformat.h>
-    #include <libavcodec/avcodec.h>
-    #include <libavutil/pixfmt.h> 
-    #include <libavutil/pixdesc.h> 
-    #include <libavutil/opt.h>
-    #include <libavutil/log.h>
-    #include <libavcodec/bsf.h>
+    #include "libavformat/avformat.h"
+    #include "libavcodec/avcodec.h"
+    #include "libavutil/pixfmt.h" 
+    #include "libavutil/pixdesc.h" 
+    #include "libavutil/opt.h"
+    #include "libavutil/log.h"
+    #include "libavcodec/bsf.h"
 }
 #include "safe_queue.hpp"
 #include "rtsp.h"
@@ -33,7 +33,7 @@ bool is_log_print = true;
 const int save_rtsp_data_time = 10;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
-// #define DATA_REFEED
+#define DATA_REFEED
 
 #define SIZE (5)
 
@@ -105,10 +105,13 @@ void process_stream_from_mp4(int cam_id) {
                     double relative_pts = pts_sec - start_pts;
                     auto target_time = start_time + std::chrono::duration<double>(relative_pts);
                     auto now = std::chrono::steady_clock::now();
-
+                    
                     if (now < target_time) {
                         std::this_thread::sleep_until(target_time);
                     }
+                    AVPacket* pkt_copy = av_packet_clone(&pkt);
+                    pkt_copy->time_base = stream->time_base;
+                    packet_queues[cam_id].push(pkt_copy);
                     img_decoder.start_image_decoder(codecpar);
                 }
                 av_packet_unref(&pkt);
@@ -221,6 +224,7 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                         rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_urls[cam_id]);
                         #endif
                     }
+                    av_packet_unref(&pkt);
                 }
             }
         }
@@ -233,7 +237,6 @@ void process_stitch_images(const std::string& url) {
     Stitch stitch;
     image_encoder img_enc;
     bool is_rtsp_launched = false;
-    // std::thread t_rtsp;
     int cnt = 0;
     while(running) {
         bool is_vaild = true;
@@ -247,7 +250,7 @@ void process_stitch_images(const std::string& url) {
         }
         out_image = stitch.do_stitch(inputs);
         AVFrame_log("stitch",out_image);
-        // AVPacket* pkt = img_enc.do_encode(out_image);
+        img_enc.start_image_encoder();
         for(int i=0;i<SIZE;i++) {
             av_frame_free(&inputs[i]);
         }
