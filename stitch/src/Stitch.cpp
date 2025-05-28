@@ -5,10 +5,11 @@
 
 Stitch::Stitch() {
     
-    const int cam_num = 5;
+    const int cam_num = 1;
     const int single_width = 3840;
     const int height = 2160;
     const int output_width = single_width * cam_num;
+    size = cam_num;
 
     AVBufferRef* hw_device_ctx = nullptr;
     av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0);

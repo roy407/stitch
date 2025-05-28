@@ -11,7 +11,7 @@ __global__ void stitch_kernel(uint8_t* const* inputs, uint8_t* output, int width
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width || y >= height) return;
 
-    int single_width = width / 5;
+    int single_width = width;
     int cam_idx = x / single_width;
     int local_x = x % single_width;
 
@@ -22,7 +22,7 @@ __global__ void stitch_kernel(uint8_t* const* inputs, uint8_t* output, int width
 }
 
 extern "C"
-void launch_stitch_kernel(uint8_t* inputs[5], uint8_t* output, int width, int height, cudaStream_t stream) {
+void launch_stitch_kernel(uint8_t** inputs, uint8_t* output, int width, int height, cudaStream_t stream) {
     dim3 block(32, 32);
     dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
     stitch_kernel<<<grid, block, 0, stream>>>(inputs, output, width, height);

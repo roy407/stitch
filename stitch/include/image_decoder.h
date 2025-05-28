@@ -21,6 +21,7 @@ public:
     void do_decode();
 
     AVCodecContext* codec_ctx;
+    AVBufferRef* hw_device_ctx;
     const AVCodec* codec;
     safe_queue<AVPacket*>& in_packet;
     safe_queue<AVFrame*>& out_frame;

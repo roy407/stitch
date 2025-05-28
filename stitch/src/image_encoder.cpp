@@ -3,8 +3,9 @@
 extern "C" {
     #include <libavutil/opt.h>
 }
+#include<iostream>
 
-image_encoder::image_encoder(const std::string& codec_name) {
+image_encoder::image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*>& out_packet, const std::string& codec_name): in_frame(in_frame),out_packet(out_packet) {
     
     int width = 3840;
     int height = 2160;
@@ -46,7 +47,7 @@ image_encoder::image_encoder(const std::string& codec_name) {
     }
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)(frames_ref->data);
     frames_ctx->format = AV_PIX_FMT_CUDA;
-    frames_ctx->sw_format = AV_PIX_FMT_YUV420P;
+    frames_ctx->sw_format = AV_PIX_FMT_NV12;
     frames_ctx->width = width;
     frames_ctx->height = height;
     frames_ctx->initial_pool_size = 20;
@@ -54,6 +55,7 @@ image_encoder::image_encoder(const std::string& codec_name) {
         throw std::runtime_error("Failed to initialize HW frame context");
     }
     codec_ctx->hw_frames_ctx = av_buffer_ref(frames_ref);
+    running.store(false);
 }
 
 image_encoder::~image_encoder() {
@@ -75,28 +77,37 @@ void image_encoder::start_image_encoder() {
             throw std::runtime_error("Failed to open encoder");
         }
         is_created.store(true);
+        running.store(true);
         pkt = av_packet_alloc();
+        t_img_encoder = std::thread(&image_encoder::do_encode,this);
     }
 }
 void image_encoder::close_image_encoder() {
-
+    running.store(false);
 }
 
-AVPacket* image_encoder::do_encode(AVFrame* frame) {
-    int ret = avcodec_send_frame(codec_ctx, frame);
-    if (ret < 0) {
-        throw std::runtime_error("Error sending frame to encoder");
-    }
+void image_encoder::do_encode() {
+    AVFrame* frame = nullptr;
+    while(running) {
+        in_frame.wait_and_pop(frame);
+        std::cout<<"Error sending frame"<<frame->format<<std::endl;
+        int ret = avcodec_send_frame(codec_ctx, frame);
+        if (ret < 0) {
+            throw std::runtime_error("Error sending frame to encoder");
+        }
 
-    ret = avcodec_receive_packet(codec_ctx, pkt);
-    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-        return nullptr;  // 无输出可用
-    } else if (ret < 0) {
-        throw std::runtime_error("Error during encoding");
-    }
+        ret = avcodec_receive_packet(codec_ctx, pkt);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            continue;
+        } else if (ret < 0) {
+            throw std::runtime_error("Error during encoding");
+        }
+        
+        av_frame_free(&frame);
 
-    AVPacket* out_pkt = av_packet_alloc();
-    av_packet_ref(out_pkt, pkt);
-    av_packet_unref(pkt);
-    return out_pkt;
+        AVPacket* out_pkt = av_packet_alloc();
+        av_packet_ref(out_pkt, pkt);
+        av_packet_unref(pkt);
+        out_packet.push(out_pkt);
+    }
 }

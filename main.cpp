@@ -27,13 +27,13 @@ extern "C" {
 // 打印log
 bool is_log_print = true;
 // 推流
-// #define IS_PUSH_STREAM
+#define IS_PUSH_STREAM
 //将拉流得到的rtsp数据保存在save_rtsp_data_path中 
 // #define SAVE_RTSP_DATA
 const int save_rtsp_data_time = 10;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
-#define DATA_REFEED
+// #define DATA_REFEED
 
 #define SIZE (5)
 
@@ -68,7 +68,7 @@ std::pair<int,int> camera_res[SIZE];
 struct Camera_param camera_para[SIZE];
 
 safe_queue<AVFrame*> images[SIZE];
-AVFrame* out_image = nullptr;
+safe_queue<AVPacket*> packet_out;
 
 std::atomic<bool> running{true}; // 全局运行标志
 
@@ -217,7 +217,6 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                         camera_fps[cam_id] = frame_cnt / pts_sec;
                         img_decoder.start_image_decoder(codecpar);
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
-                        pkt_copy->time_base = stream->time_base;
                         packet_queues[cam_id].push(pkt_copy);
                         
                         #ifdef IS_PUSH_STREAM
@@ -234,10 +233,28 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
 }
 
 void process_stitch_images(const std::string& url) {
+    AVFormatContext* out_ctx = nullptr;
+    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
+
+    AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
+    out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
+
+    // 3. 配置视频流参数
+    AVCodecParameters* codecpar = out_stream->codecpar;
+    codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+    codecpar->codec_id = AV_CODEC_ID_H264;   
+    codecpar->width = 3840;                  
+    codecpar->height = 2160;                 
+    codecpar->format = AV_PIX_FMT_CUDA;   
+
+    out_stream->time_base = (AVRational){1, 20}; 
+    safe_queue<AVFrame*> stitched_frames;
     Stitch stitch;
-    image_encoder img_enc;
-    bool is_rtsp_launched = false;
+    image_encoder img_enc(stitched_frames,packet_out);
+    rtsp_server rtsp(packet_out);
+    rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
     int cnt = 0;
+    AVFrame* out_image = nullptr;
     while(running) {
         bool is_vaild = true;
         AVFrame* inputs[SIZE] = {};
@@ -248,12 +265,12 @@ void process_stitch_images(const std::string& url) {
         for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
         }
-        out_image = stitch.do_stitch(inputs);
-        AVFrame_log("stitch",out_image);
+        out_image = inputs[0];
+        stitched_frames.push(out_image);
         img_enc.start_image_encoder();
-        for(int i=0;i<SIZE;i++) {
-            av_frame_free(&inputs[i]);
-        }
+        // for(int i=0;i<SIZE;i++) {
+        //     av_frame_free(&inputs[i]);
+        // }
     }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
@@ -284,7 +301,7 @@ void cout_message() {
 void AVFrame_log(const char* cam_name, const AVFrame* frame) {
 if (frame) {
     std::cout << "========= AVFrame Info (" << cam_name << ") =========" << std::endl;
-    std::cout << "Format:         " << av_get_pix_fmt_name((AVPixelFormat)frame->format) << std::endl;
+    std::cout << "Format:         " << frame->format << std::endl;
     std::cout << "Width x Height: " << frame->width << " x " << frame->height << std::endl;
     std::cout << "PTS:            " << frame->pts << std::endl;
     std::cout << "DTS:            " << frame->pkt_dts << std::endl;
@@ -315,7 +332,7 @@ int main() {
         workers.emplace_back(process_stream_from_rtsp, camera_urls[i], i);
         #endif
     }
-    workers.emplace_back(process_stitch_images, push_stream_stitch_url);
+    // workers.emplace_back(process_stitch_images, push_stream_stitch_url);
 
     if(is_log_print)
         workers.emplace_back(cout_message);
@@ -324,6 +341,7 @@ int main() {
         if(t.joinable()) t.join();
     }
     avformat_network_deinit();
+    // rtsp_server::destory_mediamtx();
     std::cout<<__func__<<" exit!"<<std::endl;
     return 0;
 }

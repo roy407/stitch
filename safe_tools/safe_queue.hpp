@@ -24,12 +24,14 @@ private:
     mutable std::mutex mtx_;
     std::queue<T> queue_;
     std::condition_variable cond_;
+    int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
 };
 
 template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
+    if(queue_.size() >= max_queue_size) queue_.pop();
     cond_.notify_one();
 }
 

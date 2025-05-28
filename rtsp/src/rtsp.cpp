@@ -63,6 +63,32 @@ bool rtsp_server::init_mediamtx() {
     return EXIT_SUCCESS;
 }
 
+bool rtsp_server::destory_mediamtx() {
+    int pid = 0;
+    std::string cmd = "pgrep mediamtx";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        std::cerr << "Failed to run pgrep command\n";
+        return false;
+    }
+
+    char buffer[128];
+    while (fgets(buffer, sizeof(buffer), pipe)) {
+        int tmp_pid = std::atoi(buffer);
+        if(pid > 0) break;
+        if (tmp_pid > 0) {
+            pid = tmp_pid;
+        }
+    }
+    pclose(pipe);
+
+    if (kill(pid, SIGTERM) == 0) {
+        std::cout << "Successfully sent SIGTERM to PID " << pid << "\n";
+    } else {
+        perror(("Failed to kill PID " + std::to_string(pid)).c_str());
+    }
+}
+
 void rtsp_server::push_stream() {
     if (!*codecpar || (*codecpar)->codec_type != AVMEDIA_TYPE_VIDEO) {
         std::cout << "Invalid codec parameters" << std::endl;
@@ -79,8 +105,9 @@ void rtsp_server::push_stream() {
     while(running) {
         AVPacket* pkt;
         if(!packet_queues.try_pop(pkt)) continue;
-        av_interleaved_write_frame(out_ctx, pkt);
-        av_packet_unref(pkt);
+        AVPacket* pkt_copy = av_packet_clone(pkt);
+        av_interleaved_write_frame(out_ctx, pkt_copy);
+        av_packet_unref(pkt_copy);
     }
 }
 

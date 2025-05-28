@@ -4,6 +4,8 @@
 #include <thread>
 
 image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFrame*>& out_frame, const std::string& codec_name) : in_packet(in_packet), out_frame(out_frame) {
+    hw_device_ctx = nullptr;
+    
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
         throw std::runtime_error("CUDA decoder not found: " + codec_name);
@@ -14,11 +16,11 @@ image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFra
         throw std::runtime_error("Could not allocate codec context");
     }
 
-    AVBufferRef* hw_device_ctx = nullptr;
     if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0) < 0) {
         throw std::runtime_error("Failed to create CUDA device context");
     }
     codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+
     is_created.store(false);
     running.store(false);
 }
@@ -80,6 +82,5 @@ void image_decoder::do_decode() {
             }
         }
         av_packet_unref(pkt);
-        av_packet_free(&pkt); //堆中内存，需释放
     }
 }

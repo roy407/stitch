@@ -9,18 +9,24 @@ extern "C" {
 #include <string>
 #include <stdexcept>
 #include <atomic>
+#include <thread>
+#include "safe_queue.hpp"
 
 class image_encoder {
 public:
-    image_encoder(const std::string& codec_name = "h264_nvenc");
+    image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*>& out_packet, const std::string& codec_name = "h264_nvenc");
     ~image_encoder();
     void start_image_encoder();
     void close_image_encoder();
 
-    AVPacket* do_encode(AVFrame* frame);
+    void do_encode();
 
     AVCodecContext* codec_ctx;
     const AVCodec* codec;
     AVPacket* pkt;
+    safe_queue<AVFrame*>& in_frame;
+    safe_queue<AVPacket*>& out_packet;
     std::atomic_bool is_created;
+    std::atomic_bool running;
+    std::thread t_img_encoder;
 };

@@ -17,6 +17,7 @@ public:
     void start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
     void close_rtsp_server();
     static bool init_mediamtx();
+    static bool destory_mediamtx();
     ~rtsp_server();
 private:
     void push_stream();
