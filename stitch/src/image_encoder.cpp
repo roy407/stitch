@@ -7,8 +7,8 @@ extern "C" {
 
 image_encoder::image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*>& out_packet, const std::string& codec_name): in_frame(in_frame),out_packet(out_packet) {
     
-    int width = 3840;
-    int height = 2160;
+    int width = 3000;
+    int height = 360;
     int fps = 20;
     
     codec = avcodec_find_encoder_by_name(codec_name.c_str());
@@ -90,7 +90,6 @@ void image_encoder::do_encode() {
     AVFrame* frame = nullptr;
     while(running) {
         in_frame.wait_and_pop(frame);
-        std::cout<<"Error sending frame"<<frame->format<<std::endl;
         int ret = avcodec_send_frame(codec_ctx, frame);
         if (ret < 0) {
             throw std::runtime_error("Error sending frame to encoder");

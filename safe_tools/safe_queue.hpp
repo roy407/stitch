@@ -31,7 +31,17 @@ template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
-    if(queue_.size() >= max_queue_size) queue_.pop();
+    if(queue_.size() >= max_queue_size) { 
+        if constexpr (std::is_same<T, AVPacket*>::value) {
+            AVPacket* pkt = queue_.front();
+            av_packet_unref(pkt);
+        }
+        if constexpr (std::is_same<T, AVFrame*>::value) {
+            AVFrame* frame = queue_.front();
+            av_frame_unref(frame);
+        }
+        queue_.pop();
+    }
     cond_.notify_one();
 }
 

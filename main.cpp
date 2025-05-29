@@ -27,12 +27,12 @@ extern "C" {
 // 打印log
 bool is_log_print = true;
 // 推流
-#define IS_PUSH_STREAM
+// #define IS_PUSH_STREAM
 //将拉流得到的rtsp数据保存在save_rtsp_data_path中 
 // #define SAVE_RTSP_DATA
-const int save_rtsp_data_time = 10;
+const int save_rtsp_data_time = 60;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
-// 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取。
+// 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取
 // #define DATA_REFEED
 
 #define SIZE (5)
@@ -243,8 +243,8 @@ void process_stitch_images(const std::string& url) {
     AVCodecParameters* codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = 3840;                  
-    codecpar->height = 2160;                 
+    codecpar->width = 3000;                  
+    codecpar->height = 360;                 
     codecpar->format = AV_PIX_FMT_CUDA;   
 
     out_stream->time_base = (AVRational){1, 20}; 
@@ -256,21 +256,17 @@ void process_stitch_images(const std::string& url) {
     int cnt = 0;
     AVFrame* out_image = nullptr;
     while(running) {
-        bool is_vaild = true;
         AVFrame* inputs[SIZE] = {};
         for(int i=0;i<SIZE;i++) {
-            if(images[i].empty()) is_vaild = false;
-        }
-        if(!is_vaild) continue;
-        for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
+            std::cout<<images[i].size()<<std::endl;
         }
-        out_image = inputs[0];
+        std::cout<<std::endl;
+        std::cout<<std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        out_image = stitch.do_stitch(inputs);
         stitched_frames.push(out_image);
-        img_enc.start_image_encoder();
-        // for(int i=0;i<SIZE;i++) {
-        //     av_frame_free(&inputs[i]);
-        // }
+        // img_enc.start_image_encoder();
     }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
@@ -321,7 +317,7 @@ int main() {
     avformat_network_init(); // 初始化网络模块
     
     std::vector<std::thread> workers;
-    // rtsp_server::init_mediamtx();
+    rtsp_server::init_mediamtx();
 
     for(int i=0; i<SIZE; ++i) {
         #if defined(DATA_REFEED)

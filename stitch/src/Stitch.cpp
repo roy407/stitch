@@ -3,11 +3,15 @@
 
 #include <iostream>
 
+#include <libavutil/frame.h>
+#include <libavutil/hwcontext.h>
+#include <libavutil/pixfmt.h>
+
 Stitch::Stitch() {
     
-    const int cam_num = 1;
-    const int single_width = 3840;
-    const int height = 2160;
+    const int cam_num = 5;
+    const int single_width = 600;
+    const int height = 360;
     const int output_width = single_width * cam_num;
     size = cam_num;
 
@@ -26,6 +30,20 @@ Stitch::Stitch() {
     if (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
         throw std::runtime_error("Failed to initialize CUDA hwframe context");
     }
+
+    running.store(true);
+}
+
+Stitch::~Stitch() {
+    running.store(false);
+}
+
+AVFrame* Stitch::do_stitch(AVFrame** inputs) {
+    const int cam_num = size;
+    const int single_width = 600;
+    const int height = 360;
+    const int output_width = single_width * cam_num;
+
     output = av_frame_alloc();
     if (!output) {
         throw std::runtime_error("Failed to allocate output frame");
@@ -41,24 +59,11 @@ Stitch::Stitch() {
         throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
     }
 
-    running.store(true);
-}
-
-Stitch::~Stitch() {
-    av_frame_free(&output);
-    running.store(false);
-}
-
-AVFrame* Stitch::do_stitch(AVFrame** inputs) {
-    const int cam_num = size;
-    const int single_width = 3840;
-    const int height = 2160;
-    const int output_width = single_width * cam_num;
-
     uint8_t* gpu_inputs[cam_num];
     for (int i = 0; i < cam_num; ++i) {
         if(!inputs[i]) {
             std::cout<< "input is nullptr" <<std::endl;
+            av_frame_free(&output);
             return nullptr;
         }
         gpu_inputs[i] = inputs[i]->data[0];
