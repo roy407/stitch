@@ -4,6 +4,7 @@ extern "C" {
     #include <libavutil/opt.h>
 }
 #include<iostream>
+#include "cuda_handle_init.h"
 
 image_encoder::image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*>& out_packet, const std::string& codec_name): in_frame(in_frame),out_packet(out_packet) {
     
@@ -35,13 +36,9 @@ image_encoder::image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*
         av_opt_set(codec_ctx->priv_data, "gpu", "0", 0);
     }
 
-    AVBufferRef* hw_device_ctx = nullptr;
-    if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0) < 0) {
-        throw std::runtime_error("Failed to create CUDA device context");
-    }
-    codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+    codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
 
-    AVBufferRef* frames_ref = av_hwframe_ctx_alloc(hw_device_ctx);
+    AVBufferRef* frames_ref = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
     if (!frames_ref) {
         throw std::runtime_error("Failed to allocate HW frame context");
     }

@@ -11,14 +11,12 @@ extern "C" {
 #include <atomic>
 #include <thread>
 
-class cuda_init {
+class cuda_handle_init {
 public:
-    cuda_init();
-    ~cuda_init();
-    void start_cuda_init();
-    void close_cuda_init();
-
-    AVCodecContext* codec_ctx;
-    static AVBufferRef* hw_device_ctx;
-    const AVCodec* codec;
+    ~cuda_handle_init();
+    static AVBufferRef* GetGPUDeviceHandle();
+private:
+    cuda_handle_init();
+private:
+    AVBufferRef* hw_device_ctx;
 };

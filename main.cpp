@@ -92,6 +92,7 @@ void process_stream_from_mp4(int cam_id) {
             auto start_time = std::chrono::steady_clock::now();
             double start_pts = AV_NOPTS_VALUE;
             AVPacket pkt;
+            img_decoder.start_image_decoder(codecpar);
             while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                 if(pkt.stream_index == video_stream) {
                     double pts_sec = pkt.pts * av_q2d(stream->time_base);
@@ -112,7 +113,6 @@ void process_stream_from_mp4(int cam_id) {
                     AVPacket* pkt_copy = av_packet_clone(&pkt);
                     pkt_copy->time_base = stream->time_base;
                     packet_queues[cam_id].push(pkt_copy);
-                    img_decoder.start_image_decoder(codecpar);
                 }
                 av_packet_unref(&pkt);
             }
@@ -208,6 +208,7 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                 camera_para[cam_id].codecpar = codecpar;
                 camera_para[cam_id].time_base = stream->time_base;
                 camera_res[cam_id] = {codecpar->width,codecpar->height};
+                img_decoder.start_image_decoder(codecpar);
                 AVPacket pkt;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                     if(pkt.stream_index == video_stream) {
@@ -215,7 +216,6 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
                         camera_timestamp[cam_id] = pts_sec;
                         frame_cnt ++;
                         camera_fps[cam_id] = frame_cnt / pts_sec;
-                        img_decoder.start_image_decoder(codecpar);
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
                         packet_queues[cam_id].push(pkt_copy);
                         

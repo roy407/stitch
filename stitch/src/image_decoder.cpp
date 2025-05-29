@@ -1,10 +1,10 @@
 
 #include "image_decoder.h"
+#include "cuda_handle_init.h"
 #include <vector>
 #include <thread>
 
 image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFrame*>& out_frame, const std::string& codec_name) : in_packet(in_packet), out_frame(out_frame) {
-    hw_device_ctx = nullptr;
     
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
@@ -16,10 +16,7 @@ image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFra
         throw std::runtime_error("Could not allocate codec context");
     }
 
-    if (av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0) < 0) {
-        throw std::runtime_error("Failed to create CUDA device context");
-    }
-    codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+    codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
 
     is_created.store(false);
     running.store(false);
