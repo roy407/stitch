@@ -3,6 +3,7 @@
 #include "cuda_handle_init.h"
 #include <vector>
 #include <thread>
+#include "tools.hpp"
 
 image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFrame*>& out_frame, const std::string& codec_name) : in_packet(in_packet), out_frame(out_frame) {
     

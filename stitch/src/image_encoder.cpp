@@ -8,7 +8,7 @@ extern "C" {
 
 image_encoder::image_encoder(safe_queue<AVFrame*>& in_frame,safe_queue<AVPacket*>& out_packet, const std::string& codec_name): in_frame(in_frame),out_packet(out_packet) {
     
-    int width = 3000;
+    int width = 640;
     int height = 360;
     int fps = 20;
     

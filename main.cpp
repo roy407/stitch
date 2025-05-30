@@ -33,7 +33,7 @@ bool is_log_print = true;
 const int save_rtsp_data_time = 60;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取
-// #define DATA_REFEED
+#define DATA_REFEED
 
 #define SIZE (5)
 
@@ -43,11 +43,11 @@ struct Camera_param {
 };
 
 std::vector<std::string> camera_urls = {
-    "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
-    "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
-    "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
-    "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
-    "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream"
+    "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/sub/av_stream",
+    "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/sub/av_stream",
+    "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/sub/av_stream",
+    "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/sub/av_stream",
+    "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/sub/av_stream"
 };
 
 std::vector<std::string> push_stream_urls = {
@@ -243,7 +243,7 @@ void process_stitch_images(const std::string& url) {
     AVCodecParameters* codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = 3000;                  
+    codecpar->width = 640 * 2;                  
     codecpar->height = 360;                 
     codecpar->format = AV_PIX_FMT_CUDA;   
 
@@ -259,14 +259,11 @@ void process_stitch_images(const std::string& url) {
         AVFrame* inputs[SIZE] = {};
         for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
-            std::cout<<images[i].size()<<std::endl;
         }
-        std::cout<<std::endl;
-        std::cout<<std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         out_image = stitch.do_stitch(inputs);
-        stitched_frames.push(out_image);
-        // img_enc.start_image_encoder();
+        if(out_image) stitched_frames.push(out_image);
+        img_enc.start_image_encoder();
     }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
@@ -295,29 +292,29 @@ void cout_message() {
 }
 
 void AVFrame_log(const char* cam_name, const AVFrame* frame) {
-if (frame) {
-    std::cout << "========= AVFrame Info (" << cam_name << ") =========" << std::endl;
-    std::cout << "Format:         " << frame->format << std::endl;
-    std::cout << "Width x Height: " << frame->width << " x " << frame->height << std::endl;
-    std::cout << "PTS:            " << frame->pts << std::endl;
-    std::cout << "DTS:            " << frame->pkt_dts << std::endl;
-    std::cout << "HW FramesCtx:   " << (frame->hw_frames_ctx ? "Yes (GPU frame)" : "No (CPU frame)") << std::endl;
-    
-    // 输出前 3 个 data/buf 指针状态
-    for (int i = 0; i < 3; ++i) {
-        std::cout << "data[" << i << "]:      " << static_cast<const void*>(frame->data[i]) << std::endl;
-        std::cout << "linesize[" << i << "]:  " << frame->linesize[i] << std::endl;
-    }
+    if (frame) {
+        std::cout << "========= AVFrame Info (" << cam_name << ") =========" << std::endl;
+        std::cout << "Format:         " << frame->format << std::endl;
+        std::cout << "Width x Height: " << frame->width << " x " << frame->height << std::endl;
+        std::cout << "PTS:            " << frame->pts << std::endl;
+        std::cout << "DTS:            " << frame->pkt_dts << std::endl;
+        std::cout << "HW FramesCtx:   " << (frame->hw_frames_ctx ? "Yes (GPU frame)" : "No (CPU frame)") << std::endl;
+        
+        // 输出前 3 个 data/buf 指针状态
+        for (int i = 0; i < 3; ++i) {
+            std::cout << "data[" << i << "]:      " << static_cast<const void*>(frame->data[i]) << std::endl;
+            std::cout << "linesize[" << i << "]:  " << frame->linesize[i] << std::endl;
+        }
 
-    std::cout << "==========================================================" << std::endl;
-}
+        std::cout << "==========================================================" << std::endl;
+    }
 }
 
 int main() {
     avformat_network_init(); // 初始化网络模块
     
     std::vector<std::thread> workers;
-    rtsp_server::init_mediamtx();
+    // rtsp_server::init_mediamtx();
 
     for(int i=0; i<SIZE; ++i) {
         #if defined(DATA_REFEED)
@@ -328,7 +325,7 @@ int main() {
         workers.emplace_back(process_stream_from_rtsp, camera_urls[i], i);
         #endif
     }
-    // workers.emplace_back(process_stitch_images, push_stream_stitch_url);
+    workers.emplace_back(process_stitch_images, push_stream_stitch_url);
 
     if(is_log_print)
         workers.emplace_back(cout_message);
