@@ -7,7 +7,7 @@ cuda_handle_init::cuda_handle_init() {
     }
 }
 cuda_handle_init::~cuda_handle_init() {
-
+    av_buffer_unref(&hw_device_ctx);
 }
 
 AVBufferRef* cuda_handle_init::GetGPUDeviceHandle() {

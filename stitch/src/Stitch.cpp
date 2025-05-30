@@ -9,11 +9,8 @@
 
 #include "cuda_handle_init.h"
 
-Stitch::Stitch() {
+Stitch::Stitch(int cam_num,int single_width,int height): cam_num(cam_num),single_width(single_width),height(height) {
     
-    const int cam_num = 1;
-    const int single_width = 640;
-    const int height = 360;
     const int output_width = single_width * cam_num;
     size = cam_num;
 
@@ -39,9 +36,6 @@ Stitch::~Stitch() {
 
 AVFrame* Stitch::do_stitch(AVFrame** inputs) {
 
-    const int cam_num = size;
-    const int single_width = 640;
-    const int height = 360;
     const int output_width = single_width * cam_num;
 
     uint8_t* gpu_inputs_y[cam_num];

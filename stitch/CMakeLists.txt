@@ -3,7 +3,6 @@ enable_language(CUDA)
 
 add_library(stitch STATIC
   src/cuda_handle_init.cpp
-  src/image_decoder.cpp
   src/image_encoder.cpp
   src/Stitch.cpp
   src/stitch.cu

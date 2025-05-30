@@ -8,7 +8,7 @@ extern "C" {
 }
 class Stitch {
 public:
-    explicit Stitch();
+    explicit Stitch(int cam_num,int single_width,int height);
     ~Stitch();
     AVFrame* do_stitch(AVFrame** inputs);
 private:
@@ -16,4 +16,7 @@ private:
     AVBufferRef* hw_frames_ctx;
     size_t size;
     std::atomic_bool running;
+    int cam_num;
+    int single_width;
+    int height;
 };
