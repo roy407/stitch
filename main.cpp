@@ -33,7 +33,7 @@ bool is_log_print = true;
 const int save_rtsp_data_time = 60;
 const std::string save_rtsp_data_path = "/home/eric/文档/mp4/";
 // 数据回灌 打开此项后，可以不从RTSP中读流，转而从文件中读取
-#define DATA_REFEED
+// #define DATA_REFEED
 
 #define SIZE (5)
 
@@ -253,6 +253,7 @@ void process_stitch_images(const std::string& url) {
     image_encoder img_enc(stitched_frames,packet_out);
     rtsp_server rtsp(packet_out);
     rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
+    img_enc.start_image_encoder();
     int cnt = 0;
     AVFrame* out_image = nullptr;
     while(running) {
@@ -260,10 +261,14 @@ void process_stitch_images(const std::string& url) {
         for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
         out_image = stitch.do_stitch(inputs);
         if(out_image) stitched_frames.push(out_image);
-        img_enc.start_image_encoder();
+        for (int i = 0; i < SIZE; ++i) {
+            if (inputs[i]) {
+                av_frame_free(&inputs[i]);
+            }
+        }
     }
     std::cout<<__func__<<" exit!"<<std::endl;
 }

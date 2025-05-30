@@ -38,10 +38,21 @@ Stitch::~Stitch() {
 }
 
 AVFrame* Stitch::do_stitch(AVFrame** inputs) {
+
     const int cam_num = size;
     const int single_width = 640;
     const int height = 360;
     const int output_width = single_width * cam_num;
+
+    uint8_t* gpu_inputs_y[cam_num];
+    uint8_t* gpu_inputs_uv[cam_num];
+    for (int i = 0; i < cam_num; ++i) {
+        if (!inputs[i]) {
+            return nullptr;
+        }
+        gpu_inputs_y[i] = inputs[i]->data[0];
+        gpu_inputs_uv[i] = inputs[i]->data[1];
+    }
 
     output = av_frame_alloc();
     if (!output) {
@@ -56,17 +67,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
 
     if (av_hwframe_get_buffer(hw_frames_ctx, output, 0) < 0) {
         throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
-    }
-
-        uint8_t* gpu_inputs_y[cam_num];
-    uint8_t* gpu_inputs_uv[cam_num];
-    for (int i = 0; i < cam_num; ++i) {
-        if (!inputs[i]) {
-            av_frame_free(&output);
-            return nullptr;
-        }
-        gpu_inputs_y[i] = inputs[i]->data[0];
-        gpu_inputs_uv[i] = inputs[i]->data[1];
     }
 
     uint8_t **d_inputs_y, **d_inputs_uv;
@@ -86,13 +86,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
 
     cudaFree(d_inputs_y);
     cudaFree(d_inputs_uv);
-
-    
-    for (int i = 0; i < cam_num; ++i) {
-        if (!inputs[i]) {
-            av_frame_free(&inputs[i]);
-        }
-    }
 
 
     return output;
