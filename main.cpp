@@ -233,6 +233,11 @@ void process_stream_from_rtsp(const std::string& url, int cam_id) {
 }
 
 void process_stitch_images(const std::string& url) {
+
+    int width = 640;
+    int height = 320;
+    int cam_num = 5;
+
     AVFormatContext* out_ctx = nullptr;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
 
@@ -243,14 +248,14 @@ void process_stitch_images(const std::string& url) {
     AVCodecParameters* codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = 640 * 2;                  
-    codecpar->height = 360;                 
+    codecpar->width = width * cam_num;                  
+    codecpar->height = height;                 
     codecpar->format = AV_PIX_FMT_CUDA;   
 
     out_stream->time_base = (AVRational){1, 20}; 
     safe_queue<AVFrame*> stitched_frames;
-    Stitch stitch;
-    image_encoder img_enc(stitched_frames,packet_out);
+    Stitch stitch(width,height,cam_num);
+    image_encoder img_enc(width * cam_num,height,stitched_frames,packet_out);
     rtsp_server rtsp(packet_out);
     rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
     img_enc.start_image_encoder();
@@ -261,7 +266,7 @@ void process_stitch_images(const std::string& url) {
         for(int i=0;i<SIZE;i++) {
             images[i].try_pop(inputs[i]);
         }
-        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         out_image = stitch.do_stitch(inputs);
         if(out_image) stitched_frames.push(out_image);
         for (int i = 0; i < SIZE; ++i) {

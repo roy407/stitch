@@ -24,7 +24,7 @@ private:
     mutable std::mutex mtx_;
     std::queue<T> queue_;
     std::condition_variable cond_;
-    int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
+    int max_queue_size{20}; //设置队列最大缓冲值，目前设置最大为20
 };
 
 template<typename T>

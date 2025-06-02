@@ -9,13 +9,9 @@
 
 #include "cuda_handle_init.h"
 
-Stitch::Stitch() {
+Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(height),cam_num(cam_num) {
     
-    const int cam_num = 1;
-    const int single_width = 640;
-    const int height = 360;
     const int output_width = single_width * cam_num;
-    size = cam_num;
 
     // 创建 HW frame context
     hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
@@ -24,7 +20,7 @@ Stitch::Stitch() {
     frames_ctx->sw_format = AV_PIX_FMT_NV12;   // CUDA 支持的底层格式
     frames_ctx->width = output_width;
     frames_ctx->height = height;
-    frames_ctx->initial_pool_size = 1;
+    frames_ctx->initial_pool_size = 20;
 
     if (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
         throw std::runtime_error("Failed to initialize CUDA hwframe context");
@@ -39,9 +35,6 @@ Stitch::~Stitch() {
 
 AVFrame* Stitch::do_stitch(AVFrame** inputs) {
 
-    const int cam_num = size;
-    const int single_width = 640;
-    const int height = 360;
     const int output_width = single_width * cam_num;
 
     uint8_t* gpu_inputs_y[cam_num];
@@ -81,8 +74,27 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
 
     cudaStream_t stream = 0;
 
-    launch_stitch_y_uv_kernel(d_inputs_y, d_inputs_uv, output_y, output_uv,
-                              cam_num, single_width, output_width, height, stream);
+    int h_input_linesize_y[cam_num];
+    int h_input_linesize_uv[cam_num];
+
+    for(int i=0;i<cam_num;i++) {
+        h_input_linesize_uv[i] = inputs[i]->linesize[1];
+        h_input_linesize_y[i] = inputs[i]->linesize[0];
+    }
+
+    int* d_input_linesize_y;
+    int* d_input_linesize_uv;
+    cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int));
+    cudaMalloc(&d_input_linesize_uv, cam_num * sizeof(int));
+    cudaMemcpy(d_input_linesize_y, h_input_linesize_y, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input_linesize_uv, h_input_linesize_uv, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+
+    launch_stitch_kernel(d_inputs_y, d_inputs_uv,
+                        d_input_linesize_y, d_input_linesize_uv,
+                        output_y, output_uv,
+                        output->linesize[0], output->linesize[1],
+                        cam_num, single_width, cam_num * single_width, height,
+                        stream);
 
     cudaFree(d_inputs_y);
     cudaFree(d_inputs_uv);
