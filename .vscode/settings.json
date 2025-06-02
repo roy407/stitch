@@ -59,6 +59,8 @@
         "cinttypes": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "forward_list": "cpp",
+        "valarray": "cpp"
     }
 }

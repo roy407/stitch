@@ -1,0 +1,46 @@
+#pragma once
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <atomic>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
+
+// 单个相机配置
+struct CameraConfig {
+    std::string name;
+    std::string input_url;
+    std::string sub_input_url;
+    std::string output_url;
+};
+
+// 全局配置
+struct GlobalConfig {
+    bool use_sub_input;
+    std::string software_status;
+    std::string status;
+    int save_rtsp_data_time;
+    std::string save_rtsp_data_path;
+};
+
+// Stitch 配置
+struct StitchConfig {
+    std::string output_url;
+};
+
+// 配置管理类
+class config {
+private:
+    GlobalConfig global;
+    std::vector<CameraConfig> cameras;
+    StitchConfig stitch;
+    config();
+    bool loadFromFile(const std::string& filename);
+public:
+    static config& GetInstance();
+    const GlobalConfig GetGlobalConfig() const;
+    const std::vector<CameraConfig> GetCameraConfig() const;
+    const StitchConfig GetStitchConfig() const;
+};

@@ -1,6 +1,10 @@
 {
     "global": {
-        "input_status": 0
+        "use_sub_input": true,
+        "software_status": "debug",
+        "status": "rtsp",
+        "save_rtsp_data_time": 60,
+        "save_rtsp_data_path": "/home/eric/文档/mp4/"
     },
     "cameras": [
         {

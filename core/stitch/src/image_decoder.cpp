@@ -24,11 +24,15 @@ image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFra
 }
 
 image_decoder::~image_decoder() {
-    avcodec_free_context(&codec_ctx);
     close_image_decoder();
     if(t_img_decoder.joinable()) {
         t_img_decoder.join();
     }
+    if(codec_ctx && codec_ctx->hw_device_ctx) {
+        av_buffer_unref(&(codec_ctx->hw_device_ctx));
+        codec_ctx->hw_device_ctx = nullptr;
+    }
+    avcodec_free_context(&codec_ctx);
     std::cout<<__func__<<" exit!"<<std::endl;
 }
 
