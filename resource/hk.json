@@ -1,9 +1,9 @@
 {
     "global": {
-        "use_sub_input": true,
+        "use_sub_input": false,
         "software_status": "debug",
-        "status": "rtsp",
-        "save_rtsp_data_time": 60,
+        "status": "file",
+        "save_rtsp_data_time": 240,
         "save_rtsp_data_path": "/home/eric/文档/mp4/"
     },
     "cameras": [

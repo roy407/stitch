@@ -11,7 +11,7 @@ extern "C" {
     #include <libavutil/log.h>
 }
 
-rtsp_server::rtsp_server(safe_queue<AVPacket*>& packet_queues) : packet_queues(packet_queues) {
+rtsp_server::rtsp_server(safe_queue<AVPacket*>& packet_input) : packet_input(packet_input) {
     running.store(false);
     codecpar = nullptr; 
     time_base = nullptr;
@@ -104,7 +104,7 @@ void rtsp_server::push_stream() {
     int ret1 = avformat_write_header(out_ctx, NULL);
     while(running) {
         AVPacket* pkt;
-        if(!packet_queues.try_pop(pkt)) continue;
+        if(!packet_input.try_pop(pkt)) continue;
         AVPacket* pkt_copy = av_packet_clone(pkt);
         av_interleaved_write_frame(out_ctx, pkt_copy);
         av_packet_unref(pkt_copy);

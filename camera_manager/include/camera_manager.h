@@ -39,13 +39,13 @@ private:
         AVCodecParameters* codecpar; 
         AVRational time_base;
     };
-    // int cam_num;
-    safe_queue<AVPacket*> packet_queues[cam_num];
     double camera_timestamp[cam_num] = {0.0};
     int camera_fps[cam_num] = {0};
     std::pair<int,int> camera_res[cam_num];
     struct Camera_param camera_para[cam_num];
-    safe_queue<AVFrame*> images[cam_num];
-    safe_queue<AVPacket*> packet_out;
+    safe_queue<AVPacket*> packet_input[cam_num];
+    safe_queue<AVFrame*> frame_input[cam_num];
+    safe_queue<AVFrame*> frame_output;
+    safe_queue<AVPacket*> packet_output;
     std::atomic<bool> running{true}; // 全局运行标志
 };

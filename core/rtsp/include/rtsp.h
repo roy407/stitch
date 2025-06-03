@@ -13,7 +13,7 @@ extern "C" {
 
 class rtsp_server {
 public:
-    rtsp_server(safe_queue<AVPacket*>& packet_queues);
+    rtsp_server(safe_queue<AVPacket*>& packet_input);
     void start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
     void close_rtsp_server();
     static bool init_mediamtx();
@@ -25,7 +25,7 @@ private:
     std::atomic_bool running;
     AVCodecParameters** codecpar; 
     AVRational* time_base;
-    safe_queue<AVPacket*>& packet_queues;
+    safe_queue<AVPacket*>& packet_input;
     std::string output_url;
     static pid_t pid;
     std::thread t_rtsp;

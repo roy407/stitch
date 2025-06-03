@@ -19,24 +19,36 @@ public:
     void wait_and_pop(T& result);
     bool empty() const;
     int size() const;
-
+    std::atmoic<int> timestamp;
+    int frames{0};
+    int packets{0};
+    int frame_lost{0};
+    int packet_lost{0};
 private:
     mutable std::mutex mtx_;
     std::queue<T> queue_;
     std::condition_variable cond_;
-    int max_queue_size{20}; //设置队列最大缓冲值，目前设置最大为20
+    int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
 };
 
 template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
+    if constexpr (std::is_same<T, AVPacket*>::value) {
+        packets ++;
+    }
+    if constexpr (std::is_same<T, AVFrame*>::value) {
+        frames ++;
+    }
     if(queue_.size() >= max_queue_size) { 
         if constexpr (std::is_same<T, AVPacket*>::value) {
+            packet_lost ++;
             AVPacket* pkt = queue_.front();
             av_packet_unref(pkt);
         }
         if constexpr (std::is_same<T, AVFrame*>::value) {
+            frame_lost ++;
             AVFrame* frame = queue_.front();
             av_frame_unref(frame);
         }

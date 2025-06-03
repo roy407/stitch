@@ -7,6 +7,8 @@
 #include <chrono>
 #include <cuda_runtime.h>
 
+// #define IS_PUSH_STREAM
+
 extern "C" {
     #include "libavformat/avformat.h"
     #include "libavcodec/avcodec.h"
@@ -34,7 +36,10 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
     av_dict_set(&options, "stimeout", "5000000", 0);
     int frame_cnt = 0;
     #ifdef IS_PUSH_STREAM
-    rtsp_server rtsp(packet_queues[cam_id]);
+    std::string push_stream_url = config::GetInstance().GetCameraConfig()[cam_id].output_url;
+    rtsp_server rtsp(packet_input[cam_id]);
+    #else
+    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id]);
     #endif
     std::string url;
     if(config::GetInstance().GetGlobalConfig().use_sub_input) {
@@ -48,7 +53,6 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             continue;
         }
-        image_decoder img_decoder(packet_queues[cam_id],images[cam_id]);
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
@@ -57,7 +61,11 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
                 camera_para[cam_id].codecpar = codecpar;
                 camera_para[cam_id].time_base = stream->time_base;
                 camera_res[cam_id] = {codecpar->width,codecpar->height};
+                #ifdef IS_PUSH_STREAM
+                rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_url);
+                #else
                 img_decoder.start_image_decoder(codecpar);
+                #endif
                 AVPacket pkt;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                     if(pkt.stream_index == video_stream) {
@@ -66,11 +74,7 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
                         frame_cnt ++;
                         camera_fps[cam_id] = frame_cnt / pts_sec;
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
-                        packet_queues[cam_id].push(pkt_copy);
-                        
-                        #ifdef IS_PUSH_STREAM
-                        rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_urls[cam_id]);
-                        #endif
+                        packet_input[cam_id].push(pkt_copy);
                     }
                     av_packet_unref(&pkt);
                 }
@@ -84,12 +88,17 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
 void camera_manager::get_stream_from_file(int cam_id) {
     AVFormatContext* fmt_ctx = avformat_alloc_context();
     int frame_cnt = 0;
+    #ifdef IS_PUSH_STREAM
+    std::string push_stream_url = config::GetInstance().GetCameraConfig()[cam_id].output_url;
+    rtsp_server rtsp(packet_input[cam_id]);
+    #else
+    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id]);
+    #endif
     std::string cam_path = config::GetInstance().GetGlobalConfig().save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
     int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), NULL, NULL);
     if(ret < 0) {
         std::cerr << "Could not open output file\n";
     }
-    image_decoder img_decoder(packet_queues[cam_id],images[cam_id]);
     if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
         int video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
         if(video_stream >= 0) {
@@ -101,7 +110,11 @@ void camera_manager::get_stream_from_file(int cam_id) {
             auto start_time = std::chrono::steady_clock::now();
             double start_pts = AV_NOPTS_VALUE;
             AVPacket pkt;
+            #ifdef IS_PUSH_STREAM
+            rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_url);
+            #else
             img_decoder.start_image_decoder(codecpar);
+            #endif
             while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                 if(pkt.stream_index == video_stream) {
                     double pts_sec = pkt.pts * av_q2d(stream->time_base);
@@ -109,6 +122,7 @@ void camera_manager::get_stream_from_file(int cam_id) {
                         start_pts = pts_sec;
                         start_time = std::chrono::steady_clock::now();
                     }
+
                     camera_timestamp[cam_id] = pts_sec;
                     frame_cnt ++;
                     camera_fps[cam_id] = frame_cnt / pts_sec;
@@ -121,7 +135,7 @@ void camera_manager::get_stream_from_file(int cam_id) {
                     }
                     AVPacket* pkt_copy = av_packet_clone(&pkt);
                     pkt_copy->time_base = stream->time_base;
-                    packet_queues[cam_id].push(pkt_copy);
+                    packet_input[cam_id].push(pkt_copy);
                 }
                 av_packet_unref(&pkt);
             }
@@ -201,8 +215,7 @@ void camera_manager::save_stream_to_file(int cam_id) {
 
 void camera_manager::do_stitch() {
     int width = 640;
-    int height = 320;
-    // int cam_num = 5;
+    int height = 360;
 
     std::string url = config::GetInstance().GetStitchConfig().output_url;
 
@@ -221,10 +234,9 @@ void camera_manager::do_stitch() {
     codecpar->format = AV_PIX_FMT_CUDA;   
 
     out_stream->time_base = (AVRational){1, 20}; 
-    safe_queue<AVFrame*> stitched_frames;
     Stitch stitch(width,height,cam_num);
-    image_encoder img_enc(width * cam_num,height,stitched_frames,packet_out);
-    rtsp_server rtsp(packet_out);
+    image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
+    rtsp_server rtsp(packet_output);
     rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
     img_enc.start_image_encoder();
     int cnt = 0;
@@ -232,11 +244,11 @@ void camera_manager::do_stitch() {
     while(running) {
         AVFrame* inputs[cam_num] = {};
         for(int i=0;i<cam_num;i++) {
-            images[i].try_pop(inputs[i]);
+            frame_input[i].try_pop(inputs[i]);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         out_image = stitch.do_stitch(inputs);
-        if(out_image) stitched_frames.push(out_image);
+        if(out_image) frame_output.push(out_image);
         for (int i = 0; i < cam_num; ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
@@ -264,7 +276,9 @@ void camera_manager::start() {
         else if(status == "rtsp")
                 workers.emplace_back(&camera_manager::get_stream_from_rtsp, this, i);
     }
-    workers.emplace_back(&camera_manager::do_stitch,this);
+    if(status != "save") {
+        workers.emplace_back(&camera_manager::do_stitch,this);
+    }
 
     workers.emplace_back(&camera_manager::cout_message,this);
     
@@ -280,6 +294,10 @@ void camera_manager::start() {
 void camera_manager::cout_message() {
     int device_id = 0;
     size_t free_mem = 0, total_mem = 0;
+    std::vector<int> last_frame_counts(cam_num, 0);
+    std::vector<int> last_packet_counts(cam_num, 0);
+    int last_global_frame = 0;
+    int last_global_packet = 0;
     while (running) {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         std::cout << std::endl;
@@ -296,6 +314,39 @@ void camera_manager::cout_message() {
         std::cout << "GPU " << device_id << " memory: "
                 << (total_mem - free_mem) / (1024.0 * 1024.0) << " MB used / "
                 << total_mem / (1024.0 * 1024.0) << " MB total" << std::endl;
-    }
+        std::cout << "=== Per-Camera Input Stats ===\n";
+        for (int i = 0; i < cam_num; ++i) {
+            int current_packets = packet_input[i].packets;
+            int current_frames  = frame_input[i].frames;
+
+            std::cout << "[Cam " << i << "] "
+                    << "packet_in lost: " << packet_input[i].packet_lost << " / "
+                    << "total: " << current_packets
+                    << " --- speed: " << (current_packets - last_packet_counts[i]) / 2 << "\n";
+
+            std::cout << "[Cam " << i << "] "
+                    << "frame_in  lost: " << frame_input[i].frame_lost << " / "
+                    << "total: " << current_frames
+                    << " --- speed: " << (current_frames - last_frame_counts[i]) / 2 << "\n";
+
+            last_packet_counts[i] = current_packets;
+            last_frame_counts[i]  = current_frames;
+        }
+
+        std::cout << "\n=== Global Output Stats ===\n";
+        int curr_out_frame = frame_output.frames;
+        int curr_out_packet = packet_output.packets;
+
+        std::cout << "frame_out lost: " << frame_output.frame_lost << " / "
+                << "total: " << curr_out_frame
+                << " --- speed: " << (curr_out_frame - last_global_frame) / 2 << "\n";
+
+        std::cout << "packet_out lost: " << packet_output.packet_lost << " / "
+                << "total: " << curr_out_packet
+                << " --- speed: " << (curr_out_packet - last_global_packet) / 2 << "\n";
+
+        last_global_frame = curr_out_frame;
+        last_global_packet = curr_out_packet;
+        }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
