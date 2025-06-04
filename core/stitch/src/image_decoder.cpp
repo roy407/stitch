@@ -5,7 +5,7 @@
 #include <thread>
 #include "tools.hpp"
 
-image_decoder::image_decoder(safe_queue<AVPacket*>& in_packet , safe_queue<AVFrame*>& out_frame, const std::string& codec_name) : in_packet(in_packet), out_frame(out_frame) {
+image_decoder::image_decoder(safe_queue<AVPacket*>& packet_input , safe_queue<AVFrame*>& frame_output, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output) {
     
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
@@ -55,7 +55,7 @@ void image_decoder::close_image_decoder() {
 void image_decoder::do_decode() {
     AVPacket* pkt = nullptr;
     while(running) {
-        if(!in_packet.try_pop(pkt)) continue;
+        packet_input.wait_and_pop(pkt);
         int ret = avcodec_send_packet(codec_ctx, pkt);
         if (ret < 0) {
             char errbuf[256];
@@ -72,7 +72,7 @@ void image_decoder::do_decode() {
             ret = avcodec_receive_frame(codec_ctx, frame);
             if (ret == 0) {
                 if (frame->format == AV_PIX_FMT_CUDA) {
-                    out_frame.push(frame);
+                    frame_output.push(frame);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 break;

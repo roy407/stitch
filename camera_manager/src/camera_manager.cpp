@@ -7,6 +7,12 @@
 #include <chrono>
 #include <cuda_runtime.h>
 
+#include <chrono>
+#include <fstream>
+#include <iomanip>  // for std::put_time
+#include <ctime>    // for std::localtime
+#include <sstream>
+
 // #define IS_PUSH_STREAM
 
 extern "C" {
@@ -241,19 +247,41 @@ void camera_manager::do_stitch() {
     img_enc.start_image_encoder();
     int cnt = 0;
     AVFrame* out_image = nullptr;
-    while(running) {
+
+    std::ofstream log_file("/home/eric/文档/log/stitch_loop_time.log", std::ios::app);  // 追加模式打开日志文件
+
+    if (!log_file.is_open()) {
+        std::cerr << "Failed to open log file!" << std::endl;
+    }
+
+    while (running) {
+        auto start_time = std::chrono::high_resolution_clock::now();
+
         AVFrame* inputs[cam_num] = {};
-        for(int i=0;i<cam_num;i++) {
-            frame_input[i].try_pop(inputs[i]);
+        for (int i = 0; i < cam_num; i++) {
+            frame_input[i].wait_and_pop(inputs[i]);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
         out_image = stitch.do_stitch(inputs);
-        if(out_image) frame_output.push(out_image);
+        if (out_image) frame_output.push(out_image);
+
         for (int i = 0; i < cam_num; ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
             }
         }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+        // 获取当前时间作为日志时间戳
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        std::stringstream timestamp__;
+        timestamp__ << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+
+        // 写入日志
+        log_file << "[" << timestamp__.str() << "] Loop took " << duration_ms << " ms" << std::endl;
     }
     std::cout<<__func__<<" exit!"<<std::endl;
 }

@@ -5,6 +5,7 @@
 
 #include <queue>
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 
 template<typename T>
@@ -19,7 +20,6 @@ public:
     void wait_and_pop(T& result);
     bool empty() const;
     int size() const;
-    std::atmoic<int> timestamp;
     int frames{0};
     int packets{0};
     int frame_lost{0};

@@ -104,7 +104,7 @@ void rtsp_server::push_stream() {
     int ret1 = avformat_write_header(out_ctx, NULL);
     while(running) {
         AVPacket* pkt;
-        if(!packet_input.try_pop(pkt)) continue;
+        packet_input.wait_and_pop(pkt);
         AVPacket* pkt_copy = av_packet_clone(pkt);
         av_interleaved_write_frame(out_ctx, pkt_copy);
         av_packet_unref(pkt_copy);
