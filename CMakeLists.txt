@@ -20,3 +20,14 @@ add_subdirectory(camera_manager)
 target_link_libraries(my_stitch_app PRIVATE 
 camera_manager
 )
+
+set(RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resource)
+set(DEST_DIR ${CMAKE_BINARY_DIR}/resource)
+
+add_custom_command(
+    OUTPUT ${DEST_DIR}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCE_DIR} ${DEST_DIR}
+    COMMENT "Copying resource directory..."
+)
+
+add_custom_target(copy_resources ALL DEPENDS ${DEST_DIR})
