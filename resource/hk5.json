@@ -45,6 +45,6 @@
     ],
     "stitch": {
         "output_url": "rtsp://127.0.0.1:8554/stitch",
-        "rtsp": false
+        "crop_pixels":[0, 100, 100, 100, 100]
     }
 }
