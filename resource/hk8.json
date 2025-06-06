@@ -1,0 +1,50 @@
+{
+    "global": {
+        "use_sub_input": true,
+        "software_status": "debug",
+        "status": "rtsp",
+        "save_rtsp_data_time": 240,
+        "save_rtsp_data_path": "/home/eric/mp4/"
+    },
+    "cameras": [
+        {
+            "name": "cam0",
+            "input_url": "rtsp://admin:ky406sys@192.168.1.20:554/h265/ch1/main/av_stream",
+            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.20:554/h265/ch1/sub/av_stream",
+            "output_url": "rtsp://127.0.0.1:8554/cam0",
+            "rtsp": false
+        },
+        {
+            "name": "cam1",
+            "input_url": "rtsp://admin:ky406sys@192.168.1.21:554/h265/ch1/main/av_stream",
+            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.21:554/h265/ch1/sub/av_stream",
+            "output_url": "rtsp://127.0.0.1:8554/cam1",
+            "rtsp": false
+        },
+        {
+            "name": "cam2",
+            "input_url": "rtsp://admin:ky406sys@192.168.1.22:554/h265/ch1/main/av_stream",
+            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.22:554/h265/ch1/sub/av_stream",
+            "output_url": "rtsp://127.0.0.1:8554/cam2",
+            "rtsp": false
+        },
+        {
+            "name": "cam3",
+            "input_url": "rtsp://admin:ky406sys@192.168.1.23:554/h265/ch1/main/av_stream",
+            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.23:554/h265/ch1/sub/av_stream",
+            "output_url": "rtsp://127.0.0.1:8554/cam3",
+            "rtsp": false
+        },
+        {
+            "name": "cam4",
+            "input_url": "rtsp://admin:ky406sys@192.168.1.24:554/h265/ch1/main/av_stream",
+            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.24:554/h265/ch1/sub/av_stream",
+            "output_url": "rtsp://127.0.0.1:8554/cam4",
+            "rtsp": false
+        }
+    ],
+    "stitch": {
+        "output_url": "rtsp://127.0.0.1:8554/stitch",
+        "rtsp": false
+    }
+}

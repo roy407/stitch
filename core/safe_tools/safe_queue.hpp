@@ -18,6 +18,7 @@ public:
     void push(const T& value);
     bool try_pop(T& result);
     void wait_and_pop(T& result);
+    void wait_and_front(T& result);
     bool empty() const;
     int size() const;
     int frames{0};
@@ -73,6 +74,13 @@ void safe_queue<T>::wait_and_pop(T& result) {
     cond_.wait(lock, [this] { return !queue_.empty(); });
     result = std::move(queue_.front());
     queue_.pop();
+}
+
+template<typename T>
+void safe_queue<T>::wait_and_front(T& result) {
+    std::unique_lock<std::mutex> lock(mtx_);
+    cond_.wait(lock, [this] { return !queue_.empty(); });
+    result = std::move(queue_.front());
 }
 
 template<typename T>

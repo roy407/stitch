@@ -33,6 +33,7 @@ public:
     void do_stitch();
     void start();
     void stop();
+    safe_queue<AVFrame*>& get_stitch_stream();
     void cout_message();
 private:
     struct Camera_param {

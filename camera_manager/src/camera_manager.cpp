@@ -256,8 +256,15 @@ void camera_manager::do_stitch() {
 
         out_image = stitch.do_stitch(inputs);
         out_image->pts = inputs[0]->pts;
+        // #ifdef BUILD_SHARED_LIB
+        // AVFrame* cpu_frame = av_frame_alloc();
+        // if (av_hwframe_transfer_data(cpu_frame, out_image, 0) < 0) {
+        //     throw std::runtime_error("Failed to transfer frame to CPU");
+        // }
+        // frame_output.push(cpu_frame);
+        // #else
         frame_output.push(out_image);
-
+        // #endif
         for (int i = 0; i < cam_num; ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
@@ -300,13 +307,19 @@ void camera_manager::start() {
     }
 }
 
+safe_queue<AVFrame*>& camera_manager::get_stitch_stream() {
+    return frame_output;
+}
+
 void camera_manager::cout_message() {
     int device_id = 0;
     size_t free_mem = 0, total_mem = 0;
+    #if 1
     std::vector<int> last_frame_counts(cam_num, 0);
     std::vector<int> last_packet_counts(cam_num, 0);
     int last_global_frame = 0;
     int last_global_packet = 0;
+    #endif
     while (running) {
         std::this_thread::sleep_for(std::chrono::seconds(2));
         std::cout << std::endl;
@@ -323,6 +336,7 @@ void camera_manager::cout_message() {
         std::cout << "GPU " << device_id << " memory: "
                 << (total_mem - free_mem) / (1024.0 * 1024.0) << " MB used / "
                 << total_mem / (1024.0 * 1024.0) << " MB total" << std::endl;
+        #if 1
         std::cout << "=== Per-Camera Input Stats ===\n";
         for (int i = 0; i < cam_num; ++i) {
             int current_packets = packet_input[i].packets;
@@ -356,6 +370,7 @@ void camera_manager::cout_message() {
 
         last_global_frame = curr_out_frame;
         last_global_packet = curr_out_packet;
+        #endif
         }
     std::cout<<__func__<<" exit!"<<std::endl;
 }
