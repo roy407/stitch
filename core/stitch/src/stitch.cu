@@ -129,7 +129,7 @@ __global__ void stitch_y_uv_with_linesize_and_crop_kernel(
 }
 
 extern "C"
-void launch_stitch_kernel(
+void launch_stitch_kernel_with_crop(
     uint8_t** inputs_y, uint8_t** inputs_uv,
     int* input_linesize_y, int* input_linesize_uv,
     uint8_t* output_y, uint8_t* output_uv,
@@ -150,15 +150,30 @@ void launch_stitch_kernel(
         crop); 
 }
 
-// extern "C"
-// void launch_stitch_kernel(uint8_t* const* inputs_r, uint8_t* const* inputs_g, uint8_t* const* inputs_b,
-//                                    uint8_t** output, int cam_num, int single_width, int width, int height,
-//                                 cudaStream_t stream) {
-//     int threads = cam_num;  // 你可以根据需要调整
-//     int blocks = 1;    // 只用一个 block
+extern "C"
+void launch_stitch_kernel_raw(
+    uint8_t** inputs_y, uint8_t** inputs_uv,
+    int* input_linesize_y, int* input_linesize_uv,
+    uint8_t* output_y, uint8_t* output_uv,
+    int output_linesize_y, int output_linesize_uv,
+    int cam_num, int single_width, int width, int height,
+    cudaStream_t stream) {
+    
+    int max_threads_per_block;
+    cudaDeviceGetAttribute(&max_threads_per_block, cudaDevAttrMaxThreadsPerBlock, 0);
+    
+    dim3 block(16, max_threads_per_block / 16); 
+    dim3 grid(
+        (cam_num + block.x - 1) / block.x,
+        (height + block.y - 1) / block.y
+    );
 
-//     stitch_y_uv_kernel<<<blocks, threads, 0, stream>>>(inputs_y, inputs_uv, output_y, output_uv,
-//                                                        cam_num, single_width, single_width, height);
-
-// }
+    stitch_y_uv_with_linesize_kernel<<<grid, block, 0, stream>>>(
+        inputs_y, inputs_uv,
+        input_linesize_y, input_linesize_uv,
+        output_y, output_uv,
+        output_linesize_y, output_linesize_uv,
+        cam_num, single_width, width, height
+    );
+}
 

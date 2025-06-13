@@ -223,7 +223,7 @@ void camera_manager::do_stitch() {
     int width = 640;
     int height = 360;
 
-    std::string url = config::GetInstance().GetStitchConfig().output_url;
+    std::string url = config::GetInstance().GetGlobalStitchConfig().output_url;
 
     AVFormatContext* out_ctx = nullptr;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());

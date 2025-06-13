@@ -29,6 +29,21 @@ bool config::loadFromFile(const std::string& filename) {
             c.input_url = cam["input_url"];
             c.sub_input_url = cam["sub_input_url"];
             c.output_url = cam["output_url"];
+
+            // crop 是数组
+            for (const auto& val : cam["crop"]) {
+                c.crop.push_back(val);
+            }
+
+            c.rtsp = cam.value("rtsp", false); // 如果没有该字段则默认为 false
+
+            // 解析 stitch
+            if (cam.contains("stitch")) {
+                const auto& s = cam["stitch"];
+                c.stitch.enable = s.value("enable", false);
+                c.stitch.mode = s.value("mode", "");
+            }
+
             cameras.push_back(c);
         }
 
@@ -56,6 +71,6 @@ const std::vector<CameraConfig> config::GetCameraConfig() const {
     return cameras;
 }
 
-const StitchConfig config::GetStitchConfig() const {
+const GlobalStitchConfig config::GetGlobalStitchConfig() const {
     return stitch;
 }

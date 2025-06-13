@@ -19,4 +19,8 @@ private:
     const int cam_num;
     const int single_width;
     const int height;
+    int output_width;
+    uint8_t **d_inputs_y;
+    uint8_t **d_inputs_uv;
+    int* d_crop;
 };
