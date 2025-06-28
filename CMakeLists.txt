@@ -7,18 +7,16 @@ set(CMAKE_CXX_STANDARD 17)
 # 这个问题是 已知现象，原因不是你真的“内存不够”，而是 ASan 与 CUDA（尤其是 NVIDIA 驱动的 
 # libcuda.so, libnvidia-fatbinaryloader.so, libnpp*, libnvrtc 等） 在运行时存在冲突。
 
-set(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
+option(BUILD_SHARED_LIB "Build as shared library instead of executable" ON)
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
-# if(BUILD_SHARED_LIB)
-#     add_library(stitch_app SHARED main.cpp)
-#     target_compile_definitions(stitch_app PRIVATE BUILD_SHARED_LIB=1)
-# else()
+if(BUILD_SHARED_LIB)
+    add_library(stitch_app SHARED lib.cpp)
+else()
     add_executable(stitch_app main.cpp)
-    # target_compile_definitions(stitch_app PRIVATE BUILD_SHARED_LIB=0)
-# endif()
+endif()
 
 add_subdirectory(core/rtsp)
 add_subdirectory(core/stitch)
