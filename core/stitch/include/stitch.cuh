@@ -20,9 +20,3 @@ void launch_stitch_kernel_raw(uint8_t** inputs_y, uint8_t** inputs_uv,
                           int output_linesize_y, int output_linesize_uv,
                           int cam_num, int single_width, int width, int height,
                           cudaStream_t stream);
-
-extern "C"
-void launch_scale_1_2_kernel(uint8_t** inputs_y, uint8_t** inputs_uv,
-                          int* input_linesize_y, int* input_linesize_uv,
-                          int width, int height, int cam_num,
-                          cudaStream_t stream);

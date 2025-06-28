@@ -177,18 +177,3 @@ void launch_stitch_kernel_raw(
     );
 }
 
-extern "C"
-void launch_scale_1_2_kernel(uint8_t** inputs_y, uint8_t** inputs_uv,
-                          int* input_linesize_y, int* input_linesize_uv,
-                          int width, int height, int cam_num,
-                          cudaStream_t stream) {
-    dim3 block(16, 16);
-    dim3 grid((cam_num + block.x - 1) / block.x, 
-              (height + block.y - 1) / block.y);
-
-    stitch_y_uv_with_linesize_and_crop_kernel<<<grid, block, 0, stream>>>(
-        inputs_y, inputs_uv, input_linesize_y, input_linesize_uv,
-        output_y, output_uv, output_linesize_y, output_linesize_uv,
-        cam_num, single_width, width, height, crop); 
-}
-

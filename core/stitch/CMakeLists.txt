@@ -7,6 +7,7 @@ add_library(stitch STATIC
   src/image_encoder.cpp
   src/Stitch.cpp
   src/stitch.cu
+  src/scale.cu
 )
 
 link_directories(/usr/local/lib)

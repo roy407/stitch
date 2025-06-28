@@ -1,5 +1,6 @@
 #include "Stitch.h"
 #include "stitch.cuh"
+#include "scale.cuh"
 #include <iostream>
 
 #include <libavutil/frame.h>

@@ -22,6 +22,7 @@ extern "C" {
     #include "libavutil/pixdesc.h" 
     #include "libavutil/opt.h"
     #include "libavutil/log.h"
+    #include "libavutil/error.h" 
     #include "libavcodec/bsf.h"
 }
 #include "safe_queue.hpp"
@@ -190,7 +191,14 @@ void camera_manager::save_stream_to_file(int cam_id) {
                         return;
                     }
                 }
-                avformat_write_header(output_ctx, NULL);
+                int ret = avformat_write_header(output_ctx, NULL);
+                if (ret < 0) {
+                    char error_buffer[AV_ERROR_MAX_STRING_SIZE];
+                    av_strerror(ret, error_buffer, sizeof(error_buffer));
+                    fprintf(stderr, "Could not write header (error '%s')\n", error_buffer);
+                    avformat_free_context(output_ctx);
+                    return ;
+                }
                 auto start_time = std::chrono::steady_clock::now();
                 bool first_key_frame_found = false;
                 AVPacket pkt;
