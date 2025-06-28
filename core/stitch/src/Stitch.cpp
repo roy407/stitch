@@ -109,7 +109,7 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     cudaMemcpy(d_input_linesize_uv, h_input_linesize_uv, cam_num * sizeof(int), cudaMemcpyHostToDevice);
 
     launch_scale_1_2_kernel(d_inputs_y, d_inputs_uv, d_input_linesize_y, d_input_linesize_uv,
-                        single_width, height, cam_num, stream); 
+                        single_width * 2, height * 2, cam_num, stream); 
 
     launch_stitch_kernel_with_crop(d_inputs_y, d_inputs_uv,
                         d_input_linesize_y, d_input_linesize_uv,
@@ -117,6 +117,5 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
                         output->linesize[0], output->linesize[1],
                         cam_num, single_width, output_width, height,
                         stream,d_crop);
-    
     return output;
 }
