@@ -28,7 +28,7 @@ image_encoder::image_encoder(int width, int height, safe_queue<AVFrame*>& frame_
     codec_ctx->pix_fmt = AV_PIX_FMT_CUDA; 
 
     // Example for nvenc:
-    if (codec->id == AV_CODEC_ID_H264 || codec->id == AV_CODEC_ID_HEVC) {
+    if (codec->id == AV_CODEC_ID_H265 || codec->id == AV_CODEC_ID_HEVC) {
         av_opt_set(codec_ctx->priv_data, "preset", "p1", 0);
         av_opt_set(codec_ctx->priv_data, "gpu", "0", 0);
     }

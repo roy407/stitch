@@ -1,7 +1,7 @@
 #include "config.h"
 
 config::config() {
-    loadFromFile("resource/hk5.json"); //需要修改，设置在一个文件夹下
+    loadFromFile("/home/eric/文档/stitch/resource/hk5.json"); //需要修改，设置在一个文件夹下
 }
 
 bool config::loadFromFile(const std::string& filename) {

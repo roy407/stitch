@@ -13,7 +13,7 @@ find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
 # if(BUILD_SHARED_LIB)
-#     add_library(stitch_app SHARED main.cpp)
+    # add_library(stitch_app SHARED main.cpp)
 #     target_compile_definitions(stitch_app PRIVATE BUILD_SHARED_LIB=1)
 # else()
     add_executable(stitch_app main.cpp)

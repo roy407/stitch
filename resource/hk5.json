@@ -1,6 +1,6 @@
 {
     "global": {
-        "use_sub_input": false,
+        "use_sub_input": true,
         "software_status": "debug",
         "status": "file",
         "save_rtsp_data_time": 240,

@@ -234,7 +234,7 @@ void camera_manager::do_stitch() {
     // 3. 配置视频流参数
     AVCodecParameters* codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-    codecpar->codec_id = AV_CODEC_ID_H264;   
+    codecpar->codec_id = AV_CODEC_ID_H265;   
     codecpar->width = width * cam_num;                  
     codecpar->height = height;                 
     codecpar->format = AV_PIX_FMT_CUDA;   
