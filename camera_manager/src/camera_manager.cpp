@@ -292,9 +292,9 @@ void camera_manager::start() {
         else if(status == "rtsp")
                 workers.emplace_back(&camera_manager::get_stream_from_rtsp, this, i);
     }
-    if(status != "save") {
-        workers.emplace_back(&camera_manager::do_stitch,this);
-    }
+    // if(status != "save") {
+    //     workers.emplace_back(&camera_manager::do_stitch,this);
+    // }
 
     workers.emplace_back(&camera_manager::cout_message,this);
     

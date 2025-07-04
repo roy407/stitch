@@ -10,6 +10,7 @@ target_include_directories(camera_manager
     ${CMAKE_SOURCE_DIR}/core/stitch/include
     ${CMAKE_SOURCE_DIR}/core/config/include
     /usr/local/include
+    # /usr/local/include/opencv4
 )
 
 # 链接库文件
@@ -22,4 +23,5 @@ pthread
 rtsp
 stitch
 config
+# ${OPENCV_LIBS}
 )

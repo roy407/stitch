@@ -1,4 +1,3 @@
-
 enable_language(CUDA)
 
 add_library(stitch STATIC
@@ -18,9 +17,11 @@ target_include_directories(stitch
   ${CMAKE_CURRENT_SOURCE_DIR}/../safe_tools
   ${CMAKE_SOURCE_DIR}/core/config/include
   /usr/local/include
+  # /usr/local/include/opencv4
 )
 
 target_link_libraries(stitch
     avcodec avformat avutil swscale
-    cuda nppicc nppc nppidei config
+    cuda nppicc nppc nppidei config 
+    # ${OPENCV_LIBS} opencv_core opencv_imgproc opencv_cudawarping
 )
