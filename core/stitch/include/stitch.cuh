@@ -50,8 +50,6 @@ extern "C" __device__ void applyHomography(
     float* out_x,   // 输出x坐标
     float* out_y    // 输出y坐标
 );
-
-__device__ uint8_t bilinearInterpolationUV(uint8_t* uv_plane, int width, int height, int pitch,
-                                         float x, float y, int channel);
-__device__ uint8_t bilinearInterpolation(uint8_t* image, int width, int height, int pitch, 
-                                       float x, float y, int channel);
+__device__ bool is_point_in_quadrilateral(float x, float y,
+    float x1, float y1, float x2, float y2,
+    float x3, float y3, float x4, float y4);

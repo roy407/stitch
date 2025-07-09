@@ -296,7 +296,7 @@ void camera_manager::start() {
         workers.emplace_back(&camera_manager::do_stitch,this);
     }
 
-    workers.emplace_back(&camera_manager::cout_message,this);
+    // workers.emplace_back(&camera_manager::cout_message,this);
     
     for(auto& t : workers) {
         if(t.joinable()) t.join();

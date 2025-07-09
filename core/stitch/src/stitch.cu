@@ -100,52 +100,6 @@ __device__ void applyHomography(float* H, float x, float y, float* out_x, float*
     *out_y = (H[3]*x + H[4]*y + H[5]) / denominator;
 }
 
-__device__ uint8_t bilinearInterpolation(uint8_t* image, int width, int height, int pitch, 
-                                       float x, float y, int channel) {
-    // 边界保护
-    x = fminf(fmaxf(x, 0.0f), width - 1.001f);
-    y = fminf(fmaxf(y, 0.0f), height - 1.001f);
-
-    int x1 = __float2int_rd(x);
-    int y1 = __float2int_rd(y);
-    int x2 = min(x1 + 1, width - 1);
-    int y2 = min(y1 + 1, height - 1);
-
-    float dx = x - x1;
-    float dy = y - y1;
-
-    uint8_t p11 = image[y1 * pitch + x1 + channel];
-    uint8_t p12 = image[y1 * pitch + x2 + channel];
-    uint8_t p21 = image[y2 * pitch + x1 + channel];
-    uint8_t p22 = image[y2 * pitch + x2 + channel];
-
-    return __float2uint_rn((1-dx)*(1-dy)*p11 + dx*(1-dy)*p12 + 
-                         (1-dx)*dy*p21 + dx*dy*p22);
-}
-
-__device__ uint8_t bilinearInterpolationUV(uint8_t* uv_plane, int width, int height, int pitch,
-                                         float x, float y, int channel) {
-    // 边界保护
-    x = fminf(fmaxf(x, 0.0f), width - 1.001f);
-    y = fminf(fmaxf(y, 0.0f), height - 1.001f);
-
-    int x1 = __float2int_rd(x);
-    int y1 = __float2int_rd(y);
-    int x2 = min(x1 + 1, width - 1);
-    int y2 = min(y1 + 1, height - 1);
-
-    float dx = x - x1;
-    float dy = y - y1;
-
-    // NV12格式：UV交错存储
-    uint8_t p11 = uv_plane[y1 * pitch + x1 * 2 + channel];
-    uint8_t p12 = uv_plane[y1 * pitch + x2 * 2 + channel];
-    uint8_t p21 = uv_plane[y2 * pitch + x1 * 2 + channel];
-    uint8_t p22 = uv_plane[y2 * pitch + x2 * 2 + channel];
-
-    return __float2uint_rn((1-dx)*(1-dy)*p11 + dx*(1-dy)*p12 + 
-                         (1-dx)*dy*p21 + dx*dy*p22);
-}
 
 __global__ void stitch_withH(
     uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
@@ -196,6 +150,98 @@ __global__ void stitch_withH(
     }
 }
 
+__device__ bool is_point_in_quadrilateral(float x, float y,
+    float x1, float y1, float x2, float y2,
+    float x3, float y3, float x4, float y4)
+{
+    // 向量叉积法判断点是否在凸四边形内
+    auto cross = [](float ax, float ay, float bx, float by) {
+        return ax * by - ay * bx;
+    };
+
+    float d1 = cross(x - x1, y - y1, x2 - x1, y2 - y1);
+    float d2 = cross(x - x2, y - y2, x3 - x2, y3 - y2);
+    float d3 = cross(x - x3, y - y3, x4 - x3, y4 - y3);
+    float d4 = cross(x - x4, y - y4, x1 - x4, y1 - y4);
+
+    return (d1 * d3 >= 0) && (d2 * d4 >= 0);
+}
+
+__global__ void USE_HNI(
+    uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
+    int* input_linesize_y, int* input_linesize_uv,
+    float* h_matrices, uint8_t* output_y, uint8_t* output_uv,
+    int output_linesize_y, int output_linesize_uv,
+    int cam_num, int single_width, int width, int height)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= width || y >= height) return;
+    // 摄像头1的四边形顶点
+    bool in_cam1 = is_point_in_quadrilateral(x, y, 
+        0.0f, 12.0f,    
+        640.0f, 12.0f,  
+        640.0f, 372.0f, 
+        0.0f, 372.0f); 
+    // bool in_cam1 = is_point_in_quadrilateral(x, y, 
+    //     0.0f, 0.0f,    
+    //     640.0f, 0.0f,  
+    //     640.0f, 360.0f, 
+    //     0.0f, 360.0f); 
+
+    // 摄像头2的四边形顶点
+    bool in_cam2 = false;
+    if (!in_cam1) {
+        in_cam2 = is_point_in_quadrilateral(x, y,
+            568.38f, 16.62f,   
+            1237.14f, 0.42f,   
+            1250.31f, 369.77f, 
+            580.55f, 375.24f); 
+    }
+    //     if (!in_cam1) {
+    //     in_cam2 = is_point_in_quadrilateral(x, y,
+    //         568.0f, 0.0f,   
+    //         1237.0f, 0.0f,   
+    //         1250.0f, 360.0f, 
+    //         580.0f, 360.0f); 
+    // }
+
+
+
+    if (!in_cam1 && !in_cam2) return;
+
+    int active_cam = in_cam2 ? 1 : 0;
+    float* H_inv = &h_matrices[active_cam * 9];
+
+    float src_x, src_y;
+    applyHomography(H_inv, x, y, &src_x, &src_y);
+
+    if (src_x >= 0 && src_x < single_width && src_y >= 0 && src_y < height) {
+        int src_x_int = __float2int_rn(src_x);
+        int src_y_int = __float2int_rn(src_y);
+        output_y[y * output_linesize_y + x] = 
+            inputs_y[active_cam][src_y_int * input_linesize_y[active_cam] + src_x_int];
+    }
+
+
+    if ((threadIdx.x % 2 == 0) && (threadIdx.y % 2 == 0) &&
+        (x % 2 == 0) && (y % 2 == 0)) 
+    {
+        float uv_x = src_x / 2.0f;
+        float uv_y = src_y / 2.0f;
+        
+        if (uv_x >= 0 && uv_x < single_width/2 && uv_y >= 0 && uv_y < height/2) {
+            int src_uv_x = __float2int_rn(uv_x);
+            int src_uv_y = __float2int_rn(uv_y);
+            int uv_pitch = input_linesize_uv[active_cam];
+            
+            int out_uv_idx = (y/2) * output_linesize_uv + (x/2) * 2;
+            output_uv[out_uv_idx] = inputs_uv[active_cam][src_uv_y * uv_pitch + src_uv_x * 2];
+            output_uv[out_uv_idx + 1] = inputs_uv[active_cam][src_uv_y * uv_pitch + src_uv_x * 2 + 1];
+        }
+    }
+}
 
 extern "C"
 void launch_stitch_kernel(
@@ -211,12 +257,12 @@ void launch_stitch_kernel(
     
     dim3 block(16,16); 
     dim3 grid(
-        (single_width + block.x - 1) / block.x,  // 水平方向块数
+        (width + block.x - 1) / block.x,  // 水平方向块数
         (height + block.y - 1) / block.y,        // 垂直方向块数
         cam_num                                  // 摄像头数量
     );
 
-    stitch_withH<<<grid, block, 0, stream>>>(
+    USE_HNI<<<grid, block, 0, stream>>>(
         inputs_y, inputs_uv,
         input_linesize_y, input_linesize_uv,h_matrices,
         output_y, output_uv,
