@@ -229,8 +229,8 @@ void camera_manager::save_stream_to_file(int cam_id) {
 }
 
 void camera_manager::do_stitch() {
-    int width = 3840 / 2;
-    int height = 2160 / 2;
+    int width = 3840;
+    int height = 2160;
 
     std::string url = config::GetInstance().GetGlobalStitchConfig().output_url;
 

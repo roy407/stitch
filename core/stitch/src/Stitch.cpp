@@ -111,40 +111,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     cudaMemcpy(d_input_linesize_y, h_input_linesize_y, cam_num * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_input_linesize_uv, h_input_linesize_uv, cam_num * sizeof(int), cudaMemcpyHostToDevice);
 
-    launch_scale_1_2_kernel(d_inputs_y, d_inputs_uv, d_input_linesize_y, d_input_linesize_uv,
-                        single_width * 2, height * 2, cam_num, stream); 
-
-    // cv::cuda::Stream cvStream;
-    
-    // cv::cuda::GpuMat gpuMat(
-    //     output->height,
-    //     output->width,
-    //     CV_8UC3,          // 根据实际格式调整
-    //     output->data[0],   // GPU 指针
-    //     output->linesize[0] // 步长
-    // );
-
-    // // 2. 在 GPU 上执行透视变换
-    // cv::cuda::GpuMat dstGpu;
-    // cv::Mat M; // 3x3 变换矩阵 (在 CPU 上准备好)
-
-    // // 上传矩阵到 GPU (小数据量，开销很小)
-    // cv::cuda::GpuMat d_M;
-    // d_M.upload(M); 
-
-    // cv::Size dstSize(output->height,output->width);
-
-    // // 执行 GPU 透视变换
-    // // cv::cuda::warpPerspective(
-    // //     gpuMat,              // 输入 (GPU)
-    // //     dstGpu,              // 输出 (GPU)
-    // //     d_M,                 // 变换矩阵 (GPU)
-    // //     dstSize,             // 目标尺寸
-    // //     cv::INTER_LINEAR,    // 插值方法
-    // //     cv::BORDER_CONSTANT, // 边界模式
-    // //     cv::Scalar(0,0,0),   // 填充色
-    // //     cvStream             // CUDA 流
-    // // );
     launch_stitch_kernel_with_crop(d_inputs_y, d_inputs_uv,
                         d_input_linesize_y, d_input_linesize_uv,
                         output_y, output_uv,
