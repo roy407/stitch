@@ -53,3 +53,9 @@ extern "C" __device__ void applyHomography(
 __device__ bool is_point_in_quadrilateral(float x, float y,
     float x1, float y1, float x2, float y2,
     float x3, float y3, float x4, float y4);
+__device__ float compute_blend_weight(int x, int y, 
+    float blend_start, float blend_end);
+ __device__ uint8_t bilinear_interp(
+    uint8_t* image, int stride, 
+    float x, float y, int width, int height);
+

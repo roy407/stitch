@@ -220,8 +220,10 @@ void camera_manager::save_stream_to_file(int cam_id) {
 }
 
 void camera_manager::do_stitch() {
-    int width = 640;
-    int height = 360;
+    int width = 3840;
+    int height = 2160;
+    int frame_count = 0;
+
 
     std::string url = config::GetInstance().GetStitchConfig().output_url;
 
@@ -241,10 +243,10 @@ void camera_manager::do_stitch() {
 
     out_stream->time_base = (AVRational){1, 20}; 
     Stitch stitch(width,height,cam_num);
-    image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
+    // image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
     rtsp_server rtsp(packet_output);
     rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
-    img_enc.start_image_encoder();
+    // img_enc.start_image_encoder();
     int cnt = 0;
     AVFrame* out_image = nullptr;
 
@@ -256,6 +258,7 @@ void camera_manager::do_stitch() {
 
         out_image = stitch.do_stitch(inputs);
         out_image->pts = inputs[0]->pts;
+
         // #ifdef BUILD_SHARED_LIB
         // AVFrame* cpu_frame = av_frame_alloc();
         // if (av_hwframe_transfer_data(cpu_frame, out_image, 0) < 0) {

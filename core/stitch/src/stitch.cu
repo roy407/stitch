@@ -167,6 +167,116 @@ __device__ bool is_point_in_quadrilateral(float x, float y,
     return (d1 * d3 >= 0) && (d2 * d4 >= 0);
 }
 
+
+// 双线性插值采样
+__device__ uint8_t bilinear_interp(
+    uint8_t* image, int stride, 
+    float x, float y, int width, int height) 
+{
+    int x0 = static_cast<int>(x);
+    int y0 = static_cast<int>(y);
+    float dx = x - x0;
+    float dy = y - y0;
+
+    // 边界检查
+    x0 = max(0, min(width - 1, x0));
+    y0 = max(0, min(height - 1, y0));
+    int x1 = min(width - 1, x0 + 1);
+    int y1 = min(height - 1, y0 + 1);
+
+    // 采样四个点
+    uint8_t p00 = image[y0 * stride + x0];
+    uint8_t p01 = image[y0 * stride + x1];
+    uint8_t p10 = image[y1 * stride + x0];
+    uint8_t p11 = image[y1 * stride + x1];
+
+    // 插值计算
+    float val = p00 * (1 - dx) * (1 - dy) + 
+                p01 * dx * (1 - dy) + 
+                p10 * (1 - dx) * dy + 
+                p11 * dx * dy;
+
+    return static_cast<uint8_t>(val);
+}
+
+// 计算混合权重（线性渐变）
+__device__ float compute_blend_weight(int x, int y, 
+    float blend_start, float blend_end) 
+{
+    float t = (x - blend_start) / (blend_end - blend_start);
+    return fmaxf(0.0f, fminf(1.0f, t)); // 限制在[0,1]
+}
+// __global__ void USE_HNI(
+//     uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
+//     int* input_linesize_y, int* input_linesize_uv,
+//     float* h_matrices, uint8_t* output_y, uint8_t* output_uv,
+//     int output_linesize_y, int output_linesize_uv,
+//     int cam_num, int single_width, int width, int height)
+// {
+//     int x = blockIdx.x * blockDim.x + threadIdx.x;
+//     int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+//     if (x >= width || y >= height) return;
+
+//     // 优先检查 cam2（ID 较大的摄像头）
+//     // bool in_cam2 = is_point_in_quadrilateral(x, y,
+//     //     568.38f, 16.62f,   
+//     //     1237.14f, 0.42f,   
+//     //     1250.31f, 369.77f, 
+//     //     580.55f, 375.24f); 
+//     bool in_cam2 = is_point_in_quadrilateral(x, y,
+//         3840.0,0.0,
+//         7170.1436,39.38515,
+//         7227.5244,2170.5388,
+//         3840.0,2160.0);
+
+//     // 如果不在 cam2，再检查 cam1
+//     // bool in_cam1 = !in_cam2 && is_point_in_quadrilateral(x, y, 
+//     //     0.0f, 10.0f,    
+//     //     640.0f, 0.0f,  
+//     //     640.0f, 360.0f, 
+//     //     0.0f, 360.0f); 
+//     bool in_cam1 = is_point_in_quadrilateral(x, y, 
+//         0.0 , 0.0,
+//         3840.0,0.0,
+//         3840.0, 2160.0,
+//         0.0,2160.0); 
+
+//     if (!in_cam1 && !in_cam2) return;
+
+//     // 选择摄像头：cam2 优先覆盖 cam1
+//     int active_cam = in_cam2 ? 1 : 0;
+//     float* H_inv = &h_matrices[active_cam * 9];
+
+//     // 计算源坐标
+//     float src_x, src_y;
+//     applyHomography(H_inv, x, y, &src_x, &src_y);
+
+//     // 处理 Y 通道
+//     if (src_x >= 0 && src_x < single_width && src_y >= 0 && src_y < height) {
+//         int src_x_int = __float2int_rn(src_x);
+//         int src_y_int = __float2int_rn(src_y);
+//         output_y[y * output_linesize_y + x] = 
+//             inputs_y[active_cam][src_y_int * input_linesize_y[active_cam] + src_x_int];
+//     }
+
+//     // 处理 UV 通道（仅偶数线程处理）
+//     if ((x % 2 == 0) && (y % 2 == 0)) {
+//         float uv_x = src_x / 2.0f;
+//         float uv_y = src_y / 2.0f;
+        
+//         if (uv_x >= 0 && uv_x < single_width/2 && uv_y >= 0 && uv_y < height/2) {
+//             int src_uv_x = __float2int_rn(uv_x);
+//             int src_uv_y = __float2int_rn(uv_y);
+//             int uv_pitch = input_linesize_uv[active_cam];
+            
+//             int out_uv_idx = (y/2) * output_linesize_uv + (x/2) * 2;
+//             output_uv[out_uv_idx] = inputs_uv[active_cam][src_uv_y * uv_pitch + src_uv_x * 2];
+//             output_uv[out_uv_idx + 1] = inputs_uv[active_cam][src_uv_y * uv_pitch + src_uv_x * 2 + 1];
+//         }
+//     }
+// }
+
 __global__ void USE_HNI(
     uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
     int* input_linesize_y, int* input_linesize_uv,
@@ -178,45 +288,58 @@ __global__ void USE_HNI(
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= width || y >= height) return;
-    // 摄像头1的四边形顶点
-    bool in_cam1 = is_point_in_quadrilateral(x, y, 
-        0.0f, 12.0f,    
-        640.0f, 12.0f,  
-        640.0f, 372.0f, 
-        0.0f, 372.0f); 
-    // bool in_cam1 = is_point_in_quadrilateral(x, y, 
-    //     0.0f, 0.0f,    
-    //     640.0f, 0.0f,  
-    //     640.0f, 360.0f, 
-    //     0.0f, 360.0f); 
 
-    // 摄像头2的四边形顶点
-    bool in_cam2 = false;
-    if (!in_cam1) {
-        in_cam2 = is_point_in_quadrilateral(x, y,
-            568.38f, 16.62f,   
-            1237.14f, 0.42f,   
-            1250.31f, 369.77f, 
-            580.55f, 375.24f); 
+
+__shared__ float cam_polygons[5][8]; // 每个摄像头4个顶点(x,y)
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        // Cam0 (示例：左下角区域)
+        cam_polygons[0][0] = 0.0f;    cam_polygons[0][1] = 0.0f;
+        cam_polygons[0][2] = 3840.0f; cam_polygons[0][3] = 0.0f;
+        cam_polygons[0][4] = 3840.0f; cam_polygons[0][5] = 2160.0f;
+        cam_polygons[0][6] = 0.0f;    cam_polygons[0][7] = 2160.0f;
+        
+        cam_polygons[1][0] = 3840.0f;    cam_polygons[1][1] = 0.0f;
+        cam_polygons[1][2] = 6900.0f; cam_polygons[1][3] = 0.0f;
+        cam_polygons[1][4] = 6900.0f; cam_polygons[1][5] = 2160.0f;
+        cam_polygons[1][6] = 3840.0f;    cam_polygons[1][7] = 2160.0f;
+
+        cam_polygons[2][0] = 6900.0f;    cam_polygons[2][1] = 0.0f;
+        cam_polygons[2][2] = 10300.0f; cam_polygons[2][3] = 0.0f;
+        cam_polygons[2][4] = 10300.0f; cam_polygons[2][5] = 2160.0f;
+        cam_polygons[2][6] = 6900.0f;    cam_polygons[2][7] = 2160.0f;
+
+        cam_polygons[3][0] = 10300.0f;    cam_polygons[3][1] = 0.0f;
+        cam_polygons[3][2] = 13496.0f; cam_polygons[3][3] = 0.0f;
+        cam_polygons[3][4] = 13496.0f; cam_polygons[3][5] = 2160.0f;
+        cam_polygons[3][6] = 10300.0f;    cam_polygons[3][7] = 2160.0f;
+
+        cam_polygons[4][0] = 13496.0f;    cam_polygons[4][1] = 0.0f;
+        cam_polygons[4][2] = 16251.0f; cam_polygons[4][3] = 0.0f;
+        cam_polygons[4][4] = 16251.0f; cam_polygons[4][5] = 2160.0f;
+        cam_polygons[4][6] = 13496.0f;    cam_polygons[4][7] = 2160.0f;
+
     }
-    //     if (!in_cam1) {
-    //     in_cam2 = is_point_in_quadrilateral(x, y,
-    //         568.0f, 0.0f,   
-    //         1237.0f, 0.0f,   
-    //         1250.0f, 360.0f, 
-    //         580.0f, 360.0f); 
-    // }
+    __syncthreads();
 
+    int active_cam = -1;
+    for (int cam = cam_num-1; cam >= 0; --cam) {
+        float* quad = cam_polygons[cam];
+        if (is_point_in_quadrilateral(x, y, 
+            quad[0], quad[1], quad[2], quad[3], 
+            quad[4], quad[5], quad[6], quad[7])) {
+            active_cam = cam;
+            break;
+        }
+    }
+    if (active_cam == -1) return;
 
-
-    if (!in_cam1 && !in_cam2) return;
-
-    int active_cam = in_cam2 ? 1 : 0;
+    // --- 3. 单应性变换和采样 ---
     float* H_inv = &h_matrices[active_cam * 9];
-
     float src_x, src_y;
     applyHomography(H_inv, x, y, &src_x, &src_y);
 
+
+    // 处理 Y 通道
     if (src_x >= 0 && src_x < single_width && src_y >= 0 && src_y < height) {
         int src_x_int = __float2int_rn(src_x);
         int src_y_int = __float2int_rn(src_y);
@@ -224,10 +347,8 @@ __global__ void USE_HNI(
             inputs_y[active_cam][src_y_int * input_linesize_y[active_cam] + src_x_int];
     }
 
-
-    if ((threadIdx.x % 2 == 0) && (threadIdx.y % 2 == 0) &&
-        (x % 2 == 0) && (y % 2 == 0)) 
-    {
+    // 处理 UV 通道（仅偶数线程处理）
+    if ((x % 2 == 0) && (y % 2 == 0)) {
         float uv_x = src_x / 2.0f;
         float uv_y = src_y / 2.0f;
         

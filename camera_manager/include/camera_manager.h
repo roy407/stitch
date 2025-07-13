@@ -22,7 +22,7 @@ extern "C" {
 #include "image_decoder.h"
 #include "image_encoder.h"
 
-#define cam_num (2)
+#define cam_num (5)
 
 class camera_manager {
 public:
