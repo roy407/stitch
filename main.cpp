@@ -6,12 +6,15 @@
 #include <chrono>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <QApplication>
 
 #include "camera_manager.h"
+#include "mainwindow.h"
 
-int main() {
-    camera_manager camera;
-    camera.start();
-    std::cout<<__func__<<" exit!"<<std::endl;
-    return 0;
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MainWindow w;
+    w.show();
+    return a.exec();
 }

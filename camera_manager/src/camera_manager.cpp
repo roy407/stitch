@@ -32,6 +32,11 @@ extern "C" {
 #include "image_encoder.h"
 #include "config.h"
 
+camera_manager* camera_manager::GetInstance() {
+    static camera_manager cam;
+    return &cam;
+}
+
 camera_manager::camera_manager() {
     // cam_num = config::GetInstance().GetCameraConfig().cam_num();
 }
@@ -89,6 +94,7 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
         }
         avformat_close_input(&fmt_ctx);
     }
+    img_decoder.close_image_decoder();
     std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
@@ -149,6 +155,7 @@ void camera_manager::get_stream_from_file(int cam_id) {
         }
     }
     running.store(false);
+    img_decoder.close_image_decoder();
     avformat_close_input(&fmt_ctx);
     std::cout<<__func__<<" "<<cam_id<<" exit!"<<std::endl;
 }
@@ -276,10 +283,9 @@ void camera_manager::do_stitch() {
 
 void camera_manager::start() {
     avformat_network_init(); // 初始化网络模块
-    
+
     const std::string software_status = config::GetInstance().GetGlobalConfig().software_status;
 
-    std::vector<std::thread> workers;
     if(software_status == "release") {
         rtsp_server::init_mediamtx();
     }
@@ -292,19 +298,25 @@ void camera_manager::start() {
         else if(status == "rtsp")
                 workers.emplace_back(&camera_manager::get_stream_from_rtsp, this, i);
     }
-    // if(status != "save") {
-    //     workers.emplace_back(&camera_manager::do_stitch,this);
-    // }
+    if(status != "save") {
+        workers.emplace_back(&camera_manager::do_stitch,this);
+    }
 
     workers.emplace_back(&camera_manager::cout_message,this);
-    
-    for(auto& t : workers) {
-        if(t.joinable()) t.join();
-    }
-    avformat_network_deinit();
+
     if(software_status == "release") {
         rtsp_server::destory_mediamtx();
     }
+}
+
+void camera_manager::stop() {
+    running = false;
+    for(auto& w: workers) {
+        if(w.joinable()) {
+            w.join();
+        }
+    }
+    avformat_network_deinit();
 }
 
 safe_queue<AVFrame*>& camera_manager::get_stitch_stream() {

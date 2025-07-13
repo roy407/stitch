@@ -1,23 +1,25 @@
 cmake_minimum_required(VERSION 3.10)
 project(pstitch CUDA CXX)
 
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 用于检测野指针问题，但是打开后会导致cuInit创建失败，显示OUT_OF_MEMORY
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
 # 这个问题是 已知现象，原因不是你真的“内存不够”，而是 ASan 与 CUDA（尤其是 NVIDIA 驱动的 
 # libcuda.so, libnvidia-fatbinaryloader.so, libnpp*, libnvrtc 等） 在运行时存在冲突。
 
-option(BUILD_SHARED_LIB "Build as shared library instead of executable" ON)
+option(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
-# find_package(OpenCV REQUIRED 
-#     # core
-#     # imgproc
-#     # cudawarping        # 包含warpPerspective
-#     # cudaimgproc        # 可选但建议添加
-#     # cudaarithm         # CUDA基础运算
-# )
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
+
 
 if(BUILD_SHARED_LIB)
     add_library(stitch_app SHARED lib.cpp)
@@ -29,9 +31,12 @@ add_subdirectory(core/rtsp)
 add_subdirectory(core/stitch)
 add_subdirectory(core/config)
 add_subdirectory(camera_manager)
+add_subdirectory(core/qt)
 
 target_link_libraries(stitch_app PRIVATE 
 camera_manager
+Qt5::Widgets
+qt
 )
 
 if(BUILD_SHARED_LIB)

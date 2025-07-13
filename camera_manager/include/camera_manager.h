@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 #include <mutex>
@@ -26,7 +27,7 @@ extern "C" {
 
 class camera_manager {
 public:
-    camera_manager();
+    static camera_manager* GetInstance();
     void get_stream_from_rtsp(int cam_id);
     void get_stream_from_file(int cam_id);
     void save_stream_to_file(int cam_id);
@@ -36,6 +37,7 @@ public:
     safe_queue<AVFrame*>& get_stitch_stream();
     void cout_message();
 private:
+    camera_manager();
     struct Camera_param {
         AVCodecParameters* codecpar; 
         AVRational time_base;
@@ -48,5 +50,6 @@ private:
     safe_queue<AVFrame*> frame_input[cam_num];
     safe_queue<AVFrame*> frame_output;
     safe_queue<AVPacket*> packet_output;
+    std::vector<std::thread> workers;
     std::atomic<bool> running{true}; // 全局运行标志
 };
