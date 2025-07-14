@@ -7,6 +7,7 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include "tools.hpp"
 
 template<typename T>
 class safe_queue {
@@ -36,22 +37,22 @@ template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
-    if constexpr (std::is_same<T, AVPacket*>::value) {
+    if constexpr (std::is_same<T, std::pair<AVPacket*,costTimes>>::value) {
         packets ++;
     }
-    if constexpr (std::is_same<T, AVFrame*>::value) {
+    if constexpr (std::is_same<T, std::pair<AVFrame*,costTimes>>::value) {
         frames ++;
     }
     if(queue_.size() >= max_queue_size) { 
-        if constexpr (std::is_same<T, AVPacket*>::value) {
+        if constexpr (std::is_same<T, std::pair<AVPacket*,costTimes>>::value) {
             packet_lost ++;
-            AVPacket* pkt = queue_.front();
-            av_packet_unref(pkt);
+            std::pair<AVPacket*,costTimes> pkt = queue_.front();
+            av_packet_unref(pkt.first);
         }
-        if constexpr (std::is_same<T, AVFrame*>::value) {
+        if constexpr (std::is_same<T, std::pair<AVFrame*,costTimes>>::value) {
             frame_lost ++;
-            AVFrame* frame = queue_.front();
-            av_frame_unref(frame);
+            std::pair<AVFrame*,costTimes> frame = queue_.front();
+            av_frame_unref(frame.first);
         }
         queue_.pop();
     }

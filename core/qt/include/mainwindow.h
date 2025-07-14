@@ -5,6 +5,7 @@
 #include <QLabel>
 #include "camera_manager.h"
 #include "safe_queue.hpp"
+#include "tools.hpp"
 
 extern "C" {
     #include "libavformat/avformat.h"
