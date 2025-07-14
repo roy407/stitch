@@ -51,7 +51,7 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
     std::string push_stream_url = config::GetInstance().GetCameraConfig()[cam_id].output_url;
     rtsp_server rtsp(packet_input[cam_id]);
     #else
-    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id]);
+    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id],cam_id);
     #endif
     std::string url;
     if(config::GetInstance().GetGlobalConfig().use_sub_input) {
@@ -79,14 +79,17 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
                 img_decoder.start_image_decoder(codecpar);
                 #endif
                 AVPacket pkt;
+                struct costTimes t;
                 while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                     if(pkt.stream_index == video_stream) {
+                        t.when_get_packet[cam_id] = get_now_time();
+                        t.image_idx[cam_id] = frame_cnt;
                         double pts_sec = pkt.pts * av_q2d(stream->time_base);
                         camera_timestamp[cam_id] = pts_sec;
                         frame_cnt ++;
                         camera_fps[cam_id] = frame_cnt / pts_sec;
                         AVPacket* pkt_copy = av_packet_clone(&pkt);
-                        packet_input[cam_id].push(pkt_copy);
+                        packet_input[cam_id].push({pkt_copy,t});
                     }
                     av_packet_unref(&pkt);
                 }
@@ -105,7 +108,7 @@ void camera_manager::get_stream_from_file(int cam_id) {
     std::string push_stream_url = config::GetInstance().GetCameraConfig()[cam_id].output_url;
     rtsp_server rtsp(packet_input[cam_id]);
     #else
-    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id]);
+    image_decoder img_decoder(packet_input[cam_id],frame_input[cam_id],cam_id);
     #endif
     std::string cam_path = config::GetInstance().GetGlobalConfig().save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
     int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), NULL, NULL);
@@ -123,6 +126,8 @@ void camera_manager::get_stream_from_file(int cam_id) {
             auto start_time = std::chrono::steady_clock::now();
             double start_pts = AV_NOPTS_VALUE;
             AVPacket pkt;
+            struct costTimes t;
+            
             #ifdef IS_PUSH_STREAM
             rtsp.start_rtsp_server(&camera_para[cam_id].codecpar,&camera_para[cam_id].time_base, push_stream_url);
             #else
@@ -130,6 +135,8 @@ void camera_manager::get_stream_from_file(int cam_id) {
             #endif
             while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
                 if(pkt.stream_index == video_stream) {
+                    t.when_get_packet[cam_id] = get_now_time();
+                    t.image_idx[cam_id] = frame_cnt;
                     double pts_sec = pkt.pts * av_q2d(stream->time_base);
                     if (start_pts == AV_NOPTS_VALUE) {
                         start_pts = pts_sec;
@@ -148,7 +155,7 @@ void camera_manager::get_stream_from_file(int cam_id) {
                     }
                     AVPacket* pkt_copy = av_packet_clone(&pkt);
                     pkt_copy->time_base = stream->time_base;
-                    packet_input[cam_id].push(pkt_copy);
+                    packet_input[cam_id].push({pkt_copy,t});
                 }
                 av_packet_unref(&pkt);
             }
@@ -266,12 +273,21 @@ void camera_manager::do_stitch() {
 
     while (running) {
         AVFrame* inputs[cam_num] = {};
+        std::pair<AVFrame*,costTimes> inputs_[cam_num];
         for (int i = 0; i < cam_num; i++) {
-            frame_input[i].wait_and_pop(inputs[i]);
+            frame_input[i].wait_and_pop(inputs_[i]);
+            inputs[i] = inputs_[i].first;
         }
         out_image = stitch.do_stitch(inputs);
+        costTimes t;
+        for (int i=0;i < cam_num; i++) {
+            t.image_idx[i] = inputs_[i].second.image_idx[i];
+            t.when_get_packet[i] = inputs_[i].second.when_get_packet[i];
+            t.when_get_decoded_frame[i] = inputs_[i].second.when_get_decoded_frame[i];
+        }
+        t.when_get_stitched_frame = get_now_time();
         out_image->pts = inputs[0]->pts;
-        frame_output.push(out_image);
+        frame_output.push({out_image,t});
         for (int i = 0; i < cam_num; ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
@@ -319,14 +335,14 @@ void camera_manager::stop() {
     avformat_network_deinit();
 }
 
-safe_queue<AVFrame*>& camera_manager::get_stitch_stream() {
+safe_queue<std::pair<AVFrame*,costTimes>>& camera_manager::get_stitch_stream() {
     return frame_output;
 }
 
 void camera_manager::cout_message() {
     int device_id = 0;
     size_t free_mem = 0, total_mem = 0;
-    #if 0
+    #if 1
     std::vector<int> last_frame_counts(cam_num, 0);
     std::vector<int> last_packet_counts(cam_num, 0);
     int last_global_frame = 0;
@@ -348,7 +364,7 @@ void camera_manager::cout_message() {
         std::cout << "GPU " << device_id << " memory: "
                 << (total_mem - free_mem) / (1024.0 * 1024.0) << " MB used / "
                 << total_mem / (1024.0 * 1024.0) << " MB total" << std::endl;
-        #if 0
+        #if 1
         std::cout << "=== Per-Camera Input Stats ===\n";
         for (int i = 0; i < cam_num; ++i) {
             int current_packets = packet_input[i].packets;

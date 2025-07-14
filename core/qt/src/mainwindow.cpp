@@ -21,14 +21,23 @@ MainWindow::MainWindow(QWidget *parent)
     
     sf = QThread::create([this]() {
         auto& q = cam->get_stitch_stream();
+        static std::string filename = std::string("build/") + get_current_time_filename(".txt");
 
-        while (running) {
-            AVFrame* frame = nullptr;
-            q.wait_and_pop(frame);
-            if (!frame) continue;
-            showFrame(frame);
-            av_frame_free(&frame); 
+        std::ofstream ofs(filename, std::ios::app);  // 追加写入
+        if (!ofs.is_open()) {
+            std::cerr << "Failed to open file: " << filename << std::endl;
+            return;
         }
+        while (running) {
+            std::pair<AVFrame*,costTimes> frame;
+            q.wait_and_pop(frame);
+            if (!frame.first) continue;
+            showFrame(frame.first);
+            frame.second.when_show_on_the_screen = get_now_time();
+            save_cost_times_to_timestamped_file(frame.second,ofs);
+            av_frame_free(&(frame.first)); 
+        }
+        ofs.close();
     });
     sf->start();
 }

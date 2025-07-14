@@ -6,7 +6,7 @@
 #include <chrono>
 #include "tools.hpp"
 
-image_decoder::image_decoder(safe_queue<AVPacket*>& packet_input , safe_queue<AVFrame*>& frame_output, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output) {
+image_decoder::image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input , safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output), cam_id(cam_id) {
     
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
@@ -54,10 +54,10 @@ void image_decoder::close_image_decoder() {
 }
 
 void image_decoder::do_decode() {
-    AVPacket* pkt = nullptr;
+    std::pair<AVPacket*,costTimes> pkt;
     while(running) {
         packet_input.wait_and_pop(pkt);
-        int ret = avcodec_send_packet(codec_ctx, pkt);
+        int ret = avcodec_send_packet(codec_ctx, pkt.first);
         if (ret < 0) {
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
@@ -73,7 +73,8 @@ void image_decoder::do_decode() {
             ret = avcodec_receive_frame(codec_ctx, frame);
             if (ret == 0) {
                 if (frame->format == AV_PIX_FMT_CUDA) {
-                    frame_output.push(frame);
+                    pkt.second.when_get_decoded_frame[cam_id] = get_now_time();
+                    frame_output.push({frame, pkt.second});
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 break;
@@ -84,6 +85,6 @@ void image_decoder::do_decode() {
                 break;
             }
         }
-        av_packet_unref(pkt);
+        av_packet_unref(pkt.first);
     }
 }

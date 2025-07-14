@@ -9,7 +9,7 @@
 
 #include "camera_manager.h"
 
-safe_queue<AVFrame*>& launch_stitch_worker() {
+safe_queue<std::pair<AVFrame*,costTimes>>& launch_stitch_worker() {
     static camera_manager camera;
 
     // 启动线程运行 camera.start()（只启动一次）
