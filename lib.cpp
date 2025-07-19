@@ -4,8 +4,6 @@
 #include <iostream>
 #include <queue>
 #include <chrono>
-#include <cuda.h>
-#include <cuda_runtime.h>
 
 #include "camera_manager.h"
 

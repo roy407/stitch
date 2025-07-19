@@ -6,7 +6,7 @@
 #include <iostream>
 #include <queue>
 #include <chrono>
-#include <cuda_runtime.h>
+#include <acl/acl.h>
 
 extern "C" {
     #include "libavformat/avformat.h"
@@ -20,7 +20,7 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "tools.hpp"
 #include "rtsp.h"
-#include "Stitch.h"
+// #include "Stitch.h"
 #include "image_decoder.h"
 #include "image_encoder.h"
 

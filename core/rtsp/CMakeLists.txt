@@ -2,13 +2,13 @@ add_library(rtsp STATIC
   src/rtsp.cpp
 )
 
-link_directories(/usr/local/lib)
+link_directories(${FFMPEG_LIB_DIR})
 
 target_include_directories(rtsp
   PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/../safe_tools
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    /usr/local/include
+    ${FFMPEG_INCLUDE_DIR}
 )
 
 set(SHARE_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/share")

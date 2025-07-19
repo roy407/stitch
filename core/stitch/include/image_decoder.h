@@ -15,7 +15,7 @@ extern "C" {
 
 class image_decoder {
 public:
-    image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input, safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name = "h264_cuvid");
+    image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input, safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name = "h264_ascend");
     ~image_decoder();
     void start_image_decoder(AVCodecParameters* codecpar);
     void close_image_decoder();

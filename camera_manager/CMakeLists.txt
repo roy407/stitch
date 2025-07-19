@@ -9,11 +9,9 @@ target_include_directories(camera_manager
     ${CMAKE_SOURCE_DIR}/core/rtsp/include
     ${CMAKE_SOURCE_DIR}/core/stitch/include
     ${CMAKE_SOURCE_DIR}/core/config/include
-    /usr/local/include
-    # /usr/local/include/opencv4
+    ${FFMPEG_INCLUDE_DIR}
 )
 
-# 链接库文件
 target_link_libraries(camera_manager PRIVATE 
 avcodec
 avformat

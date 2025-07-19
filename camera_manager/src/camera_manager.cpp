@@ -5,7 +5,6 @@
 #include <iostream>
 #include <queue>
 #include <chrono>
-#include <cuda_runtime.h>
 
 #include <chrono>
 #include <fstream>
@@ -27,7 +26,6 @@ extern "C" {
 }
 #include "safe_queue.hpp"
 #include "rtsp.h"
-#include "Stitch.h"
 #include "image_decoder.h"
 #include "image_encoder.h"
 #include "config.h"
@@ -154,7 +152,9 @@ void camera_manager::get_stream_from_file(int cam_id) {
                         std::this_thread::sleep_until(target_time);
                     }
                     AVPacket* pkt_copy = av_packet_clone(&pkt);
-                    pkt_copy->time_base = stream->time_base;
+                    av_packet_rescale_ts(pkt_copy, 
+                        stream->time_base,
+                        stream->time_base); 
                     packet_input[cam_id].push({pkt_copy,t});
                 }
                 av_packet_unref(&pkt);
@@ -242,60 +242,60 @@ void camera_manager::save_stream_to_file(int cam_id) {
     std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
-void camera_manager::do_stitch() {
-    int width = 3840;
-    int height = 2160;
+// void camera_manager::do_stitch() {
+//     int width = 3840;
+//     int height = 2160;
 
-    std::string url = config::GetInstance().GetGlobalStitchConfig().output_url;
+//     std::string url = config::GetInstance().GetGlobalStitchConfig().output_url;
 
-    AVFormatContext* out_ctx = nullptr;
-    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
+//     AVFormatContext* out_ctx = nullptr;
+//     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
 
-    AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
-    out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
+//     AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
+//     out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
 
-    // 3. 配置视频流参数
-    AVCodecParameters* codecpar = out_stream->codecpar;
-    codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-    codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = width * cam_num;                  
-    codecpar->height = height;                 
-    codecpar->format = AV_PIX_FMT_CUDA;   
+//     // 3. 配置视频流参数
+//     AVCodecParameters* codecpar = out_stream->codecpar;
+//     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+//     codecpar->codec_id = AV_CODEC_ID_H264;   
+//     codecpar->width = width * cam_num;                  
+//     codecpar->height = height;                 
+//     codecpar->format = AV_PIX_FMT_CUDA;   
 
-    out_stream->time_base = (AVRational){1, 20}; 
-    Stitch stitch(width,height,cam_num);
-    // image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
-    // rtsp_server rtsp(packet_output);
-    // rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
-    // img_enc.start_image_encoder();
-    int cnt = 0;
-    AVFrame* out_image = nullptr;
+//     out_stream->time_base = (AVRational){1, 20}; 
+//     Stitch stitch(width,height,cam_num);
+//     // image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
+//     // rtsp_server rtsp(packet_output);
+//     // rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
+//     // img_enc.start_image_encoder();
+//     int cnt = 0;
+//     AVFrame* out_image = nullptr;
 
-    while (running) {
-        AVFrame* inputs[cam_num] = {};
-        std::pair<AVFrame*,costTimes> inputs_[cam_num];
-        for (int i = 0; i < cam_num; i++) {
-            frame_input[i].wait_and_pop(inputs_[i]);
-            inputs[i] = inputs_[i].first;
-        }
-        out_image = stitch.do_stitch(inputs);
-        costTimes t;
-        for (int i=0;i < cam_num; i++) {
-            t.image_idx[i] = inputs_[i].second.image_idx[i];
-            t.when_get_packet[i] = inputs_[i].second.when_get_packet[i];
-            t.when_get_decoded_frame[i] = inputs_[i].second.when_get_decoded_frame[i];
-        }
-        t.when_get_stitched_frame = get_now_time();
-        out_image->pts = inputs[0]->pts;
-        frame_output.push({out_image,t});
-        for (int i = 0; i < cam_num; ++i) {
-            if (inputs[i]) {
-                av_frame_free(&inputs[i]);
-            }
-        }
-    }
-    std::cout<<__func__<<" exit!"<<std::endl;
-}
+//     while (running) {
+//         AVFrame* inputs[cam_num] = {};
+//         std::pair<AVFrame*,costTimes> inputs_[cam_num];
+//         for (int i = 0; i < cam_num; i++) {
+//             frame_input[i].wait_and_pop(inputs_[i]);
+//             inputs[i] = inputs_[i].first;
+//         }
+//         out_image = stitch.do_stitch(inputs);
+//         costTimes t;
+//         for (int i=0;i < cam_num; i++) {
+//             t.image_idx[i] = inputs_[i].second.image_idx[i];
+//             t.when_get_packet[i] = inputs_[i].second.when_get_packet[i];
+//             t.when_get_decoded_frame[i] = inputs_[i].second.when_get_decoded_frame[i];
+//         }
+//         t.when_get_stitched_frame = get_now_time();
+//         out_image->pts = inputs[0]->pts;
+//         frame_output.push({out_image,t});
+//         for (int i = 0; i < cam_num; ++i) {
+//             if (inputs[i]) {
+//                 av_frame_free(&inputs[i]);
+//             }
+//         }
+//     }
+//     std::cout<<__func__<<" exit!"<<std::endl;
+// }
 
 void camera_manager::start() {
     avformat_network_init(); // 初始化网络模块
@@ -359,11 +359,32 @@ void camera_manager::cout_message() {
             << "  FPS:" << camera_fps[cam_id] << std::endl;
 
         }
-        cudaSetDevice(device_id);  // 选择 GPU
-        cudaMemGetInfo(&free_mem, &total_mem);
-        std::cout << "GPU " << device_id << " memory: "
-                << (total_mem - free_mem) / (1024.0 * 1024.0) << " MB used / "
-                << total_mem / (1024.0 * 1024.0) << " MB total" << std::endl;
+        
+        aclError set_device_ret = aclrtSetDevice(device_id);
+        if (set_device_ret != ACL_SUCCESS) {
+            const char* err_msg = aclGetRecentErrMsg();
+            std::cerr << "Set device failed: " << err_msg << std::endl;
+            continue;
+        }
+        
+        #if 1 
+        // Ascend 310芯片
+        aclError mem_ret = aclrtGetMemInfo(ACL_DDR_MEM, &free_mem, &total_mem);
+        #else
+        // Ascend 910芯片
+        aclError mem_ret = aclrtGetMemInfo(ACL_HBM_MEM, &free_mem, &total_mem);
+        #endif
+        
+        if (mem_ret != ACL_SUCCESS) {
+            const char* err_msg = aclGetRecentErrMsg();
+            std::cerr << "Get memory info failed: " << err_msg << std::endl;
+        } else {
+            // 打印内存信息
+            std::cout << "NPU " << device_id << " memory: "
+                      << "Free: " << free_mem / (1024 * 1024) << "MB, "
+                      << "Total: " << total_mem / (1024 * 1024) << "MB" << std::endl;
+        }
+
         #if 1
         std::cout << "=== Per-Camera Input Stats ===\n";
         for (int i = 0; i < cam_num; ++i) {
