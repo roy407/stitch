@@ -8,7 +8,7 @@
 
 image_decoder::image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input , safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output), cam_id(cam_id) {
     
-    codec = avcodec_find_decoder_by_name("h264_cuvid");
+    codec = avcodec_find_decoder_by_name(codec_name.c_str());
     if (!codec) {
         throw std::runtime_error("CUDA decoder not found: " + codec_name);
     }
@@ -72,7 +72,7 @@ void image_decoder::do_decode() {
             }
             ret = avcodec_receive_frame(codec_ctx, frame);
             if (ret == 0) {
-                if (frame->format == AV_PIX_FMT_CUDA) {
+                if (frame->format == AV_PIX_FMT_ASCEND) {
                     pkt.second.when_get_decoded_frame[cam_id] = get_now_time();
                     frame_output.push({frame, pkt.second});
                 }

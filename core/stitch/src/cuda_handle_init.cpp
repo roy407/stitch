@@ -2,7 +2,7 @@
 
 cuda_handle_init::cuda_handle_init() {
     hw_device_ctx = nullptr;
-    int ret = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_CUDA, nullptr, nullptr, 0);
+    int ret = av_hwdevice_ctx_create(&hw_device_ctx, AV_HWDEVICE_TYPE_ASCEND, nullptr, nullptr, 0);
     if (ret < 0) {
         char errbuf[128];
         av_strerror(ret, errbuf, sizeof(errbuf));

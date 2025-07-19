@@ -4,14 +4,14 @@
         "software_status": "debug",
         "status": "file",
         "save_rtsp_data_time": 240,
-        "save_rtsp_data_path": "/home/eric/mp4/"
+        "save_rtsp_data_path": "/root/Videos/"
     },
     "cameras": [
         {
             "name": "cam0",
             "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
             "sub_input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/sub/av_stream",
-            "output_url": "rtsp://127.0.0.1:8554/cam0",
+            "output_url": "rtsp://192.168.0.2:8554/cam0",
             "crop": [0,0,0,0],
             "stitch": {
                 "enable": true,
@@ -23,7 +23,7 @@
             "name": "cam1",
             "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
             "sub_input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/sub/av_stream",
-            "output_url": "rtsp://127.0.0.1:8554/cam1",
+            "output_url": "rtsp://192.168.0.2:8554/cam1",
             "crop": [0,0,0.020833,0],
             "stitch": {
                 "enable": true,
@@ -35,7 +35,7 @@
             "name": "cam2",
             "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
             "sub_input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/sub/av_stream",
-            "output_url": "rtsp://127.0.0.1:8554/cam2",
+            "output_url": "rtsp://192.168.0.2:8554/cam2",
             "crop": [0,0,0.026042,0],
             "stitch": {
                 "enable": true,
@@ -47,7 +47,7 @@
             "name": "cam3",
             "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
             "sub_input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/sub/av_stream",
-            "output_url": "rtsp://127.0.0.1:8554/cam3",
+            "output_url": "rtsp://192.168.0.2:8554/cam3",
             "crop": [0,0,0.026042,0],
             "stitch": {
                 "enable": true,
@@ -59,7 +59,7 @@
             "name": "cam4",
             "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
             "sub_input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/sub/av_stream",
-            "output_url": "rtsp://127.0.0.1:8554/cam4",
+            "output_url": "rtsp://192.168.0.2:8554/cam4",
             "crop": [0,0,0.015625,0],
             "stitch": {
                 "enable": true,
@@ -69,6 +69,6 @@
         }
     ],
     "stitch": {
-        "output_url": "rtsp://127.0.0.1:8554/stitch"
+        "output_url": "rtsp://192.168.0.2:8554/stitch"
     }
 }

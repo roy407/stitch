@@ -42,7 +42,7 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
     // 创建 HW frame context
     hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
-    frames_ctx->format = AV_PIX_FMT_CUDA;
+    frames_ctx->format = AV_PIX_FMT_ASCEND;
     frames_ctx->sw_format = AV_PIX_FMT_NV12;   // CUDA 支持的底层格式
     frames_ctx->width = output_width;
     frames_ctx->height = height;
@@ -91,7 +91,7 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
         throw std::runtime_error("Failed to allocate output frame");
     }
 
-    output->format = AV_PIX_FMT_CUDA;
+    output->format = AV_PIX_FMT_ASCEND;
     output->width = output_width;
     output->height = height;
 

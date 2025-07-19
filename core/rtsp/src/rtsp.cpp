@@ -11,7 +11,7 @@ extern "C" {
     #include <libavutil/log.h>
 }
 
-rtsp_server::rtsp_server(safe_queue<AVPacket*>& packet_input) : packet_input(packet_input) {
+rtsp_server::rtsp_server(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input) : packet_input(packet_input) {
     running.store(false);
     codecpar = nullptr; 
     time_base = nullptr;
@@ -103,9 +103,9 @@ void rtsp_server::push_stream() {
     av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
     int ret1 = avformat_write_header(out_ctx, NULL);
     while(running) {
-        AVPacket* pkt;
+        std::pair<AVPacket*,costTimes> pkt;
         packet_input.wait_and_pop(pkt);
-        AVPacket* pkt_copy = av_packet_clone(pkt);
+        AVPacket* pkt_copy = av_packet_clone(pkt.first);
         av_interleaved_write_frame(out_ctx, pkt_copy);
         av_packet_unref(pkt_copy);
     }

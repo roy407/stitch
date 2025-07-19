@@ -12,7 +12,7 @@
 #include <ctime>    // for std::localtime
 #include <sstream>
 
-// #define IS_PUSH_STREAM
+#define IS_PUSH_STREAM
 
 extern "C" {
     #include "libavformat/avformat.h"
@@ -95,7 +95,9 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
         }
         avformat_close_input(&fmt_ctx);
     }
+    #ifndef IS_PUSH_STREAM
     img_decoder.close_image_decoder();
+    #endif
     std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
@@ -162,7 +164,9 @@ void camera_manager::get_stream_from_file(int cam_id) {
         }
     }
     running.store(false);
+    #ifndef IS_PUSH_STREAM
     img_decoder.close_image_decoder();
+    #endif
     avformat_close_input(&fmt_ctx);
     std::cout<<__func__<<" "<<cam_id<<" exit!"<<std::endl;
 }
@@ -260,7 +264,7 @@ void camera_manager::save_stream_to_file(int cam_id) {
 //     codecpar->codec_id = AV_CODEC_ID_H264;   
 //     codecpar->width = width * cam_num;                  
 //     codecpar->height = height;                 
-//     codecpar->format = AV_PIX_FMT_CUDA;   
+//     codecpar->format = AV_PIX_FMT_ASCEND;   
 
 //     out_stream->time_base = (AVRational){1, 20}; 
 //     Stitch stitch(width,height,cam_num);
@@ -314,15 +318,24 @@ void camera_manager::start() {
         else if(status == "rtsp")
                 workers.emplace_back(&camera_manager::get_stream_from_rtsp, this, i);
     }
-    if(status != "save") {
-        workers.emplace_back(&camera_manager::do_stitch,this);
-    }
+    // if(status != "save") {
+    //     workers.emplace_back(&camera_manager::do_stitch,this);
+    // }
 
     workers.emplace_back(&camera_manager::cout_message,this);
 
     if(software_status == "release") {
         rtsp_server::destory_mediamtx();
     }
+}
+
+void camera_manager::join() {
+    for(auto& w: workers) {
+        if(w.joinable()) {
+            w.join();
+        }
+    }
+    avformat_network_deinit();
 }
 
 void camera_manager::stop() {

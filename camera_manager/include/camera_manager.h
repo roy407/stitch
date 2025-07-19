@@ -24,7 +24,7 @@ extern "C" {
 #include "image_decoder.h"
 #include "image_encoder.h"
 
-#define cam_num (5)
+#define cam_num (1)
 
 class camera_manager {
 public:
@@ -32,8 +32,9 @@ public:
     void get_stream_from_rtsp(int cam_id);
     void get_stream_from_file(int cam_id);
     void save_stream_to_file(int cam_id);
-    void do_stitch();
+    // void do_stitch();
     void start();
+    void join();
     void stop();
     safe_queue<std::pair<AVFrame*,costTimes>>& get_stitch_stream();
     void cout_message();

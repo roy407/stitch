@@ -25,7 +25,7 @@ image_encoder::image_encoder(int width, int height, safe_queue<std::pair<AVFrame
     codec_ctx->framerate = AVRational{fps, 1};
     codec_ctx->gop_size = 12;
     codec_ctx->max_b_frames = 0;
-    codec_ctx->pix_fmt = AV_PIX_FMT_CUDA; 
+    codec_ctx->pix_fmt = AV_PIX_FMT_ASCEND; 
 
     // Example for nvenc:
     if (codec->id == AV_CODEC_ID_H264 || codec->id == AV_CODEC_ID_HEVC) {
@@ -40,7 +40,7 @@ image_encoder::image_encoder(int width, int height, safe_queue<std::pair<AVFrame
         throw std::runtime_error("Failed to allocate HW frame context");
     }
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)(frames_ref->data);
-    frames_ctx->format = AV_PIX_FMT_CUDA;
+    frames_ctx->format = AV_PIX_FMT_ASCEND;
     frames_ctx->sw_format = AV_PIX_FMT_NV12;
     frames_ctx->width = width;
     frames_ctx->height = height;
