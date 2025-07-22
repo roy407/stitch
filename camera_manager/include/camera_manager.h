@@ -20,11 +20,11 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "tools.hpp"
 #include "rtsp.h"
-// #include "Stitch.h"
+#include "Stitch.h"
 #include "image_decoder.h"
 #include "image_encoder.h"
 
-#define cam_num (1)
+#define cam_num (5)
 
 class camera_manager {
 public:
@@ -32,7 +32,7 @@ public:
     void get_stream_from_rtsp(int cam_id);
     void get_stream_from_file(int cam_id);
     void save_stream_to_file(int cam_id);
-    // void do_stitch();
+    void do_stitch();
     void start();
     void join();
     void stop();

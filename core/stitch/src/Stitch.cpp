@@ -1,14 +1,10 @@
 #include "Stitch.h"
-#include "stitch.cuh"
-#include "scale.cuh"
+#include "stitch.h"
 #include <iostream>
 
 #include <libavutil/frame.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/pixfmt.h>
-
-// #include <opencv2/core/cuda.hpp>
-// #include <opencv2/cudawarping.hpp>
 
 #include "cuda_handle_init.h"
 #include "config.h"
@@ -32,13 +28,29 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
     }
     output_width = 16251;
     //TODO：已经计算出了裁剪区域，应该可以直接得到输出图像的大小
-    cudaMalloc(&d_h_matrices, sizeof(float) * 9 * cam_num);
-    cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num);
-    cudaMalloc(&d_inputs_uv, sizeof(uint8_t*) * cam_num);
-    cudaMalloc(&d_crop, cam_num * 4 * sizeof(int));
-    cudaMemcpy(d_crop, crop, cam_num * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int));
-    cudaMalloc(&d_input_linesize_uv, cam_num * sizeof(int));
+    aclrtMemMallocPolicy policy = ACL_MEM_MALLOC_HUGE_FIRST;
+    aclError ret;
+    ret = aclrtMalloc((void**)&d_h_matrices, sizeof(float) * 9 * cam_num, policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMalloc((void**)&d_inputs_y, sizeof(uint8_t*) * cam_num, policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMalloc((void**)&d_inputs_uv, sizeof(uint8_t*) * cam_num, policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMalloc((void**)&d_crop, cam_num * 4 * sizeof(int), policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMemcpy(d_crop, cam_num * sizeof(int), crop, cam_num * sizeof(int), ACL_MEMCPY_HOST_TO_DEVICE);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMalloc((void**)&d_input_linesize_y, cam_num * sizeof(int), policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
+    ret = aclrtMalloc((void**)&d_input_linesize_uv, cam_num * sizeof(int), policy);
+    if (ret != ACL_ERROR_NONE) {
+    }
     // 创建 HW frame context
     hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
@@ -57,12 +69,13 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
 
 Stitch::~Stitch() {
     running.store(false);
-    cudaFree(d_inputs_y);
-    cudaFree(d_inputs_uv);
-    cudaFree(d_crop);
-    cudaFree(d_input_linesize_y);
-    cudaFree(d_input_linesize_uv);
-    cudaFree(d_h_matrices);
+    // 释放设备内存（不检查返回值，默认成功）
+    (void)aclrtFree(d_inputs_y);
+    (void)aclrtFree(d_inputs_uv);
+    (void)aclrtFree(d_crop);
+    (void)aclrtFree(d_input_linesize_y);
+    (void)aclrtFree(d_input_linesize_uv);
+    (void)aclrtFree(d_h_matrices);
 }
 
 AVFrame* Stitch::do_stitch(AVFrame** inputs) {
@@ -101,16 +114,19 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
         throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
     }
 
-    cudaMemcpy(d_h_matrices, h_matrices, sizeof(float) * 9 * cam_num, cudaMemcpyHostToDevice);
-
-
-    cudaMemcpy(d_inputs_y, gpu_inputs_y, sizeof(uint8_t*) * cam_num, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_inputs_uv, gpu_inputs_uv, sizeof(uint8_t*) * cam_num, cudaMemcpyHostToDevice);
+    (void)aclrtMemcpy(d_h_matrices, sizeof(float)*9*cam_num, h_matrices, sizeof(float)*9*cam_num, ACL_MEMCPY_HOST_TO_DEVICE);
+    (void)aclrtMemcpy(d_inputs_y, sizeof(uint8_t*)*cam_num, gpu_inputs_y, sizeof(uint8_t*)*cam_num, ACL_MEMCPY_HOST_TO_DEVICE);
+    (void)aclrtMemcpy(d_inputs_uv, sizeof(uint8_t*)*cam_num, gpu_inputs_uv, sizeof(uint8_t*)*cam_num, ACL_MEMCPY_HOST_TO_DEVICE);
 
     uint8_t* output_y = output->data[0];
     uint8_t* output_uv = output->data[1];
 
-    cudaStream_t stream = 0;
+    aclrtStream stream = nullptr;
+    aclError ret = aclrtCreateStream(&stream);
+    if (ret != ACL_ERROR_NONE) {
+        printf("Failed to create ACL stream, error code: %d\n", ret);
+        return nullptr;
+    }
 
     /*如果是不变量，考虑只初始化一次---待修改*/
     int h_input_linesize_y[cam_num];
@@ -121,8 +137,8 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
         h_input_linesize_y[i] = inputs[i]->linesize[0];
     }
 
-    cudaMemcpy(d_input_linesize_y, h_input_linesize_y, cam_num * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_input_linesize_uv, h_input_linesize_uv, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+    (void)aclrtMemcpy(d_input_linesize_y, cam_num * sizeof(int), h_input_linesize_y, cam_num * sizeof(int), ACL_MEMCPY_HOST_TO_DEVICE);
+    (void)aclrtMemcpy(d_input_linesize_uv, cam_num * sizeof(int), h_input_linesize_uv, cam_num * sizeof(int), ACL_MEMCPY_HOST_TO_DEVICE);
 
     #define H_M
 
@@ -134,12 +150,12 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
         output->linesize[0], output->linesize[1],
         cam_num, single_width, output_width, height,stream);
     #else
-    launch_stitch_kernel_with_crop(d_inputs_y, d_inputs_uv,
+    launch_stitch_kernel_raw(d_inputs_y, d_inputs_uv,
                         d_input_linesize_y, d_input_linesize_uv,
                         output_y, output_uv,
                         output->linesize[0], output->linesize[1],
                         cam_num, single_width, output_width, height,
-                        stream,d_crop);
+                        stream);
     #endif
     return output;
 }

@@ -1,9 +1,9 @@
 add_library(stitch STATIC
   src/cuda_handle_init.cpp
   src/image_decoder.cpp
-  # src/image_encoder.cpp
-  # src/Stitch.cpp
-  # src/stitch.cu
+  src/image_encoder.cpp
+  src/Stitch.cpp
+  src/stitch.cpp
   # src/scale.cu
 )
 
@@ -15,7 +15,6 @@ target_include_directories(stitch
   ${CMAKE_CURRENT_SOURCE_DIR}/../safe_tools
   ${CMAKE_SOURCE_DIR}/core/config/include
   ${FFMPEG_INCLUDE_DIR}
-  # /usr/local/include/opencv4
 )
 
 target_link_libraries(stitch

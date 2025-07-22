@@ -6,7 +6,7 @@
 
 // NV12 scale
 
-__global__ void scale_1_2_y_uv_with_nomem_kernel(uint8_t** inputs_y, uint8_t** inputs_uv,
+extern "C" __global__ __aicore__ void scale_1_2_y_uv_with_nomem_kernel(uint8_t** inputs_y, uint8_t** inputs_uv,
                           int* input_linesize_y, int* input_linesize_uv,
                           int pre_width, int pre_height, int cam_num) {
     int cam_idx = blockIdx.x * blockDim.x + threadIdx.x;

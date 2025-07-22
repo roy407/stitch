@@ -15,7 +15,7 @@ extern "C" {
 
 class image_encoder {
 public:
-    image_encoder(int width, int height, safe_queue<std::pair<AVFrame*,costTimes>>& frame_input,safe_queue<std::pair<AVPacket*,costTimes>>& packet_output, const std::string& codec_name = "h264_nvenc");
+    image_encoder(int width, int height, safe_queue<std::pair<AVFrame*,costTimes>>& frame_input,safe_queue<std::pair<AVPacket*,costTimes>>& packet_output, const std::string& codec_name = "h264_ascend");
     ~image_encoder();
     void start_image_encoder();
     void close_image_encoder();
