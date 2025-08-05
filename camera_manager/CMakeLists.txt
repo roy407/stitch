@@ -7,7 +7,7 @@ target_include_directories(camera_manager
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/safe_tools
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/core/rtsp/include
-    ${CMAKE_SOURCE_DIR}/core/stitch/include
+    ${CMAKE_SOURCE_DIR}/core/data_processing/include
     ${CMAKE_SOURCE_DIR}/core/config/include
     ${FFMPEG_INCLUDE_DIR}
 )
@@ -19,7 +19,7 @@ avutil
 swscale
 pthread
 rtsp
-stitch
+data_processing
 config
 # ${OPENCV_LIBS}
 )

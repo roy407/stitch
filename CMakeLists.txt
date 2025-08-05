@@ -30,9 +30,7 @@ else()
     add_executable(stitch_app main.cpp)
 endif()
 
-add_subdirectory(core/rtsp)
-add_subdirectory(core/stitch)
-add_subdirectory(core/config)
+add_subdirectory(core)
 add_subdirectory(camera_manager)
 
 target_link_libraries(stitch_app PRIVATE 

@@ -1,10 +1,11 @@
 #include "Stitch.h"
-#include "stitch.h"
+#include "operator_ascend.h"
 #include <iostream>
 
 #include <libavutil/frame.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/pixfmt.h>
+#include <acl/acl.h>
 
 #include "cuda_handle_init.h"
 #include "config.h"
@@ -140,22 +141,11 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     (void)aclrtMemcpy(d_input_linesize_y, cam_num * sizeof(int), h_input_linesize_y, cam_num * sizeof(int), ACL_MEMCPY_HOST_TO_DEVICE);
     (void)aclrtMemcpy(d_input_linesize_uv, cam_num * sizeof(int), h_input_linesize_uv, cam_num * sizeof(int), ACL_MEMCPY_HOST_TO_DEVICE);
 
-    #define H_M
-
-    #ifdef H_M
-    launch_stitch_kernel_with_h_matrix(d_inputs_y, d_inputs_uv,
-        d_input_linesize_y, d_input_linesize_uv,
-        d_h_matrices,
-        output_y, output_uv,
-        output->linesize[0], output->linesize[1],
-        cam_num, single_width, output_width, height,stream);
-    #else
     launch_stitch_kernel_raw(d_inputs_y, d_inputs_uv,
                         d_input_linesize_y, d_input_linesize_uv,
                         output_y, output_uv,
                         output->linesize[0], output->linesize[1],
                         cam_num, single_width, output_width, height,
                         stream);
-    #endif
     return output;
 }

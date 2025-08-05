@@ -6,8 +6,8 @@ link_directories(${FFMPEG_LIB_DIR})
 
 target_include_directories(rtsp
   PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../safe_tools
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../safe_tools
     ${FFMPEG_INCLUDE_DIR}
 )
 
