@@ -37,24 +37,20 @@ extern "C" __global__ __aicore__ void stitch_y_uv_with_linesize_kernel(
     int32_t output_y_offset1 = (row_group * 2 + 1) * output_linesize_y + cam_idx * single_width;
     int32_t output_uv_offset = row_group * output_linesize_uv + cam_idx * single_width * 2;  // UV每个像素2字节
 
-    // 使用DMA进行内存拷贝（高效数据传输）
     // 拷贝Y分量第一行
-    __memcpy(output_y + output_y_offset0, 
-             input_y_ptr + input_y_offset0,
-             single_width, 
-             GLOBAL_MEM, GLOBAL_MEM, 0);
+    for(int i=0;i<single_width;i++) {
+        *(output_y + output_y_offset0 + i) = *(input_y_ptr + input_y_offset0 + i);
+    }
     
     // 拷贝Y分量第二行
-    __memcpy(output_y + output_y_offset1, 
-             input_y_ptr + input_y_offset1,
-             single_width, 
-             GLOBAL_MEM, GLOBAL_MEM, 0);
+    for(int i=0;i<single_width;i++) {
+        *(output_y + output_y_offset1 + i) = *(input_y_ptr + input_y_offset1 + i);
+    }
     
     // 拷贝UV分量（NV12格式，每像素2字节）
-    __memcpy(output_uv + output_uv_offset, 
-             input_uv_ptr + input_uv_offset,
-             single_width * 2,  // 注意：UV宽度是Y的两倍
-             GLOBAL_MEM, GLOBAL_MEM, 0);
+    for(int i=0;i<single_width * 2;i++) {
+        *(output_uv + output_uv_offset + i) = *(input_uv_ptr + input_uv_offset + i);
+    }
 }
 
 extern "C"

@@ -12,8 +12,6 @@
 #include <ctime>    // for std::localtime
 #include <sstream>
 
-// #define IS_PUSH_STREAM
-
 extern "C" {
     #include "libavformat/avformat.h"
     #include "libavcodec/avcodec.h"
@@ -39,7 +37,7 @@ camera_manager::camera_manager() {
     // cam_num = config::GetInstance().GetCameraConfig().cam_num();
 }
 
-void camera_manager::get_stream_from_rtsp(int cam_id) {
+void camera_manager::rtspProducer(int cam_id) {
     AVFormatContext* fmt_ctx = avformat_alloc_context();
     AVDictionary* options = nullptr;
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
@@ -101,7 +99,7 @@ void camera_manager::get_stream_from_rtsp(int cam_id) {
     std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
-void camera_manager::get_stream_from_file(int cam_id) {
+void camera_manager::videoFileProducer(int cam_id) {
     AVFormatContext* fmt_ctx = avformat_alloc_context();
     int frame_cnt = 0;
     #ifdef IS_PUSH_STREAM
@@ -169,6 +167,74 @@ void camera_manager::get_stream_from_file(int cam_id) {
     #endif
     avformat_close_input(&fmt_ctx);
     std::cout<<__func__<<" "<<cam_id<<" exit!"<<std::endl;
+}
+
+void camera_manager::picFileProducer(int cam_id, std::string fileName, int height, int width, int fps) {
+    const size_t nv12_size = width * height * 3 / 2;  // YUV420 格式
+    std::ifstream file(fileName, std::ios::binary);
+    if (!file) {
+        return;
+    }
+    std::vector<uint8_t> image_data(nv12_size);
+    if (!file.read(reinterpret_cast<char*>(image_data.data()), nv12_size)) {
+        return;
+    }
+    AVFrame* frame = av_frame_alloc();
+    if (!frame) {
+        std::cout<<"Frame alloc failed"<<std::endl;
+        return;
+    }
+    frame->width = width;
+    frame->height = height;
+    frame->format = AV_PIX_FMT_NV12;
+    if (av_frame_get_buffer(frame, 32) < 0) {  // 32字节对齐
+        av_frame_free(&frame);
+        return;
+    }
+    uint8_t* src_y = image_data.data();
+    uint8_t* dst_y = frame->data[0];
+    for (int i = 0; i < height; i++) {
+        memcpy(dst_y, src_y, width);
+        src_y += width;
+        dst_y += frame->linesize[0];
+    }
+    uint8_t* src_uv = image_data.data() + width * height;
+    uint8_t* dst_uv = frame->data[1];
+    for (int i = 0; i < height / 2; i++) {
+        memcpy(dst_uv, src_uv, width);
+        src_uv += width;
+        dst_uv += frame->linesize[1];
+    }
+
+    AVRational time_base = {1, fps};  // 时间基
+    
+    auto frame_time = std::chrono::milliseconds(1000 / fps); 
+
+    while(running) {
+        auto start = std::chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        auto sleep_time = frame_time - elapsed;
+    
+        if (sleep_time > std::chrono::milliseconds(0)) {
+            std::this_thread::sleep_for(sleep_time);
+        }
+
+        AVFrame* frame_copy = av_frame_clone(frame);
+        if (!frame_copy) {
+            std::cout<<"Frame alloc failed"<<std::endl;
+            continue;
+        }
+        static int64_t frame_count = 0;
+        frame_copy->pts = (frame_count++) * fps;
+        costTimes t;
+        t.image_idx[cam_id] = cam_id;
+        t.when_get_packet[cam_id] = get_now_time();
+        t.when_get_decoded_frame[cam_id] = get_now_time();
+        frame_input[cam_id].push({frame_copy, t});
+    }
+
+    av_frame_free(&frame);
 }
 
 void camera_manager::save_stream_to_file(int cam_id) {
@@ -246,29 +312,28 @@ void camera_manager::save_stream_to_file(int cam_id) {
     std::cout<<__func__<<cam_id<<" exit!"<<std::endl;
 }
 
-void camera_manager::do_stitch() {
+void camera_manager::stitchConsumer() {
     int width = 640;
     int height = 360;
+    int stitch_num = 1;
 
     std::string url = config::GetInstance().GetGlobalStitchConfig().output_url;
 
     AVFormatContext* out_ctx = nullptr;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
-
     AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
     out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
-
-    // 3. 配置视频流参数
+    // 配置视频流参数
     AVCodecParameters* codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = width * cam_num;                  
+    codecpar->width = width * stitch_num;                  
     codecpar->height = height;                 
     codecpar->format = AV_PIX_FMT_ASCEND;   
 
     out_stream->time_base = (AVRational){1, 20}; 
-    Stitch stitch(width,height,cam_num);
-    image_encoder img_enc(width * cam_num,height,frame_output,packet_output);
+    Stitch stitch(width, height, stitch_num);
+    image_encoder img_enc(width * stitch_num,height,frame_output,packet_output);
     rtsp_server rtsp(packet_output);
     rtsp.start_rtsp_server(&codecpar,&out_stream->time_base,url.c_str());
     img_enc.start_image_encoder();
@@ -311,16 +376,19 @@ void camera_manager::start() {
     }
     const std::string status = config::GetInstance().GetGlobalConfig().status;
     for(int i=0; i<cam_num; ++i) {
-        if(status == "file")
-                workers.emplace_back(&camera_manager::get_stream_from_file, this, i);
-        else if(status == "save")
-                workers.emplace_back(&camera_manager::save_stream_to_file, this, i);
-        else if(status == "rtsp")
-                workers.emplace_back(&camera_manager::get_stream_from_rtsp, this, i);
+        std::string fileName = "/root/Documents/" + std::to_string(i)+".yuv";
+        int fps = 20;
+        workers.emplace_back(&camera_manager::picFileProducer, this, i, fileName, 360, 640, fps);
+        // if(status == "file")
+        //         workers.emplace_back(&camera_manager::videoFileProducer, this, i);
+        // else if(status == "save")
+        //         workers.emplace_back(&camera_manager::save_stream_to_file, this, i);
+        // else if(status == "rtsp")
+        //         workers.emplace_back(&camera_manager::rtspProducer, this, i);
     }
-    // if(status != "save") {
-    //     workers.emplace_back(&camera_manager::do_stitch,this);
-    // }
+    if(status != "save") {
+        workers.emplace_back(&camera_manager::stitchConsumer,this);
+    }
 
     workers.emplace_back(&camera_manager::cout_message,this);
 
@@ -380,13 +448,8 @@ void camera_manager::cout_message() {
             continue;
         }
         
-        #if 1 
         // Ascend 310芯片
-        aclError mem_ret = aclrtGetMemInfo(ACL_DDR_MEM, &free_mem, &total_mem);
-        #else
-        // Ascend 910芯片
         aclError mem_ret = aclrtGetMemInfo(ACL_HBM_MEM, &free_mem, &total_mem);
-        #endif
         
         if (mem_ret != ACL_SUCCESS) {
             const char* err_msg = aclGetRecentErrMsg();

@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
 #include <atomic>
+#include <acl/acl.h>
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
@@ -15,6 +16,7 @@ public:
 private:
     AVFrame* output;
     AVBufferRef* hw_frames_ctx;
+    aclrtStream stream;
     std::atomic_bool running;
     const int cam_num;
     const int single_width;

@@ -5,7 +5,6 @@
 #include <libavutil/frame.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/pixfmt.h>
-#include <acl/acl.h>
 
 #include "cuda_handle_init.h"
 #include "config.h"
@@ -27,7 +26,7 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
             }
         }
     }
-    output_width = 16251;
+    // output_width = 16251;
     //TODO：已经计算出了裁剪区域，应该可以直接得到输出图像的大小
     aclrtMemMallocPolicy policy = ACL_MEM_MALLOC_HUGE_FIRST;
     aclError ret;
@@ -64,6 +63,12 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
     if (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
         throw std::runtime_error("Failed to initialize CUDA hwframe context");
     }
+
+    ret = aclrtCreateStream(&stream);
+    if (ret != ACL_ERROR_NONE) {
+        printf("Failed to create ACL stream, error code: %d\n", ret);
+    }
+
     delete[] crop;
     running.store(true);
 }
@@ -122,13 +127,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     uint8_t* output_y = output->data[0];
     uint8_t* output_uv = output->data[1];
 
-    aclrtStream stream = nullptr;
-    aclError ret = aclrtCreateStream(&stream);
-    if (ret != ACL_ERROR_NONE) {
-        printf("Failed to create ACL stream, error code: %d\n", ret);
-        return nullptr;
-    }
-
     /*如果是不变量，考虑只初始化一次---待修改*/
     int h_input_linesize_y[cam_num];
     int h_input_linesize_uv[cam_num];
@@ -147,5 +145,8 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
                         output->linesize[0], output->linesize[1],
                         cam_num, single_width, output_width, height,
                         stream);
+
+    aclrtSynchronizeStream(stream);
+    
     return output;
 }

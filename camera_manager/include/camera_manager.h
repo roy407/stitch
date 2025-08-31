@@ -24,19 +24,24 @@ extern "C" {
 #include "image_decoder.h"
 #include "image_encoder.h"
 
-#define cam_num (5)
+const int cam_num = (5);
 
 class camera_manager {
 public:
     static camera_manager* GetInstance();
-    void get_stream_from_rtsp(int cam_id);
-    void get_stream_from_file(int cam_id);
-    void save_stream_to_file(int cam_id);
-    void do_stitch();
+// producer
+    void rtspProducer(int cam_id);
+    void videoFileProducer(int cam_id);
+    void picFileProducer(int cam_id, std::string fileName, int height, int width, int fps); // 以图片作为stream的输入
+// consumer
+    void stitchConsumer();
+    void rtspConsumer();
+// utils
     void start();
     void join();
     void stop();
     safe_queue<std::pair<AVFrame*,costTimes>>& get_stitch_stream();
+    void save_stream_to_file(int cam_id);
     void cout_message();
 private:
     camera_manager();
