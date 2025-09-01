@@ -20,6 +20,9 @@ find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
+# 设置ffmpeg的配置
+set(FFMPEG_INCLUDE_DIRS "/usr/local/include")
+link_libraries("/usr/local/lib")
 
 if(BUILD_SHARED_LIB)
     add_library(stitch_app SHARED lib.cpp)
@@ -27,16 +30,18 @@ else()
     add_executable(stitch_app main.cpp)
 endif()
 
-add_subdirectory(core/rtsp)
-add_subdirectory(core/stitch)
-add_subdirectory(core/config)
+add_subdirectory(core)
+add_subdirectory(components)
 add_subdirectory(camera_manager)
-add_subdirectory(core/qt)
+
+target_link_directories(stitch_app PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/qt/include
+)
 
 target_link_libraries(stitch_app PRIVATE 
-camera_manager
-Qt5::Widgets
-qt
+    camera_manager
+    Qt5::Widgets
+    qt
 )
 
 if(BUILD_SHARED_LIB)

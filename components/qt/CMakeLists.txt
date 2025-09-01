@@ -3,16 +3,13 @@ add_library(qt STATIC
     include/mainwindow.h  #用于触发moc编译
 )
 
-target_include_directories(qt
-  PUBLIC
-
-  ${CMAKE_SOURCE_DIR}/core/safe_tools
+target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_SOURCE_DIR}/core/rtsp/include
-  ${CMAKE_SOURCE_DIR}/core/stitch/include
-  ${CMAKE_SOURCE_DIR}/core/config/include
-  ${CMAKE_SOURCE_DIR}/camera_manager/include
-  /usr/local/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../camera_manager/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../core/utils/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../core/rtsp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../core/data_processing/include
+  ${FFMPEG_INCLUDE_DIRS}
 )
 target_link_libraries(qt PRIVATE Qt5::Widgets)
 target_link_options(qt PRIVATE -Wl,-rpath-link=/usr/local/lib)
@@ -25,7 +22,7 @@ target_link_libraries(qt PRIVATE
   swscale
   pthread
   rtsp
-  stitch
+  data_processing
   config
   camera_manager
 )
