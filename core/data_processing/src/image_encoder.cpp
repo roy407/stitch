@@ -6,7 +6,7 @@ extern "C" {
 #include<iostream>
 #include "cuda_handle_init.h"
 
-image_encoder::image_encoder(int width, int height, safe_queue<std::pair<AVFrame*,costTimes>>& frame_input ,safe_queue<std::pair<AVPacket*,costTimes>>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
+image_encoder::image_encoder(int width, int height, safe_queue<T_Frame>& frame_input ,safe_queue<T_Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
     int fps = 10;
     
     codec = avcodec_find_encoder_by_name(codec_name.c_str());
@@ -81,7 +81,7 @@ void image_encoder::close_image_encoder() {
 }
 
 void image_encoder::do_encode() {
-    std::pair<AVFrame*,costTimes> frame;
+    T_Frame frame;
     while(running) {
         frame_input.wait_and_pop(frame);
         int ret = avcodec_send_frame(codec_ctx, frame.first);

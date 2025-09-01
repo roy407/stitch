@@ -17,6 +17,7 @@ extern "C" {
     #include "libavutil/log.h"
     #include "libavcodec/bsf.h"
 }
+
 #include "safe_queue.hpp"
 #include "tools.hpp"
 #include "rtsp.h"
@@ -35,7 +36,7 @@ public:
     void do_stitch();
     void start();
     void stop();
-    safe_queue<std::pair<AVFrame*,costTimes>>& get_stitch_stream();
+    safe_queue<T_Frame>& get_stitch_stream();
     void cout_message();
 private:
     camera_manager();
@@ -47,10 +48,10 @@ private:
     int camera_fps[cam_num] = {0};
     std::pair<int,int> camera_res[cam_num];
     struct Camera_param camera_para[cam_num];
-    safe_queue<std::pair<AVPacket*,costTimes>> packet_input[cam_num];
-    safe_queue<std::pair<AVFrame*,costTimes>> frame_input[cam_num];
-    safe_queue<std::pair<AVFrame*,costTimes>> frame_output;
-    safe_queue<std::pair<AVPacket*,costTimes>> packet_output;
+    safe_queue<T_Packet> packet_input[cam_num];
+    safe_queue<T_Frame> frame_input[cam_num];
+    safe_queue<T_Frame> frame_output;
+    safe_queue<T_Packet> packet_output;
     std::vector<std::thread> workers;
     std::atomic<bool> running{true}; // 全局运行标志
 };

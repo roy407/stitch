@@ -4,5 +4,5 @@
 #include <libavutil/frame.h>  // for AVFrame
 
 
-safe_queue<std::pair<AVFrame*,costTimes>>& launch_stitch_worker();
+safe_queue<T_Frame>& launch_stitch_worker();
 

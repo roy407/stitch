@@ -9,6 +9,17 @@
 #include <condition_variable>
 #include "tools.hpp"
 
+// 通过修改T_TEST是否被定义，来控制最终是否测试
+
+#define T_TEST
+
+#ifdef T_TEST
+using T_Packet = std::pair<AVPacket*,costTimes>;
+using T_Frame = std::pair<AVFrame*,costTimes>;
+#else
+using T_Packet = AVPacket*;
+using T_Frame = AVFrame*;
+#endif
 template<typename T>
 class safe_queue {
 public:
@@ -37,21 +48,21 @@ template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
-    if constexpr (std::is_same<T, std::pair<AVPacket*,costTimes>>::value) {
+    if constexpr (std::is_same<T, T_Packet>::value) {
         packets ++;
     }
-    if constexpr (std::is_same<T, std::pair<AVFrame*,costTimes>>::value) {
+    if constexpr (std::is_same<T, T_Frame>::value) {
         frames ++;
     }
     if(queue_.size() >= max_queue_size) { 
-        if constexpr (std::is_same<T, std::pair<AVPacket*,costTimes>>::value) {
+        if constexpr (std::is_same<T, T_Packet>::value) {
             packet_lost ++;
-            std::pair<AVPacket*,costTimes> pkt = queue_.front();
+            T_Packet pkt = queue_.front();
             av_packet_unref(pkt.first);
         }
-        if constexpr (std::is_same<T, std::pair<AVFrame*,costTimes>>::value) {
+        if constexpr (std::is_same<T, T_Frame>::value) {
             frame_lost ++;
-            std::pair<AVFrame*,costTimes> frame = queue_.front();
+            T_Frame frame = queue_.front();
             av_frame_unref(frame.first);
         }
         queue_.pop();

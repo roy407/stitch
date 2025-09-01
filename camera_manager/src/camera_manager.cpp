@@ -273,7 +273,7 @@ void camera_manager::do_stitch() {
 
     while (running) {
         AVFrame* inputs[cam_num] = {};
-        std::pair<AVFrame*,costTimes> inputs_[cam_num];
+        T_Frame inputs_[cam_num];
         for (int i = 0; i < cam_num; i++) {
             frame_input[i].wait_and_pop(inputs_[i]);
             inputs[i] = inputs_[i].first;
@@ -335,7 +335,7 @@ void camera_manager::stop() {
     avformat_network_deinit();
 }
 
-safe_queue<std::pair<AVFrame*,costTimes>>& camera_manager::get_stitch_stream() {
+safe_queue<T_Frame>& camera_manager::get_stitch_stream() {
     return frame_output;
 }
 

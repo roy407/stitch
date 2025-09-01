@@ -8,14 +8,13 @@ extern "C" {
 
 #include <iostream>
 #include "safe_queue.hpp"
-#include "tools.hpp"
 #include <stdexcept>
 #include <atomic>
 #include <thread>
 
 class image_decoder {
 public:
-    image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input, safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name = "h264_cuvid");
+    image_decoder(safe_queue<T_Packet>& packet_input, safe_queue<T_Frame>& frame_output, int cam_id, const std::string& codec_name = "h264_cuvid");
     ~image_decoder();
     void start_image_decoder(AVCodecParameters* codecpar);
     void close_image_decoder();
@@ -23,8 +22,8 @@ public:
 
     AVCodecContext* codec_ctx;
     const AVCodec* codec;
-    safe_queue<std::pair<AVPacket*,costTimes>>& packet_input;
-    safe_queue<std::pair<AVFrame*,costTimes>>& frame_output;
+    safe_queue<T_Packet>& packet_input;
+    safe_queue<T_Frame>& frame_output;
     std::atomic_bool is_created;
     std::atomic_bool running;
     std::thread t_img_decoder;

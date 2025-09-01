@@ -4,9 +4,8 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "tools.hpp"
 
-image_decoder::image_decoder(safe_queue<std::pair<AVPacket*,costTimes>>& packet_input , safe_queue<std::pair<AVFrame*,costTimes>>& frame_output, int cam_id, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output), cam_id(cam_id) {
+image_decoder::image_decoder(safe_queue<T_Packet>& packet_input , safe_queue<T_Frame>& frame_output, int cam_id, const std::string& codec_name) : packet_input(packet_input), frame_output(frame_output), cam_id(cam_id) {
     
     codec = avcodec_find_decoder_by_name("h264_cuvid");
     if (!codec) {
@@ -54,7 +53,7 @@ void image_decoder::close_image_decoder() {
 }
 
 void image_decoder::do_decode() {
-    std::pair<AVPacket*,costTimes> pkt;
+    T_Packet pkt;
     while(running) {
         packet_input.wait_and_pop(pkt);
         int ret = avcodec_send_packet(codec_ctx, pkt.first);
