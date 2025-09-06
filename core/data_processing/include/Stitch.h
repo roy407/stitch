@@ -9,16 +9,17 @@ extern "C" {
 }
 class Stitch {
 public:
-    explicit Stitch(int width,int height,int cam_num);
+    explicit Stitch();
+    void init(int width,int height,int cam_num);
     ~Stitch();
     AVFrame* do_stitch(AVFrame** inputs);
 private:
     AVFrame* output;
     AVBufferRef* hw_frames_ctx;
     std::atomic_bool running;
-    const int cam_num;
-    const int single_width;
-    const int height;
+    int cam_num;
+    int single_width;
+    int height;
     int output_width;
     uint8_t **d_inputs_y;
     uint8_t **d_inputs_uv;

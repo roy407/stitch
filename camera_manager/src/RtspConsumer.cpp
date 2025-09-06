@@ -1,4 +1,4 @@
-#include "rtsp.h"
+#include "RtspConsumer.h"
 #include <iostream>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -11,26 +11,39 @@ extern "C" {
     #include <libavutil/log.h>
 }
 
-rtsp_server::rtsp_server(safe_queue<AVPacket*>& packet_input) : packet_input(packet_input) {
-    running.store(false);
-    codecpar = nullptr; 
-    time_base = nullptr;
-}
-
-void rtsp_server::start_rtsp_server(AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) {
-    if (running.load()) return;
+RtspConsumer::RtspConsumer(safe_queue<AVPacket*>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) : packet_input(packet) {
     this->codecpar = codecpar;
     this->time_base = time_base;
     this->output_url = push_stream_url;
-    running.store(true);
-    t_rtsp = std::thread(&rtsp_server::push_stream, this); 
+    if (!*codecpar || (*codecpar)->codec_type != AVMEDIA_TYPE_VIDEO) {
+        std::cout << "Invalid codec parameters" << std::endl;
+        return;
+    }
+    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", output_url.c_str());
+    AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
+    avcodec_parameters_copy(out_stream->codecpar, *codecpar);
+    out_stream->time_base = *time_base;
+    av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
+    av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
+    int ret1 = avformat_write_header(out_ctx, NULL);
+}
+void RtspConsumer::start() {
+    TaskManager::start();
+}
+void RtspConsumer::stop() {
+    TaskManager::stop();
 }
 
-void rtsp_server::close_rtsp_server() {
-    running.store(false);
+void RtspConsumer::run() {
+    while(running) {
+        AVPacket* pkt;
+        packet_input.wait_and_pop(pkt);
+        int ret = av_interleaved_write_frame(out_ctx, pkt);
+        av_packet_unref(pkt);
+    }
 }
 
-bool rtsp_server::init_mediamtx() {
+bool RtspConsumer::init_mediamtx() {
     auto getExecutableDir = [&]() -> std::string {
         char buf[PATH_MAX];
         ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf)-1);
@@ -63,7 +76,7 @@ bool rtsp_server::init_mediamtx() {
     return EXIT_SUCCESS;
 }
 
-bool rtsp_server::destory_mediamtx() {
+bool RtspConsumer::destory_mediamtx() {
     int pid = 0;
     std::string cmd = "pgrep mediamtx";
     FILE* pipe = popen(cmd.c_str(), "r");
@@ -89,34 +102,8 @@ bool rtsp_server::destory_mediamtx() {
     }
 }
 
-void rtsp_server::push_stream() {
-    if (!*codecpar || (*codecpar)->codec_type != AVMEDIA_TYPE_VIDEO) {
-        std::cout << "Invalid codec parameters" << std::endl;
-        return;
-    }
-    AVFormatContext* out_ctx = nullptr;
-    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", output_url.c_str());
-    AVStream* out_stream = avformat_new_stream(out_ctx, nullptr);
-    avcodec_parameters_copy(out_stream->codecpar, *codecpar);
-    out_stream->time_base = *time_base;
-    av_opt_set(out_ctx->priv_data, "rtsp_transport", "tcp", 0);
-    av_opt_set(out_ctx->priv_data, "muxdelay", "0.1", 0);
-    int ret1 = avformat_write_header(out_ctx, NULL);
-    while(running) {
-        AVPacket* pkt;
-        packet_input.wait_and_pop(pkt);
-        AVPacket* pkt_copy = av_packet_clone(pkt);
-        av_interleaved_write_frame(out_ctx, pkt_copy);
-        av_packet_unref(pkt_copy);
-    }
-}
-
-rtsp_server::~rtsp_server() {
-    close_rtsp_server();
-    if (t_rtsp.joinable()) {
-        t_rtsp.join();
-    }
+RtspConsumer::~RtspConsumer() {
     std::cout<<__func__<<" exit!"<<std::endl;
 }
 
-pid_t rtsp_server::pid = 0;
+pid_t RtspConsumer::pid = 0;

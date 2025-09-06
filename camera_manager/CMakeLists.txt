@@ -1,5 +1,12 @@
 add_library(camera_manager STATIC
   src/camera_manager.cpp
+  src/TaskManager.cpp
+  src/Producer.cpp
+  src/Consumer.cpp
+  src/AVFrameProducer.cpp
+  src/RtspConsumer.cpp
+  src/StitchConsumer.cpp
+  src/LogConsumer.cpp
 )
 
 target_include_directories(camera_manager PRIVATE 
@@ -18,7 +25,6 @@ target_link_libraries(camera_manager PRIVATE
   avutil
   swscale
   pthread
-  rtsp
   data_processing
   config
 )

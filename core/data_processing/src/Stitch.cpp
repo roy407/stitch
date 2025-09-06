@@ -13,13 +13,21 @@
 #include "cuda_handle_init.h"
 #include "config.h"
 
-Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(height),cam_num(cam_num) {
-    
+Stitch::Stitch() {
+}
+
+void Stitch::init(int width, int height, int cam_num) {
+    this->single_width = width;
+    this->height = height;
+    this->cam_num = cam_num;
     output_width = single_width * cam_num;
+    if(config::GetInstance().GetGlobalStitchConfig().output_width != -1) {
+        output_width = config::GetInstance().GetGlobalStitchConfig().output_width;
+    }
     int* crop = new int[cam_num * 4];
     memset(crop,0,cam_num * 4);
     const std::vector<CameraConfig> cams = config::GetInstance().GetCameraConfig();
-    for(int i=0;i<cams.size();i++) {
+    for(int i=0;i<cam_num;i++) {
         if(cams[i].stitch.enable == true) {
             if(cams[i].stitch.mode == "crop") {
                 std::vector<float> __crop = cams[i].crop;
@@ -55,7 +63,8 @@ Stitch::Stitch(int width,int height,int cam_num): single_width(width),height(hei
     running.store(true);
 }
 
-Stitch::~Stitch() {
+Stitch::~Stitch()
+{
     running.store(false);
     cudaFree(d_inputs_y);
     cudaFree(d_inputs_uv);
@@ -141,5 +150,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
                         cam_num, single_width, output_width, height,
                         stream,d_crop);
     #endif
+    cudaStreamSynchronize(stream);
     return output;
 }

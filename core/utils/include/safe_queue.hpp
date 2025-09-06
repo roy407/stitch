@@ -40,7 +40,7 @@ public:
 private:
     mutable std::mutex mtx_;
     std::queue<T> queue_;
-    std::condition_variable cond_;
+    std::condition_variable cv;
     int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
 };
 
@@ -55,19 +55,19 @@ void safe_queue<T>::push(const T& value) {
         frames ++;
     }
     if(queue_.size() >= max_queue_size) { 
-        if constexpr (std::is_same<T, T_Packet>::value) {
+        if constexpr (std::is_same<T, AVPacket*>::value) {
             packet_lost ++;
-            T_Packet pkt = queue_.front();
-            av_packet_unref(pkt.first);
+            AVPacket* pkt = queue_.front();
+            av_packet_unref(pkt);
         }
-        if constexpr (std::is_same<T, T_Frame>::value) {
+        if constexpr (std::is_same<T, AVFrame*>::value) {
             frame_lost ++;
-            T_Frame frame = queue_.front();
-            av_frame_unref(frame.first);
+            AVFrame* frame = queue_.front();
+            av_frame_unref(frame);
         }
         queue_.pop();
     }
-    cond_.notify_one();
+    cv.notify_one();
 }
 
 template<typename T>
@@ -83,7 +83,7 @@ bool safe_queue<T>::try_pop(T& result) {
 template<typename T>
 void safe_queue<T>::wait_and_pop(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cond_.wait(lock, [this] { return !queue_.empty(); });
+    cv.wait(lock, [this] { return !queue_.empty(); });
     result = std::move(queue_.front());
     queue_.pop();
 }
@@ -91,7 +91,7 @@ void safe_queue<T>::wait_and_pop(T& result) {
 template<typename T>
 void safe_queue<T>::wait_and_front(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cond_.wait(lock, [this] { return !queue_.empty(); });
+    cv.wait(lock, [this] { return !queue_.empty(); });
     result = std::move(queue_.front());
 }
 

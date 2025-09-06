@@ -50,6 +50,12 @@ bool config::loadFromFile(const std::string& filename) {
         // 读取 stitch
         stitch.output_url = j["stitch"]["output_url"];
 
+        if(j["stitch"].contains("output_width")) {
+            stitch.output_width = j["stitch"]["output_width"];
+        } else {
+            stitch.output_width = -1;
+        }
+
     } catch (const std::exception& e) {
         std::cerr << "Error parsing JSON: " << e.what() << std::endl;
         return false;

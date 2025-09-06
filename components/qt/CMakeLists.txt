@@ -8,6 +8,7 @@ target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../camera_manager/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/utils/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/rtsp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../core/config/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/data_processing/include
   ${FFMPEG_INCLUDE_DIRS}
 )
@@ -21,7 +22,6 @@ target_link_libraries(qt PRIVATE
   avutil
   swscale
   pthread
-  rtsp
   data_processing
   config
   camera_manager

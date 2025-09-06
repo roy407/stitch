@@ -34,6 +34,7 @@ struct GlobalConfig {
 // Stitch 配置
 struct GlobalStitchConfig {
     std::string output_url;
+    int output_width;
 };
 
 // 配置管理类

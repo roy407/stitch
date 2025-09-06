@@ -8,6 +8,7 @@
 #include <cuda_runtime.h>
 #include <QApplication>
 #include "mainwindow.h"
+#include "camera_manager.h"
 
 int main(int argc, char *argv[])
 {

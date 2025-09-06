@@ -29,13 +29,11 @@ MainWindow::MainWindow(QWidget *parent)
             return;
         }
         while (running) {
-            std::pair<AVFrame*,costTimes> frame;
+            AVFrame* frame;
             q.wait_and_pop(frame);
-            if (!frame.first) continue;
-            showFrame(frame.first);
-            frame.second.when_show_on_the_screen = get_now_time();
-            save_cost_times_to_timestamped_file(frame.second,ofs);
-            av_frame_free(&(frame.first)); 
+            if (!frame) continue;
+            showFrame(frame);
+            av_frame_free(&(frame)); 
         }
         ofs.close();
     });

@@ -45,7 +45,6 @@ target_link_libraries(stitch_app PRIVATE
 )
 
 if(BUILD_SHARED_LIB)
-    set_target_properties(rtsp PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_target_properties(stitch PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_target_properties(config PROPERTIES POSITION_INDEPENDENT_CODE ON)
     set_target_properties(camera_manager PROPERTIES POSITION_INDEPENDENT_CODE ON)
