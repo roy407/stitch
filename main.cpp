@@ -7,13 +7,13 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <QApplication>
-#include "mainwindow.h"
+#include "widget.h"
 #include "camera_manager.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
+    Widget w;
     w.show();
     return a.exec();
 }
