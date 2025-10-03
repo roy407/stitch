@@ -1,6 +1,6 @@
 #include "StitchConsumer.h"
 
-StitchConsumer::StitchConsumer(std::vector<safe_queue<AVFrame*> *> frame_to_stitch, int width, int height) {
+StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch, int width, int height) {
     m_frame = frame_to_stitch;
     m_name += "stitch";
     cam_num = m_frame.size();
@@ -29,7 +29,7 @@ StitchConsumer::StitchConsumer(std::vector<safe_queue<AVFrame*> *> frame_to_stit
     m_status.height = codecpar->height;
 }
 
-safe_queue<AVFrame *> &StitchConsumer::get_stitch_frame()
+safe_queue<Frame> &StitchConsumer::get_stitch_frame()
 {
     return frame_output;
 }
@@ -39,14 +39,16 @@ StitchConsumer::~StitchConsumer() {
 }
 
 void StitchConsumer::run() { 
-    AVFrame* out_image = nullptr;
+    Frame out_image;
     while (running) {
         AVFrame** inputs = new AVFrame*[cam_num];
         for (int i = 0; i < cam_num; i++) {
-            m_frame[i]->wait_and_pop(inputs[i]);
+            Frame tmp;
+            m_frame[i]->wait_and_pop(tmp);
+            inputs[i] = tmp.m_data;
         }
-        out_image = stitch.do_stitch(inputs);
-        out_image->pts = inputs[0]->pts;
+        out_image.m_data = stitch.do_stitch(inputs);
+        out_image.m_data->pts = inputs[0]->pts;
         frame_output.push(out_image);
         m_status.frame_cnt ++;
         for (int i = 0; i < cam_num; ++i) {

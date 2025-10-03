@@ -9,6 +9,7 @@
 #include <vector>
 #include "nv12render.h"
 #include "camera_manager.h"
+#include "safe_queue.hpp"
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -31,7 +32,7 @@ private:
     QThread* sf;
     std::mutex m_mutex;
     std::atomic<bool> running;
-    
+    safe_queue<Frame>* q;
     std::vector<uchar> m_buffer;
     int m_width;
     int m_height;

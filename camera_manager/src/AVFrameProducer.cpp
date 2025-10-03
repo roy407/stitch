@@ -66,8 +66,9 @@ void AVFrameProducer::run() {
         AVPacket pkt;
         while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
             if(pkt.stream_index == video_stream) {
-                AVPacket* pkt_copy1 = av_packet_clone(&pkt);
-                AVPacket* pkt_copy2 = av_packet_clone(&pkt);
+                Packet pkt_copy1, pkt_copy2;
+                pkt_copy1.m_data = av_packet_clone(&pkt);
+                pkt_copy2.m_data = av_packet_clone(&pkt);
                 m_packetSender1.push(pkt_copy1);
                 m_packetSender2.push(pkt_copy2);
                 m_status.frame_cnt ++;
@@ -100,10 +101,10 @@ int AVFrameProducer::getHeight() const {
     return m_status.height;
 }
 
-safe_queue<AVFrame *> &AVFrameProducer::getFrameSender() {
+safe_queue<Frame> &AVFrameProducer::getFrameSender() {
     return m_frameSender;
 }
 
-safe_queue<AVPacket *> &AVFrameProducer::getPacketSender() {
+safe_queue<Packet> &AVFrameProducer::getPacketSender() {
     return m_packetSender1;
 }

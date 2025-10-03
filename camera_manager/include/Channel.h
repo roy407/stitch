@@ -17,7 +17,7 @@ public:
 };
 
 class FrameChannel : public Channel {
-    std::shared_ptr<safe_queue<T_Frame>> m_data;
+    std::shared_ptr<safe_queue<Frame>> m_data;
 public:
     virtual bool bind(TaskManager* producer, TaskManager* consumer, ChannelType type);
 };

@@ -19,8 +19,8 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "LogConsumer.h"
 class StitchConsumer : public Consumer {
-    std::vector<safe_queue<AVFrame*>*> m_frame;
-    safe_queue<AVFrame*> frame_output;
+    std::vector<safe_queue<Frame>*> m_frame;
+    safe_queue<Frame> frame_output;
     int cam_num{0};
     int width{0};
     int height{0};
@@ -33,8 +33,8 @@ class StitchConsumer : public Consumer {
     std::unique_ptr<TaskManager> m_rtspConsumer; // 拼接图像的推流线程，自己创建
     friend class LogConsumer;
 public:
-    StitchConsumer(std::vector<safe_queue<AVFrame*>*> frame_to_stitch, int width, int height);
-    safe_queue<AVFrame*>& get_stitch_frame();
+    StitchConsumer(std::vector<safe_queue<Frame>*> frame_to_stitch, int width, int height);
+    safe_queue<Frame>& get_stitch_frame();
     virtual ~StitchConsumer();
     virtual void run();
 };

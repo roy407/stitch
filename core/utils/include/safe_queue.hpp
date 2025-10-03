@@ -8,18 +8,6 @@
 #include <atomic>
 #include <condition_variable>
 #include "tools.hpp"
-
-// 通过修改T_TEST是否被定义，来控制最终是否测试
-
-#define T_TEST
-
-#ifdef T_TEST
-using T_Packet = std::pair<AVPacket*,costTimes>;
-using T_Frame = std::pair<AVFrame*,costTimes>;
-#else
-using T_Packet = AVPacket*;
-using T_Frame = AVFrame*;
-#endif
 template<typename T>
 class safe_queue {
 public:
@@ -33,6 +21,8 @@ public:
     void wait_and_front(T& result);
     bool empty() const;
     int size() const;
+    void pop_and_free();
+    bool stop_and_clear();
     int frames{0};
     int packets{0};
     int frame_lost{0};
@@ -41,6 +31,7 @@ private:
     mutable std::mutex mtx_;
     std::queue<T> queue_;
     std::condition_variable cv;
+    std::atomic_bool isStop{false};
     int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
 };
 
@@ -48,24 +39,15 @@ template<typename T>
 void safe_queue<T>::push(const T& value) {
     std::lock_guard<std::mutex> lock(mtx_);
     queue_.push(value);
-    if constexpr (std::is_same<T, T_Packet>::value) {
+    if constexpr (std::is_same<T, Packet>::value) {
         packets ++;
     }
-    if constexpr (std::is_same<T, T_Frame>::value) {
+    if constexpr (std::is_same<T, Frame>::value) {
         frames ++;
     }
     if(queue_.size() >= max_queue_size) { 
-        if constexpr (std::is_same<T, AVPacket*>::value) {
-            packet_lost ++;
-            AVPacket* pkt = queue_.front();
-            av_packet_unref(pkt);
-        }
-        if constexpr (std::is_same<T, AVFrame*>::value) {
-            frame_lost ++;
-            AVFrame* frame = queue_.front();
-            av_frame_unref(frame);
-        }
-        queue_.pop();
+        frame_lost ++;
+        pop_and_free();
     }
     cv.notify_one();
 }
@@ -83,16 +65,20 @@ bool safe_queue<T>::try_pop(T& result) {
 template<typename T>
 void safe_queue<T>::wait_and_pop(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cv.wait(lock, [this] { return !queue_.empty(); });
-    result = std::move(queue_.front());
-    queue_.pop();
+    cv.wait(lock, [this] { return isStop || !queue_.empty(); });
+    if(!queue_.empty()) {
+        result = std::move(queue_.front());
+        queue_.pop();
+    }
 }
 
 template<typename T>
 void safe_queue<T>::wait_and_front(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cv.wait(lock, [this] { return !queue_.empty(); });
-    result = std::move(queue_.front());
+    cv.wait(lock, [this] { return isStop || !queue_.empty(); });
+    if(!queue_.empty()) {
+        result = std::move(queue_.front());
+    }
 }
 
 template<typename T>
@@ -105,4 +91,29 @@ template<typename T>
 int safe_queue<T>::size() const {
     std::lock_guard<std::mutex> lock(mtx_);
     return queue_.size();
+}
+
+template <typename T>
+inline void safe_queue<T>::pop_and_free() {
+    if constexpr (std::is_same<T, Packet>::value) {
+        Packet pkt = queue_.front();
+        av_packet_unref(pkt.m_data);
+    }
+    if constexpr (std::is_same<T, Frame>::value) {
+        Frame frame = queue_.front();
+        av_frame_unref(frame.m_data);
+    }
+    queue_.pop();
+}
+
+template <typename T>
+inline bool safe_queue<T>::stop_and_clear()
+{
+    isStop.store(true);
+    cv.notify_all();
+    std::lock_guard<std::mutex> lock(mtx_);
+    while(!queue_.empty()) {
+        pop_and_free();
+    }
+    return true;
 }

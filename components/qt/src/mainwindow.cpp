@@ -29,11 +29,10 @@ MainWindow::MainWindow(QWidget *parent)
             return;
         }
         while (running) {
-            AVFrame* frame;
+            Frame frame;
             q.wait_and_pop(frame);
-            if (!frame) continue;
-            showFrame(frame);
-            av_frame_free(&(frame)); 
+            showFrame(frame.m_data);
+            av_frame_free(&(frame.m_data)); 
         }
         ofs.close();
     });

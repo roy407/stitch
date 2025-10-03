@@ -43,30 +43,28 @@ Widget::Widget(QWidget *parent) :
     m_render = new Nv12Render();
     cam = camera_manager::GetInstance();
     cam->start();
+    q = &(cam->get_stitch_stream());
     
     sf = QThread::create([this]() {
-        auto& q = cam->get_stitch_stream();
         AVFrame* cpu_frame = av_frame_alloc();
         
         while (running.load()) {
-            std::pair<AVFrame*, costTimes> frame;
-            q.wait_and_pop(frame.first);
-            if (!frame.first) continue;
-
+            Frame frame;
+            q->wait_and_pop(frame);
             std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
             if (!lock.owns_lock()) {
-                av_frame_free(&frame.first);
+                av_frame_free(&frame.m_data);
                 continue;
             }
 
-            AVFrame* src_frame = frame.first;
+            AVFrame* src_frame = frame.m_data;
             AVFrame* process_frame = src_frame;
             
             // 硬件帧转换到CPU
             if (src_frame->format == AV_PIX_FMT_CUDA) {
                 if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
                     qWarning() << "Failed to transfer frame to CPU";
-                    av_frame_free(&frame.first);
+                    av_frame_free(&frame.m_data);
                     continue;
                 }
                 process_frame = cpu_frame;
@@ -98,7 +96,7 @@ Widget::Widget(QWidget *parent) :
             memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
             memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
             
-            av_frame_free(&frame.first);
+            av_frame_free(&frame.m_data);
             QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         }
         
@@ -113,7 +111,6 @@ Widget::~Widget() {
 
 void Widget::cleanup() {
     running.store(false);
-    
     if (sf) {
         sf->wait();
         delete sf;

@@ -18,9 +18,9 @@ extern "C" {
 #include "config.h"
 
 class AVFrameProducer : public Producer {
-    safe_queue<AVFrame*> m_frameSender;
-    safe_queue<AVPacket*> m_packetSender1; // rtsp
-    safe_queue<AVPacket*> m_packetSender2; // decoder
+    safe_queue<Frame> m_frameSender;
+    safe_queue<Packet> m_packetSender1; // rtsp
+    safe_queue<Packet> m_packetSender2; // decoder
     image_decoder img_dec;
     int cam_id{-1};    // 相机ID，一般是从0开始，依次加一
     AVFormatContext* fmt_ctx{nullptr};
@@ -38,8 +38,8 @@ public:
     virtual void run();
     int getWidth() const;
     int getHeight() const;
-    safe_queue<AVFrame*>& getFrameSender();
-    safe_queue<AVPacket*>& getPacketSender();
+    safe_queue<Frame>& getFrameSender();
+    safe_queue<Packet>& getPacketSender();
 private:
     std::unique_ptr<TaskManager> m_rtspConsumer; // 单个相机的推流线程，自己创建
     friend class LogConsumer;

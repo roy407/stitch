@@ -37,7 +37,7 @@ camera_manager::~camera_manager() {
 
 void camera_manager::start() {
     avformat_network_init(); // 初始化网络模块
-    std::vector<safe_queue<AVFrame*>*> frames;
+    std::vector<safe_queue<Frame>*> frames;
     LogConsumer* log = new LogConsumer();
     m_task.push_back(log);
     int width = 0;
@@ -65,7 +65,7 @@ void camera_manager::stop() {
     avformat_network_deinit();
 }
 
-safe_queue<AVFrame *> &camera_manager::get_stitch_stream()
+safe_queue<Frame> &camera_manager::get_stitch_stream()
 {
     if(stitch_handle) {
         auto x = dynamic_cast<StitchConsumer*>(stitch_handle);
