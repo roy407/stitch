@@ -1,0 +1,5 @@
+set(CORE_TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(config)
+add_subdirectory(data_processing)
+add_subdirectory(operator)
+add_subdirectory(utils)

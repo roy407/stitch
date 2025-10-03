@@ -61,6 +61,9 @@
         "typeinfo": "cpp",
         "queue": "cpp",
         "forward_list": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "codecvt": "cpp",
+        "variant": "cpp",
+        "shared_mutex": "cpp"
     }
 }

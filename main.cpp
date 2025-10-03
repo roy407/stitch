@@ -6,33 +6,14 @@
 #include <chrono>
 #include <cuda.h>
 #include <cuda_runtime.h>
-
+#include <QApplication>
+#include "widget.h"
 #include "camera_manager.h"
 
-// #ifndef BUILD_SHARED_LIB
-
-int main() {
-    camera_manager camera;
-    camera.start();
-    std::cout<<__func__<<" exit!"<<std::endl;
-    return 0;
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    Widget w;
+    w.show();
+    return a.exec();
 }
-
-// #else
-
-// safe_queue<AVFrame*>& launch_stitch_worker() {
-//     static camera_manager camera;
-
-//     // 启动线程运行 camera.start()（只启动一次）
-//     static std::once_flag flag;
-//     std::call_once(flag, []() {
-//         std::thread([]() {
-//             camera.start();  // 阻塞函数放在线程中
-//         }).detach();
-//     });
-
-//     // 返回引用，立即返回
-//     return camera.get_stitch_stream();
-// }
-
-// #endif

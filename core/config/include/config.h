@@ -8,12 +8,18 @@
 
 using json = nlohmann::json;
 
-// 单个相机配置
+struct StitchConfig {
+    bool enable = false;
+    std::string mode;
+};
 struct CameraConfig {
     std::string name;
     std::string input_url;
     std::string sub_input_url;
     std::string output_url;
+    std::vector<float> crop;
+    bool rtsp = false;
+    StitchConfig stitch;
 };
 
 // 全局配置
@@ -26,8 +32,9 @@ struct GlobalConfig {
 };
 
 // Stitch 配置
-struct StitchConfig {
+struct GlobalStitchConfig {
     std::string output_url;
+    int output_width;
 };
 
 // 配置管理类
@@ -35,12 +42,12 @@ class config {
 private:
     GlobalConfig global;
     std::vector<CameraConfig> cameras;
-    StitchConfig stitch;
+    GlobalStitchConfig stitch;
     config();
     bool loadFromFile(const std::string& filename);
 public:
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;
     const std::vector<CameraConfig> GetCameraConfig() const;
-    const StitchConfig GetStitchConfig() const;
+    const GlobalStitchConfig GetGlobalStitchConfig() const;
 };
