@@ -30,7 +30,7 @@ public:
     static camera_manager* GetInstance();
     void start();
     void stop();
-    safe_queue<AVFrame*>& get_stitch_stream();
+    safe_queue<Frame>& get_stitch_stream();
 private:
     camera_manager();
     ~camera_manager();

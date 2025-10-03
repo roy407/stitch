@@ -6,7 +6,7 @@ extern "C" {
 #include<iostream>
 #include "cuda_handle_init.h"
 
-image_encoder::image_encoder(int width, int height, safe_queue<T_Frame>& frame_input ,safe_queue<T_Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
+image_encoder::image_encoder(int width, int height, safe_queue<Frame>& frame_input ,safe_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
     int fps = 10;
     
     codec = avcodec_find_encoder_by_name(codec_name.c_str());
@@ -81,10 +81,11 @@ void image_encoder::close_image_encoder() {
 }
 
 void image_encoder::do_encode() {
-    T_Frame frame;
+    Frame frame;
+    Packet packet;
     while(running) {
         frame_input.wait_and_pop(frame);
-        int ret = avcodec_send_frame(codec_ctx, frame.first);
+        int ret = avcodec_send_frame(codec_ctx, frame.m_data);
         if (ret < 0) {
             throw std::runtime_error("Error sending frame to encoder");
         }
@@ -96,11 +97,13 @@ void image_encoder::do_encode() {
             throw std::runtime_error("Error during encoding");
         }
         
-        av_frame_free(&(frame.first));
+        av_frame_free(&(frame.m_data));
 
         AVPacket* out_pkt = av_packet_alloc();
         av_packet_ref(out_pkt, pkt);
         av_packet_unref(pkt);
-        packet_output.push({out_pkt,frame.second});
+        packet.m_data = out_pkt;
+        packet.m_costTimes = frame.m_costTimes;
+        packet_output.push(packet);
     }
 }

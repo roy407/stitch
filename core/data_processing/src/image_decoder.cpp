@@ -24,7 +24,7 @@ image_decoder::~image_decoder() {
     std::cout<<__func__<<" exit!"<<std::endl;
 }
 
-void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<AVFrame*>* m_frame, safe_queue<AVPacket*>* m_packet) {
+void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
     avcodec_parameters_to_context(codec_ctx, codecpar);
     if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
         throw std::runtime_error("Failed to open codec");
@@ -45,12 +45,12 @@ void image_decoder::close_image_decoder() {
 }
 
 void image_decoder::do_decode() {
-    AVPacket* pkt = nullptr;
+    Packet pkt;
     if(!m_packetInput) throw std::runtime_error("null pointer");
     if(!m_frameOutput) throw std::runtime_error("null pointer");
     while(running) {
         m_packetInput->wait_and_pop(pkt);
-        int ret = avcodec_send_packet(codec_ctx, pkt);
+        int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
         if (ret < 0) {
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
@@ -59,13 +59,14 @@ void image_decoder::do_decode() {
         }
 
         while (ret >= 0) {
-            AVFrame* frame = av_frame_alloc();
-            if (!frame) {
+            Frame frame;
+            frame.m_data = av_frame_alloc();
+            if (!frame.m_data) {
                 throw std::runtime_error("Could not allocate AVFrame");
             }
-            ret = avcodec_receive_frame(codec_ctx, frame);
+            ret = avcodec_receive_frame(codec_ctx, frame.m_data);
             if (ret == 0) {
-                if (frame->format == AV_PIX_FMT_CUDA) {
+                if (frame.m_data->format == AV_PIX_FMT_CUDA) {
                     m_frameOutput->push(frame);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -77,7 +78,7 @@ void image_decoder::do_decode() {
                 break;
             }
         }
-        av_packet_unref(pkt);
+        av_packet_unref(pkt.m_data);
     }
 
 }

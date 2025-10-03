@@ -20,6 +20,18 @@ struct costTimes {
     uint64_t when_show_on_the_screen;
 };
 
+struct Frame {
+    int cam_id;
+    AVFrame* m_data;
+    struct costTimes m_costTimes;
+};
+
+struct Packet {
+    int cam_id;
+    AVPacket* m_data;
+    struct costTimes m_costTimes;
+};
+
 inline uint64_t get_now_time() {
     auto now = std::chrono::system_clock::now();
     auto ns_since_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(

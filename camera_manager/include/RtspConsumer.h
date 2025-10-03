@@ -12,7 +12,7 @@ extern "C" {
 
 class RtspConsumer : public Consumer {
 public:
-    RtspConsumer(safe_queue<AVPacket*>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
+    RtspConsumer(safe_queue<Packet>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url);
     virtual void start();
     virtual void stop();
     virtual void run();
@@ -23,7 +23,7 @@ private:
     AVFormatContext* out_ctx{nullptr};
     AVCodecParameters** codecpar{nullptr};
     AVRational* time_base{nullptr};
-    safe_queue<AVPacket*>& packet_input;
+    safe_queue<Packet>& packet_input;
     std::string output_url;
     static pid_t pid;
 };

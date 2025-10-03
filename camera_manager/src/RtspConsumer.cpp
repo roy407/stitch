@@ -11,7 +11,7 @@ extern "C" {
     #include <libavutil/log.h>
 }
 
-RtspConsumer::RtspConsumer(safe_queue<AVPacket*>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) : packet_input(packet) {
+RtspConsumer::RtspConsumer(safe_queue<Packet>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) : packet_input(packet) {
     this->codecpar = codecpar;
     this->time_base = time_base;
     this->output_url = push_stream_url;
@@ -36,10 +36,10 @@ void RtspConsumer::stop() {
 
 void RtspConsumer::run() {
     while(running) {
-        AVPacket* pkt;
+        Packet pkt;
         packet_input.wait_and_pop(pkt);
-        int ret = av_interleaved_write_frame(out_ctx, pkt);
-        av_packet_unref(pkt);
+        int ret = av_interleaved_write_frame(out_ctx, pkt.m_data);
+        av_packet_unref(pkt.m_data);
     }
 }
 
