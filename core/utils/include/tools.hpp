@@ -7,10 +7,11 @@
 #include <iomanip>
 #include <sstream>
 extern "C" {
-#include <libavutil/frame.h>
-#include <libavutil/hwcontext.h>
-#include <libswscale/swscale.h>
+    #include <libavutil/frame.h>
+    #include <libavutil/hwcontext.h>
+    #include <libswscale/swscale.h>
 }
+#include "log.hpp"
 
 struct costTimes {
     uint64_t image_idx[5];
@@ -43,7 +44,7 @@ inline uint64_t get_now_time() {
 inline void save_frame_as_nv12(AVFrame* frame, const std::string& filename) {
     std::ofstream ofs(filename, std::ios::binary);
     if (!ofs) {
-        std::cerr << "Failed to open file: " << filename << std::endl;
+        LOG_ERROR("Failed to open file: {}" ,filename);
         return;
     }
     int width = frame->width;

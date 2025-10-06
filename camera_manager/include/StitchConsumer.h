@@ -36,5 +36,7 @@ public:
     StitchConsumer(std::vector<safe_queue<Frame>*> frame_to_stitch, int width, int height);
     safe_queue<Frame>& get_stitch_frame();
     virtual ~StitchConsumer();
+    virtual void start();
+    virtual void stop();
     virtual void run();
 };

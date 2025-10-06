@@ -1,4 +1,5 @@
 #include "config.h"
+#include "log.hpp"
 
 config::config() {
     loadFromFile("resource/hk5.json"); //需要修改，设置在一个文件夹下
@@ -7,7 +8,7 @@ config::config() {
 bool config::loadFromFile(const std::string& filename) {
     std::ifstream infile(filename);
     if (!infile.is_open()) {
-        std::cerr << "Failed to open config file: " << filename << std::endl;
+        LOG_ERROR("Failed to open config file: {}" ,filename);
         return false;
     }
 
@@ -26,8 +27,15 @@ bool config::loadFromFile(const std::string& filename) {
         for (const auto& cam : j["cameras"]) {
             CameraConfig c;
             c.name = cam["name"];
-            c.input_url = cam["input_url"];
-            c.sub_input_url = cam["sub_input_url"];
+            std::string cam_status;
+            if(global.use_sub_input) {
+                cam_status = "sub";
+            } else {
+                cam_status = "main";
+            }
+            c.input_url = cam[cam_status.c_str()]["input_url"];
+            c.width = cam[cam_status.c_str()]["width"];
+            c.height = cam[cam_status.c_str()]["height"];
             c.output_url = cam["output_url"];
 
             // crop 是数组
@@ -57,7 +65,7 @@ bool config::loadFromFile(const std::string& filename) {
         }
 
     } catch (const std::exception& e) {
-        std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
 

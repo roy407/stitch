@@ -17,12 +17,13 @@ public:
 
     void push(const T& value);
     bool try_pop(T& result);
-    void wait_and_pop(T& result);
-    void wait_and_front(T& result);
+    bool wait_and_pop(T& result);
+    bool wait_and_front(T& result);
     bool empty() const;
     int size() const;
     void pop_and_free();
-    bool stop_and_clear();
+    void clear();
+    void stop();
     int frames{0};
     int packets{0};
     int frame_lost{0};
@@ -63,22 +64,22 @@ bool safe_queue<T>::try_pop(T& result) {
 }
 
 template<typename T>
-void safe_queue<T>::wait_and_pop(T& result) {
+bool safe_queue<T>::wait_and_pop(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
     cv.wait(lock, [this] { return isStop || !queue_.empty(); });
-    if(!queue_.empty()) {
-        result = std::move(queue_.front());
-        queue_.pop();
-    }
+    if(isStop && queue_.empty()) return false;
+    result = std::move(queue_.front());
+    queue_.pop();
+    return true;
 }
 
 template<typename T>
-void safe_queue<T>::wait_and_front(T& result) {
+bool safe_queue<T>::wait_and_front(T& result) {
     std::unique_lock<std::mutex> lock(mtx_);
     cv.wait(lock, [this] { return isStop || !queue_.empty(); });
-    if(!queue_.empty()) {
-        result = std::move(queue_.front());
-    }
+    if(isStop && queue_.empty()) return false;
+    result = std::move(queue_.front());
+    return true;
 }
 
 template<typename T>
@@ -107,13 +108,13 @@ inline void safe_queue<T>::pop_and_free() {
 }
 
 template <typename T>
-inline bool safe_queue<T>::stop_and_clear()
-{
+inline void safe_queue<T>::clear() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    while(!queue_.empty()) pop_and_free();
+}
+
+template <typename T>
+inline void safe_queue<T>::stop() {
     isStop.store(true);
     cv.notify_all();
-    std::lock_guard<std::mutex> lock(mtx_);
-    while(!queue_.empty()) {
-        pop_and_free();
-    }
-    return true;
 }

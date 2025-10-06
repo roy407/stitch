@@ -4,6 +4,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include "log.hpp"
 
 image_decoder::image_decoder(const std::string& codec_name) {
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
@@ -20,8 +21,6 @@ image_decoder::image_decoder(const std::string& codec_name) {
 }
 
 image_decoder::~image_decoder() {
-    close_image_decoder();
-    std::cout<<__func__<<" exit!"<<std::endl;
 }
 
 void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
@@ -37,6 +36,8 @@ void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<
 
 void image_decoder::close_image_decoder() {
     running = false;
+    m_packetInput->stop();
+    if(m_thread.joinable()) m_thread.join();
     if(codec_ctx && codec_ctx->hw_device_ctx) {
         av_buffer_unref(&(codec_ctx->hw_device_ctx));
         codec_ctx->hw_device_ctx = nullptr;
@@ -49,12 +50,12 @@ void image_decoder::do_decode() {
     if(!m_packetInput) throw std::runtime_error("null pointer");
     if(!m_frameOutput) throw std::runtime_error("null pointer");
     while(running) {
-        m_packetInput->wait_and_pop(pkt);
+        if(!m_packetInput->wait_and_pop(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
         if (ret < 0) {
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            std::cerr << "avcodec_send_packet error: " << errbuf << std::endl;
+            LOG_ERROR("avcodec_send_packet error: {}",errbuf);
             return;
         }
 
@@ -74,11 +75,14 @@ void image_decoder::do_decode() {
             } else {
                 char errbuf[256];
                 av_strerror(ret, errbuf, sizeof(errbuf));
-                std::cerr << "avcodec_receive_frame error: " << errbuf << std::endl;
+                LOG_ERROR("avcodec_receive_frame error: {}", errbuf);
                 break;
             }
         }
         av_packet_unref(pkt.m_data);
     }
-
+    while(m_packetInput->size()) {
+        m_packetInput->pop_and_free();
+    }
+    LOG_DEBUG("decoder thread exit!");
 }

@@ -1,7 +1,7 @@
 #include "LogConsumer.h"
 #include <cuda_runtime.h>
 #include <chrono>
-#include <iostream>
+#include "log.hpp"
 #include "AVFrameProducer.h"
 #include "StitchConsumer.h"
 #include <unistd.h>
@@ -12,24 +12,24 @@ struct CpuStats {
 
 void LogConsumer::printProducer(AVFrameProducer *pro, uint64_t& prev_frame_cnt) {
     if(pro) {
-        std::cout<<"     ";
-        std::cout<<pro->m_name<<" ";
         CamStatus tmp = pro->m_status;
-        std::cout<<"["<<tmp.width<<","<<tmp.height<<"]"<<" ";
-        std::cout<<"FPS:"<<(tmp.frame_cnt - prev_frame_cnt) / 2<<" ";
-        std::cout<< std::endl;
+        LOG_INFO("{} [{},{}] FPS:{}", 
+            pro->m_name, 
+            tmp.width, 
+            tmp.height, 
+            (tmp.frame_cnt - prev_frame_cnt) / 2);
         prev_frame_cnt = tmp.frame_cnt;
     }
 }
 
 void LogConsumer::printConsumer(StitchConsumer *con, uint64_t& prev_frame_cnt) {
     if(con) {
-        std::cout<<"     ";
-        std::cout<<con->m_name<<" ";
         StitchStatus tmp = con->m_status;
-        std::cout<<"["<<tmp.width<<","<<tmp.height<<"]"<<" ";
-        std::cout<<"FPS:"<<(tmp.frame_cnt - prev_frame_cnt) / 2<<" ";
-        std::cout<< std::endl;
+        LOG_INFO("{} [{},{}] FPS:{}", 
+            con->m_name, 
+            tmp.width, 
+            tmp.height, 
+            (tmp.frame_cnt - prev_frame_cnt) / 2);
         prev_frame_cnt = tmp.frame_cnt;
     }
 }
@@ -44,10 +44,10 @@ void LogConsumer::printGPUStatus() {
     size_t freeMem, totalMem;
     cudaMemGetInfo(&freeMem, &totalMem);
 
-    std::cout << "GPU: " << prop.name 
-              << ", Mem " << (totalMem - freeMem) / 1024 / 1024 << "MB/"
-              << totalMem / 1024 / 1024 << "MB used";
-    std::cout<< std::endl;
+    LOG_INFO("GPU: {}, Mem {}MB/{}MB used", 
+        prop.name, 
+        (totalMem - freeMem) / (1024 * 1024), 
+        totalMem / (1024 * 1024));
 }
 
 void LogConsumer::printCPUStatus() {
@@ -97,8 +97,7 @@ void LogConsumer::printCPUStatus() {
     };
     double cpu = get_cpu_usage();
     double mem = get_mem_usage();
-    std::cout << "CPU Usage: " << cpu << "%, "
-                << "Memory Usage: " << mem << "%" << std::endl;
+    LOG_INFO("CPU Usage: {}%, Memory Usage: {}%", cpu, mem);
 }
 
 LogConsumer::LogConsumer() {
@@ -122,12 +121,11 @@ void LogConsumer::run() {
     while(running) {
         std::this_thread::sleep_for(std::chrono::seconds(time_gap));
         m_time += 2;
+        LOG_INFO("============ Frame Statistics ============");
         for(int i=0;i<m_pro.size();i++) printProducer(m_pro[i], prev_frame_cnt[i]);
         printConsumer(m_con, prev_frame_cnt[31]);
         printGPUStatus();
         printCPUStatus();
-        std::cout<<std::endl;
-        std::cout<<std::endl;
     }
 }
 

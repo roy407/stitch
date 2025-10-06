@@ -73,7 +73,7 @@ void image_encoder::start_image_encoder() {
         is_created.store(true);
         running.store(true);
         pkt = av_packet_alloc();
-        t_img_encoder = std::thread(&image_encoder::do_encode,this);
+        m_thread = std::thread(&image_encoder::do_encode,this);
     }
 }
 void image_encoder::close_image_encoder() {

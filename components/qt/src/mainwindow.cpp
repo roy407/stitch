@@ -8,6 +8,7 @@ extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/mem.h>        // av_malloc
 }
+#include "log.hpp"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,15 +26,16 @@ MainWindow::MainWindow(QWidget *parent)
 
         std::ofstream ofs(filename, std::ios::app);  // 追加写入
         if (!ofs.is_open()) {
-            std::cerr << "Failed to open file: " << filename << std::endl;
+            LOG_ERROR("Failed to open file: {}" ,filename);
             return;
         }
         while (running) {
             Frame frame;
-            q.wait_and_pop(frame);
+            if(!q.wait_and_pop(frame)) break;
             showFrame(frame.m_data);
             av_frame_free(&(frame.m_data)); 
         }
+        q.clear();
         ofs.close();
     });
     sf->start();

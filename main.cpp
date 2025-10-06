@@ -1,11 +1,3 @@
-#include <vector>
-#include <mutex>
-#include <atomic>
-#include <iostream>
-#include <queue>
-#include <chrono>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <QApplication>
 #include "widget.h"
 #include "camera_manager.h"
