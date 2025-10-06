@@ -38,13 +38,22 @@ StitchConsumer::~StitchConsumer() {
 
 }
 
+void StitchConsumer::start() {
+    TaskManager::start();
+}
+
+void StitchConsumer::stop() {
+    for(auto& i: m_frame) i->stop();
+    TaskManager::stop();
+}
+
 void StitchConsumer::run() { 
     Frame out_image;
+    AVFrame** inputs = new AVFrame*[cam_num];
     while (running) {
-        AVFrame** inputs = new AVFrame*[cam_num];
         for (int i = 0; i < cam_num; i++) {
             Frame tmp;
-            m_frame[i]->wait_and_pop(tmp);
+            if(!m_frame[i]->wait_and_pop(tmp)) goto cleanup;
             inputs[i] = tmp.m_data;
         }
         out_image.m_data = stitch.do_stitch(inputs);
@@ -56,6 +65,10 @@ void StitchConsumer::run() {
                 av_frame_free(&inputs[i]);
             }
         }
-        delete[] inputs;
     }
+cleanup:
+    for(int i = 0;i < cam_num; i++) {
+        m_frame[i]->clear();
+    }
+    delete[] inputs;
 }

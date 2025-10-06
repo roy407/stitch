@@ -26,6 +26,7 @@ void AVFrameProducer::start() {
 void AVFrameProducer::stop() {
     m_rtspConsumer->stop();
     TaskManager::stop();
+    img_dec.close_image_decoder();
 }
 
 void AVFrameProducer::run() {

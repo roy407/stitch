@@ -21,8 +21,6 @@ image_decoder::image_decoder(const std::string& codec_name) {
 }
 
 image_decoder::~image_decoder() {
-    close_image_decoder();
-    LOG_DEBUG("{} exit!", __func__);
 }
 
 void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
@@ -38,6 +36,8 @@ void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<
 
 void image_decoder::close_image_decoder() {
     running = false;
+    m_packetInput->stop();
+    if(m_thread.joinable()) m_thread.join();
     if(codec_ctx && codec_ctx->hw_device_ctx) {
         av_buffer_unref(&(codec_ctx->hw_device_ctx));
         codec_ctx->hw_device_ctx = nullptr;
@@ -50,7 +50,7 @@ void image_decoder::do_decode() {
     if(!m_packetInput) throw std::runtime_error("null pointer");
     if(!m_frameOutput) throw std::runtime_error("null pointer");
     while(running) {
-        m_packetInput->wait_and_pop(pkt);
+        if(!m_packetInput->wait_and_pop(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
         if (ret < 0) {
             char errbuf[256];
@@ -81,5 +81,8 @@ void image_decoder::do_decode() {
         }
         av_packet_unref(pkt.m_data);
     }
-
+    while(m_packetInput->size()) {
+        m_packetInput->pop_and_free();
+    }
+    LOG_DEBUG("decoder thread exit!");
 }
