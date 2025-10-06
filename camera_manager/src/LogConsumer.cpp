@@ -101,6 +101,7 @@ void LogConsumer::printCPUStatus() {
 }
 
 LogConsumer::LogConsumer() {
+    m_name += "log";
 }
 
 LogConsumer::~LogConsumer() {

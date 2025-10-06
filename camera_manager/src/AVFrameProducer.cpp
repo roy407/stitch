@@ -38,7 +38,7 @@ void AVFrameProducer::run() {
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
                 codecpar = stream->codecpar;
-                img_dec.start_image_decoder(codecpar, &m_frameSender, &m_packetSender2);
+                img_dec.start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
                 if(config::GetInstance().GetCameraConfig()[cam_id].rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
                 } else {
@@ -59,12 +59,15 @@ void AVFrameProducer::run() {
         AVPacket pkt;
         while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
             if(pkt.stream_index == video_stream) {
+                m_status.frame_cnt ++;
                 Packet pkt_copy1, pkt_copy2;
+                pkt_copy2.cam_id = cam_id;
+                pkt_copy2.m_costTimes.when_get_packet[cam_id] = get_now_time();
+                pkt_copy2.m_costTimes.image_frame_cnt[cam_id] = m_status.frame_cnt;
                 pkt_copy1.m_data = av_packet_clone(&pkt);
                 pkt_copy2.m_data = av_packet_clone(&pkt);
                 m_packetSender1.push(pkt_copy1);
                 m_packetSender2.push(pkt_copy2);
-                m_status.frame_cnt ++;
             }
             av_packet_unref(&pkt);
         }

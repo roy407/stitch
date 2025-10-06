@@ -94,10 +94,19 @@ void Widget::resizeGL(int w, int h) {
 }
 
 void Widget::consumerThread() {
+    static std::string filename = std::string("build/") + get_current_time_filename(".csv");
+
+    std::ofstream ofs(filename, std::ios::app);  // 追加写入
+    if (!ofs.is_open()) {
+        LOG_ERROR("Failed to open file: {}", filename);
+        return;
+    }
+
 AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
         if(!q->wait_and_pop(frame)) break;
+
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         if (!lock.owns_lock()) {
             av_frame_free(&frame.m_data);
@@ -145,6 +154,9 @@ AVFrame* cpu_frame = av_frame_alloc();
         
         av_frame_free(&frame.m_data);
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
+
+        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+        save_cost_table_csv(frame.m_costTimes,ofs);
     }
     q->clear();
     av_frame_free(&cpu_frame);

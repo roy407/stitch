@@ -25,7 +25,7 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "rtsp": false
+            "rtsp": true
         },
         {
             "name": "cam1",

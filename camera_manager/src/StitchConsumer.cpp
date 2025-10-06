@@ -55,9 +55,13 @@ void StitchConsumer::run() {
             Frame tmp;
             if(!m_frame[i]->wait_and_pop(tmp)) goto cleanup;
             inputs[i] = tmp.m_data;
+            out_image.m_costTimes.image_frame_cnt[i] = tmp.m_costTimes.image_frame_cnt[i];
+            out_image.m_costTimes.when_get_packet[i] = tmp.m_costTimes.when_get_packet[i];
+            out_image.m_costTimes.when_get_decoded_frame[i] = tmp.m_costTimes.when_get_decoded_frame[i];
         }
         out_image.m_data = stitch.do_stitch(inputs);
         out_image.m_data->pts = inputs[0]->pts;
+        out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         frame_output.push(out_image);
         m_status.frame_cnt ++;
         for (int i = 0; i < cam_num; ++i) {

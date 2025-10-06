@@ -23,7 +23,8 @@ image_decoder::image_decoder(const std::string& codec_name) {
 image_decoder::~image_decoder() {
 }
 
-void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
+void image_decoder::start_image_decoder(int cam_id, AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
+    this->cam_id = cam_id;
     avcodec_parameters_to_context(codec_ctx, codecpar);
     if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
         throw std::runtime_error("Failed to open codec");
@@ -68,6 +69,8 @@ void image_decoder::do_decode() {
             ret = avcodec_receive_frame(codec_ctx, frame.m_data);
             if (ret == 0) {
                 if (frame.m_data->format == AV_PIX_FMT_CUDA) {
+                    frame.m_costTimes = pkt.m_costTimes;
+                    frame.m_costTimes.when_get_decoded_frame[cam_id] = get_now_time();
                     m_frameOutput->push(frame);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
