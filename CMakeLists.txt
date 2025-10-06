@@ -15,6 +15,7 @@ option(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(spdlog REQUIRED)
 
 # 设置ffmpeg的配置
 set(FFMPEG_INCLUDE_DIRS "/usr/local/include")
@@ -38,6 +39,7 @@ target_link_libraries(stitch_app PRIVATE
     camera_manager
     Qt5::Widgets
     qt
+    spdlog::spdlog
 )
 
 if(BUILD_SHARED_LIB)

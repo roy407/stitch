@@ -1,12 +1,13 @@
 #include "TaskManager.h"
 #include <iostream>
+#include "log.hpp"
 
 TaskManager::TaskManager() {
-
+    LOG_DEBUG("thread created",m_name);
 }
 
 TaskManager::~TaskManager() {
-
+    LOG_DEBUG("thread destoryed",m_name);
 }
 
 void TaskManager::start() {

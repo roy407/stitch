@@ -13,7 +13,6 @@ AVFrameProducer::AVFrameProducer(int cam_id) {
     } else if(status == "file") { // 文件读取暂不支持
         cam_path = config::GetInstance().GetGlobalConfig().save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
     }
-
     m_status.width = config::GetInstance().GetCameraConfig()[cam_id].width;
     m_status.height = config::GetInstance().GetCameraConfig()[cam_id].height;
 }

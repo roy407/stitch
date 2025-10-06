@@ -29,7 +29,7 @@ public:
     safe_queue<Packet>& packet_output;
     std::atomic_bool is_created;
     std::atomic_bool running;
-    std::thread t_img_encoder;
+    std::thread m_thread;
     int width;
     int height;
 };

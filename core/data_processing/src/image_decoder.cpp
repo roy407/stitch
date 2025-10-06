@@ -4,6 +4,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include "log.hpp"
 
 image_decoder::image_decoder(const std::string& codec_name) {
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
@@ -21,7 +22,7 @@ image_decoder::image_decoder(const std::string& codec_name) {
 
 image_decoder::~image_decoder() {
     close_image_decoder();
-    std::cout<<__func__<<" exit!"<<std::endl;
+    LOG_DEBUG("{} exit!", __func__);
 }
 
 void image_decoder::start_image_decoder(AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
@@ -54,7 +55,7 @@ void image_decoder::do_decode() {
         if (ret < 0) {
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
-            std::cerr << "avcodec_send_packet error: " << errbuf << std::endl;
+            LOG_ERROR("avcodec_send_packet error: {}",errbuf);
             return;
         }
 
@@ -74,7 +75,7 @@ void image_decoder::do_decode() {
             } else {
                 char errbuf[256];
                 av_strerror(ret, errbuf, sizeof(errbuf));
-                std::cerr << "avcodec_receive_frame error: " << errbuf << std::endl;
+                LOG_ERROR("avcodec_receive_frame error: {}", errbuf);
                 break;
             }
         }

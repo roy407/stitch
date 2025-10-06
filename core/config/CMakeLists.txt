@@ -4,6 +4,7 @@ add_library(config STATIC
 
 target_include_directories(config PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CORE_TOP_DIR}/utils/include
 )
 
 find_package(nlohmann_json REQUIRED)

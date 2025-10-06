@@ -1,4 +1,5 @@
 #include "config.h"
+#include "log.hpp"
 
 config::config() {
     loadFromFile("resource/hk5.json"); //需要修改，设置在一个文件夹下
@@ -7,7 +8,7 @@ config::config() {
 bool config::loadFromFile(const std::string& filename) {
     std::ifstream infile(filename);
     if (!infile.is_open()) {
-        std::cerr << "Failed to open config file: " << filename << std::endl;
+        LOG_ERROR("Failed to open config file: {}" ,filename);
         return false;
     }
 
@@ -64,7 +65,7 @@ bool config::loadFromFile(const std::string& filename) {
         }
 
     } catch (const std::exception& e) {
-        std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
 

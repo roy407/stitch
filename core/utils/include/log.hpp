@@ -2,10 +2,61 @@
 #include <iostream>
 #include <fstream>
 extern "C" {
-#include <libavutil/frame.h>
-#include <libavutil/hwcontext.h>
-#include <libswscale/swscale.h>
+    #include <libavutil/frame.h>
+    #include <libavutil/hwcontext.h>
+    #include <libswscale/swscale.h>
 }
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h> 
+#include "config.h"
+
+#define LOG_DEBUG(...) \
+    __LOGGER__::GetInstance()->log(spdlog::source_loc{__FILE__, __LINE__, SPDLOG_FUNCTION}, \
+                spdlog::level::debug, __VA_ARGS__)
+
+#define LOG_INFO(...) \
+    __LOGGER__::GetInstance()->log(spdlog::source_loc{__FILE__, __LINE__, SPDLOG_FUNCTION}, \
+                spdlog::level::info, __VA_ARGS__)
+
+#define LOG_WARN(...) \
+    __LOGGER__::GetInstance()->log(spdlog::source_loc{__FILE__, __LINE__, SPDLOG_FUNCTION}, \
+                spdlog::level::warn, __VA_ARGS__)
+
+#define LOG_ERROR(...) \
+    __LOGGER__::GetInstance()->log(spdlog::source_loc{__FILE__, __LINE__, SPDLOG_FUNCTION}, \
+                spdlog::level::err, __VA_ARGS__)
+
+class __LOGGER__ {
+private:
+    __LOGGER__() {
+        console = spdlog::stdout_color_mt("console");
+        std::string str = config::GetInstance().GetGlobalConfig().software_status;
+        spdlog::level::level_enum level_num = spdlog::level::info;
+        if (str == "debug") {
+            level_num = spdlog::level::debug;
+        } else if (str == "info") {
+            level_num = spdlog::level::info;
+        } else if (str == "warn") {
+            level_num = spdlog::level::warn;
+        } else if (str == "error") {
+            level_num = spdlog::level::err;
+        } else if (str == "critical") {
+            level_num = spdlog::level::critical;
+        } else {
+            level_num = spdlog::level::info;
+        }
+        console->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%n][%^%l%$][%s:%#][pid:%t] %v");
+        console->set_level(level_num);
+        spdlog::set_default_logger(console);
+    };
+    ~__LOGGER__() {};
+    std::shared_ptr<spdlog::logger> console;
+public:
+    static auto GetInstance() {
+        static __LOGGER__ __logger__;
+        return __logger__.console;
+    }
+};
 
 inline void AVFrame_log(const char* cam_name, const AVFrame* frame) {
     if (frame) {

@@ -1,4 +1,5 @@
 #include "cuda_handle_init.h"
+#include "log.hpp"
 
 cuda_handle_init::cuda_handle_init() {
     hw_device_ctx = nullptr;
@@ -6,7 +7,7 @@ cuda_handle_init::cuda_handle_init() {
     if (ret < 0) {
         char errbuf[128];
         av_strerror(ret, errbuf, sizeof(errbuf));
-        std::cerr << "Failed to create CUDA device context: " << errbuf << std::endl;
+        LOG_ERROR("Failed to create CUDA device context: {}" ,errbuf);
         throw std::runtime_error("Failed to create CUDA device context");
     }
 }
