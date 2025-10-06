@@ -24,7 +24,10 @@
 |------|-----------|
 | NVIDIA 驱动 | ≥ 535 |
 | CUDA | ≥ 11.8 |
-| FFmpeg | 支持 硬件编解码 |
+| FFmpeg | 需要手动编译，支持硬件编解码 |
+| openGL | 任意版本 |
+| Qt | ≥ 5.0 |
+| spdlog | 任意版本 |
 ---
 
 ## ⚙️ 编译及打包步骤
@@ -73,3 +76,22 @@ stitch/
 │   └── hk8.json
 └── README.md
 ```
+
+## 📊 各阶段耗时曲线
+
+1️⃣ 视频解码耗时
+<img src="docs/images/Dec_2025_10_7.png"/>
+
+2️⃣ 拼接阶段耗时
+<img src="docs/images/Stitch_2025_10_7.png"/>
+
+3️⃣ 显示阶段耗时
+<img src="docs/images/Show_2025_10_7.png"/>
+
+4️⃣ 全流程耗时
+<img src="docs/images/Total_2025_10_7.png"/>
+
+## 🖼️ 最终效果图
+<img src="docs/images/Photo_2025_10_7.png"/>
+
+图中是使用hk5.json文件，配置生成的五路拼接图像的效果，目前平均延时可以做到≤300ms
