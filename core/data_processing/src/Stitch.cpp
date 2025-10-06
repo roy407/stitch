@@ -38,7 +38,6 @@ void Stitch::init(int width, int height, int cam_num) {
             }
         }
     }
-    output_width = 16251;
     //TODO：已经计算出了裁剪区域，应该可以直接得到输出图像的大小
     cudaMalloc(&d_h_matrices, sizeof(float) * 9 * cam_num);
     cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num);
