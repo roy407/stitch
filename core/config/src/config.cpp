@@ -26,8 +26,15 @@ bool config::loadFromFile(const std::string& filename) {
         for (const auto& cam : j["cameras"]) {
             CameraConfig c;
             c.name = cam["name"];
-            c.input_url = cam["input_url"];
-            c.sub_input_url = cam["sub_input_url"];
+            std::string cam_status;
+            if(global.use_sub_input) {
+                cam_status = "sub";
+            } else {
+                cam_status = "main";
+            }
+            c.input_url = cam[cam_status.c_str()]["input_url"];
+            c.width = cam[cam_status.c_str()]["width"];
+            c.height = cam[cam_status.c_str()]["height"];
             c.output_url = cam["output_url"];
 
             // crop 是数组

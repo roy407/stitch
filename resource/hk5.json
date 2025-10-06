@@ -9,8 +9,16 @@
     "cameras": [
         {
             "name": "cam0",
-            "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
-            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/sub/av_stream",
+            "main": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
+                "width": 3840,
+                "height": 2160
+            },
+            "sub": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/sub/av_stream",
+                "width": 640,
+                "height": 360
+            },
             "output_url": "rtsp://127.0.0.1:8554/cam0",
             "crop": [0,0,0,0],
             "stitch": {
@@ -21,8 +29,16 @@
         },
         {
             "name": "cam1",
-            "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
-            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/sub/av_stream",
+            "main": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
+                "width": 3840,
+                "height": 2160
+            },
+            "sub": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/sub/av_stream",
+                "width": 640,
+                "height": 360
+            },
             "output_url": "rtsp://127.0.0.1:8554/cam1",
             "crop": [0,0,0.020833,0],
             "stitch": {
@@ -33,8 +49,16 @@
         },
         {
             "name": "cam2",
-            "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
-            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/sub/av_stream",
+            "main": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
+                "width": 3840,
+                "height": 2160
+            },
+            "sub": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/sub/av_stream",
+                "width": 640,
+                "height": 360
+            },
             "output_url": "rtsp://127.0.0.1:8554/cam2",
             "crop": [0,0,0.026042,0],
             "stitch": {
@@ -45,8 +69,16 @@
         },
         {
             "name": "cam3",
-            "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
-            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/sub/av_stream",
+            "main": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
+                "width": 3840,
+                "height": 2160
+            },
+            "sub": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/sub/av_stream",
+                "width": 640,
+                "height": 360
+            },
             "output_url": "rtsp://127.0.0.1:8554/cam3",
             "crop": [0,0,0.026042,0],
             "stitch": {
@@ -57,8 +89,16 @@
         },
         {
             "name": "cam4",
-            "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
-            "sub_input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/sub/av_stream",
+            "main": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
+                "width": 3840,
+                "height": 2160
+            },
+            "sub": {
+                "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/sub/av_stream",
+                "width": 640,
+                "height": 360
+            },
             "output_url": "rtsp://127.0.0.1:8554/cam4",
             "crop": [0,0,0.015625,0],
             "stitch": {

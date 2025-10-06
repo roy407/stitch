@@ -12,10 +12,12 @@ struct StitchConfig {
     bool enable = false;
     std::string mode;
 };
+
 struct CameraConfig {
     std::string name;
     std::string input_url;
-    std::string sub_input_url;
+    int width;
+    int height;
     std::string output_url;
     std::vector<float> crop;
     bool rtsp = false;
