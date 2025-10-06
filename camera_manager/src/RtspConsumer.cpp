@@ -13,6 +13,7 @@ extern "C" {
 #include "log.hpp"
 
 RtspConsumer::RtspConsumer(safe_queue<Packet>& packet, AVCodecParameters** codecpar, AVRational* time_base, const std::string& push_stream_url) : packet_input(packet) {
+    m_name += "rtsp";
     this->codecpar = codecpar;
     this->time_base = time_base;
     this->output_url = push_stream_url;
