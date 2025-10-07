@@ -38,6 +38,7 @@ struct GlobalStitchConfig {
     std::string output_url;
     int output_width;
     std::vector<std::array<double, 9>> h_matrix;
+    std::vector<std::array<float, 8>> cam_polygons;
 };
 
 // 配置管理类

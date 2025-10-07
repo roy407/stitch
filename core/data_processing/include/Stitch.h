@@ -28,4 +28,5 @@ private:
     float* d_h_matrix;
     int* d_crop;
     float* h_matrix;
+    float** d_cam_polygons;
 };
