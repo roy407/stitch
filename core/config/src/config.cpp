@@ -77,6 +77,22 @@ bool config::loadFromFile(const std::string& filename) {
             h_matrix.push_back(arr);
         }
 
+        auto cam_polygons_json = j["stitch"]["cam_polygons"];
+        std::vector<std::array<float, 8>>& cam_polygons = stitch.cam_polygons;
+        for (auto& [key, points] : cam_polygons_json.items()) {
+            std::array<float, 8> arr{};
+            int idx = 0;
+
+            for (const auto& p : points) {
+                // 四个点，每个点两个坐标
+                float x = static_cast<float>(std::round(p[0].get<double>()));
+                float y = static_cast<float>(std::round(p[1].get<double>()));
+                arr[idx++] = x;
+                arr[idx++] = y;
+            }
+            cam_polygons.push_back(arr);
+        }
+
     } catch (const std::exception& e) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;

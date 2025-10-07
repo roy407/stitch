@@ -55,6 +55,16 @@ void Stitch::init(int width, int height, int cam_num) {
     cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int));
     cudaMalloc(&d_input_linesize_uv, cam_num * sizeof(int));
     cudaMemcpy(d_h_matrix, h_matrix, sizeof(float) * 9 * cam_num, cudaMemcpyHostToDevice);
+    const std::vector<std::array<float, 8>> cam_polygons = config::GetInstance().GetGlobalStitchConfig().cam_polygons;
+    cudaMalloc(&d_cam_polygons, sizeof(float*) * cam_num);
+    float** h_cam_ptrs = new float*[cam_num];
+    for (int i = 0; i < cam_num; ++i) {
+        cudaMalloc(&h_cam_ptrs[i], sizeof(float) * 8);
+        cudaMemcpy(h_cam_ptrs[i], cam_polygons[i].data(), sizeof(float)*8, cudaMemcpyHostToDevice);
+    }
+
+    cudaMemcpy(d_cam_polygons, h_cam_ptrs,
+               sizeof(float*) * cam_num, cudaMemcpyHostToDevice);
     // 创建 HW frame context
     hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
     AVHWFramesContext* frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
@@ -69,6 +79,7 @@ void Stitch::init(int width, int height, int cam_num) {
     }
     delete[] crop;
     delete[] h_matrix;
+    delete[] h_cam_ptrs;
 }
 
 Stitch::~Stitch()
@@ -113,7 +124,7 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     uint8_t* output_y = output->data[0];
     uint8_t* output_uv = output->data[1];
 
-    cudaStream_t stream = 0;
+    cudaStream_t stream = 0; // 修改，使用五个流，同时拼。
 
     /*如果是不变量，考虑只初始化一次---待修改*/
     int h_input_linesize_y[cam_num];
@@ -132,7 +143,7 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     #ifdef H_M
     launch_stitch_kernel_with_h_matrix(d_inputs_y, d_inputs_uv,
         d_input_linesize_y, d_input_linesize_uv,
-        d_h_matrix,
+        d_h_matrix, d_cam_polygons,
         output_y, output_uv,
         output->linesize[0], output->linesize[1],
         cam_num, single_width, output_width, height,stream);

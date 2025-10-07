@@ -104,7 +104,7 @@ __device__ void applyHomography(float* H, float x, float y, float* out_x, float*
 __global__ void stitch_withH(
     uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
     int* input_linesize_y, int* input_linesize_uv,
-    float* h_matrices, uint8_t* output_y, uint8_t* output_uv,
+    float* h_matrix, uint8_t* output_y, uint8_t* output_uv,
     int output_linesize_y, int output_linesize_uv,
     int cam_num, int single_width, int width, int height)
 {
@@ -115,7 +115,7 @@ __global__ void stitch_withH(
 
     if (x >= single_width || y >= height || cam_idx >= cam_num) return;
 
-    float* H = &h_matrices[cam_idx * 9];
+    float* H = &h_matrix[cam_idx * 9];
 
     float out_x, out_y;
     applyHomography(H, x, y, &out_x, &out_y);
@@ -210,7 +210,7 @@ __device__ float compute_blend_weight(int x, int y,
 __global__ void USE_HNI(
     uint8_t* const* inputs_y, uint8_t* const* inputs_uv,
     int* input_linesize_y, int* input_linesize_uv,
-    float* h_matrices, uint8_t* output_y, uint8_t* output_uv,
+    float* h_matrix,float** cam_polygons, uint8_t* output_y, uint8_t* output_uv,
     int output_linesize_y, int output_linesize_uv,
     int cam_num, int single_width, int width, int height)
 {
@@ -219,42 +219,10 @@ __global__ void USE_HNI(
 
     if (x >= width || y >= height) return;
 
-
-    __shared__ float cam_polygons[5][8]; // 每个摄像头4个顶点(x,y)
-    if (threadIdx.x == 0 && threadIdx.y == 0) {
-        // Cam0 (示例：左下角区域)
-        cam_polygons[0][0] = 0.0f;    cam_polygons[0][1] = 0.0f;
-        cam_polygons[0][2] = 3840.0f; cam_polygons[0][3] = 0.0f;
-        cam_polygons[0][4] = 3840.0f; cam_polygons[0][5] = 2160.0f;
-        cam_polygons[0][6] = 0.0f;    cam_polygons[0][7] = 2160.0f;
-        
-        cam_polygons[1][0] = 3840.0f;    cam_polygons[1][1] = 0.0f;
-        cam_polygons[1][2] = 6900.0f; cam_polygons[1][3] = 0.0f;
-        cam_polygons[1][4] = 6900.0f; cam_polygons[1][5] = 2160.0f;
-        cam_polygons[1][6] = 3840.0f;    cam_polygons[1][7] = 2160.0f;
-
-        cam_polygons[2][0] = 6900.0f;    cam_polygons[2][1] = 0.0f;
-        cam_polygons[2][2] = 10300.0f; cam_polygons[2][3] = 0.0f;
-        cam_polygons[2][4] = 10300.0f; cam_polygons[2][5] = 2160.0f;
-        cam_polygons[2][6] = 6900.0f;    cam_polygons[2][7] = 2160.0f;
-
-        cam_polygons[3][0] = 10300.0f;    cam_polygons[3][1] = 0.0f;
-        cam_polygons[3][2] = 13496.0f; cam_polygons[3][3] = 0.0f;
-        cam_polygons[3][4] = 13496.0f; cam_polygons[3][5] = 2160.0f;
-        cam_polygons[3][6] = 10300.0f;    cam_polygons[3][7] = 2160.0f;
-
-        cam_polygons[4][0] = 13496.0f;    cam_polygons[4][1] = 0.0f;
-        cam_polygons[4][2] = 16251.0f; cam_polygons[4][3] = 0.0f;
-        cam_polygons[4][4] = 16251.0f; cam_polygons[4][5] = 2160.0f;
-        cam_polygons[4][6] = 13496.0f;    cam_polygons[4][7] = 2160.0f;
-
-    }
-    __syncthreads();
-
     int active_cam = -1;
     for (int cam = cam_num-1; cam >= 0; --cam) {
         float* quad = cam_polygons[cam];
-        if (is_point_in_quadrilateral(x, y, 
+        if (is_point_in_quadrilateral(x - 6339, y, 
             quad[0], quad[1], quad[2], quad[3], 
             quad[4], quad[5], quad[6], quad[7])) {
             active_cam = cam;
@@ -264,9 +232,9 @@ __global__ void USE_HNI(
     if (active_cam == -1) return;
 
     // --- 3. 单应性变换和采样 ---
-    float* H_inv = &h_matrices[active_cam * 9];
+    float* H_inv = &h_matrix[active_cam * 9];
     float src_x, src_y;
-    applyHomography(H_inv, x, y, &src_x, &src_y);
+    applyHomography(H_inv, x - 6339, y, &src_x, &src_y);
 
 
     // 处理 Y 通道
@@ -385,7 +353,7 @@ void launch_stitch_kernel_raw(
 extern "C"
 void launch_stitch_kernel_with_h_matrix(
     uint8_t** inputs_y, uint8_t** inputs_uv,
-    int* input_linesize_y, int* input_linesize_uv,float* h_matrices,
+    int* input_linesize_y, int* input_linesize_uv,float* h_matrix, float** cam_polygons,
     uint8_t* output_y, uint8_t* output_uv,
     int output_linesize_y, int output_linesize_uv,
     int cam_num, int single_width, int width, int height,
@@ -403,7 +371,7 @@ void launch_stitch_kernel_with_h_matrix(
 
     USE_HNI<<<grid, block, 0, stream>>>(
         inputs_y, inputs_uv,
-        input_linesize_y, input_linesize_uv,h_matrices,
+        input_linesize_y, input_linesize_uv,h_matrix, cam_polygons,
         output_y, output_uv,
         output_linesize_y, output_linesize_uv,
         cam_num, single_width, width, height
