@@ -220,7 +220,7 @@ __global__ void USE_HNI(
     if (x >= width || y >= height) return;
 
 
-__shared__ float cam_polygons[5][8]; // 每个摄像头4个顶点(x,y)
+    __shared__ float cam_polygons[5][8]; // 每个摄像头4个顶点(x,y)
     if (threadIdx.x == 0 && threadIdx.y == 0) {
         // Cam0 (示例：左下角区域)
         cam_polygons[0][0] = 0.0f;    cam_polygons[0][1] = 0.0f;
