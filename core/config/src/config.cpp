@@ -64,6 +64,19 @@ bool config::loadFromFile(const std::string& filename) {
             stitch.output_width = -1;
         }
 
+        auto H_json = j["stitch"]["H_matrix"];
+        std::vector<std::array<double, 9>>& h_matrix = stitch.h_matrix;
+        for (auto& [key, mat] : H_json.items()) {
+            std::array<double, 9> arr{};
+            int idx = 0;
+            for (const auto& row : mat) {
+                for (const auto& val : row) {
+                    arr[idx++] = val.get<double>();
+                }
+            }
+            h_matrix.push_back(arr);
+        }
+
     } catch (const std::exception& e) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;

@@ -37,6 +37,7 @@ struct GlobalConfig {
 struct GlobalStitchConfig {
     std::string output_url;
     int output_width;
+    std::vector<std::array<double, 9>> h_matrix;
 };
 
 // 配置管理类

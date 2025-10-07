@@ -41,7 +41,7 @@ Widget::Widget(QWidget *parent) :
     m_y_stride(0),
     m_uv_stride(0)
 {
-    setFixedSize(5420, 2160);
+    // setFixedSize(2560, 1080);
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
     cam = camera_manager::GetInstance();

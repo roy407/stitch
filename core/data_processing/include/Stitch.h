@@ -25,6 +25,7 @@ private:
     uint8_t **d_inputs_uv;
     int* d_input_linesize_y;
     int* d_input_linesize_uv;
-    float* d_h_matrices;
+    float* d_h_matrix;
     int* d_crop;
+    float* h_matrix;
 };
