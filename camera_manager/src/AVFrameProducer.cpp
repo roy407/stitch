@@ -60,6 +60,7 @@ void AVFrameProducer::run() {
         while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
             if(pkt.stream_index == video_stream) {
                 m_status.frame_cnt ++;
+                m_status.timestamp = get_now_time();
                 Packet pkt_copy1, pkt_copy2;
                 pkt_copy2.cam_id = cam_id;
                 pkt_copy2.m_costTimes.when_get_packet[cam_id] = get_now_time();

@@ -28,8 +28,8 @@ class LogConsumer : public Consumer {
     // 这个类对下面两个成员变量指向的两个类，只有观测权，没有修改权
     std::vector<AVFrameProducer*> m_pro;
     StitchConsumer* m_con;
-    void printProducer(AVFrameProducer* pro, uint64_t& prev_frame_cnt);
-    void printConsumer(StitchConsumer* con, uint64_t& prev_frame_cnt);
+    void printProducer(AVFrameProducer* pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
+    void printConsumer(StitchConsumer* con, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
     void printGPUStatus();
     void printCPUStatus();
 public:

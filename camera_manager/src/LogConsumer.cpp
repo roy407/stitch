@@ -10,27 +10,29 @@ struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
-void LogConsumer::printProducer(AVFrameProducer *pro, uint64_t& prev_frame_cnt) {
+void LogConsumer::printProducer(AVFrameProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
     if(pro) {
         CamStatus tmp = pro->m_status;
-        LOG_INFO("{} [{},{}] FPS:{}", 
+        LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             pro->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / 2);
+            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
         prev_frame_cnt = tmp.frame_cnt;
+        prev_timestamp = tmp.timestamp;
     }
 }
 
-void LogConsumer::printConsumer(StitchConsumer *con, uint64_t& prev_frame_cnt) {
+void LogConsumer::printConsumer(StitchConsumer *con, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
     if(con) {
         StitchStatus tmp = con->m_status;
-        LOG_INFO("{} [{},{}] FPS:{}", 
+        LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             con->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / 2);
+            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
         prev_frame_cnt = tmp.frame_cnt;
+        prev_timestamp = tmp.timestamp;
     }
 }
 
@@ -119,12 +121,13 @@ void LogConsumer::stop() {
 void LogConsumer::run() {
     // 上限为20个摄像头
     uint64_t prev_frame_cnt[32] = {};
+    uint64_t prev_timestamp[32] = {};
     while(running) {
         std::this_thread::sleep_for(std::chrono::seconds(time_gap));
         m_time += 2;
         LOG_INFO("============ Frame Statistics ============");
-        for(int i=0;i<m_pro.size();i++) printProducer(m_pro[i], prev_frame_cnt[i]);
-        printConsumer(m_con, prev_frame_cnt[31]);
+        for(int i=0;i<m_pro.size();i++) printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
+        printConsumer(m_con, prev_frame_cnt[31], prev_timestamp[31]);
         printGPUStatus();
         printCPUStatus();
     }
