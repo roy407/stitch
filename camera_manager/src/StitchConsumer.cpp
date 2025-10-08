@@ -64,6 +64,7 @@ void StitchConsumer::run() {
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         frame_output.push(out_image);
         m_status.frame_cnt ++;
+        m_status.timestamp = get_now_time();
         for (int i = 0; i < cam_num; ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
