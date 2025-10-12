@@ -71,6 +71,7 @@ void image_decoder::do_decode() {
                 if (frame.m_data->format == AV_PIX_FMT_CUDA) {
                     frame.m_costTimes = pkt.m_costTimes;
                     frame.m_costTimes.when_get_decoded_frame[cam_id] = get_now_time();
+                    frame.m_timestamp = pkt.m_timestamp; // 将packet时间戳提供给frame
                     m_frameOutput->push(frame);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {

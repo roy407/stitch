@@ -25,12 +25,14 @@ struct Frame {
     int cam_id;
     AVFrame* m_data;
     struct costTimes m_costTimes;
+    uint64_t m_timestamp;
 };
 
 struct Packet {
     int cam_id;
     AVPacket* m_data;
     struct costTimes m_costTimes;
+    uint64_t m_timestamp;
 };
 
 inline uint64_t get_now_time() {
