@@ -1,10 +1,19 @@
 #include "StitchConsumer.h"
 
-StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch, int width, int height) {
+void StitchConsumer::single_stitch(int cam_id) {
+    while(running) {
+        Frame tmp;
+        if(!m_frame[cam_id]->wait_and_pop(tmp)) break;
+        
+    }
+}
+
+StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch, int width, int height)
+{
     m_frame = frame_to_stitch;
     m_name += "stitch";
     cam_num = m_frame.size();
-    this->width = width; // need fix，最好是通过推断或者通过json配置
+    this->width = width;
     this->height = height;
     int output_width = width * cam_num;
     if(config::GetInstance().GetGlobalStitchConfig().output_width != -1) {
@@ -40,11 +49,18 @@ StitchConsumer::~StitchConsumer() {
 
 void StitchConsumer::start() {
     TaskManager::start();
+    for(int i=0;i<cam_num;i++) {
+        m_threads[i] = std::thread(&StitchConsumer::single_stitch, this, i);
+    }
 }
 
 void StitchConsumer::stop() {
     for(auto& i: m_frame) i->stop();
     TaskManager::stop();
+    for(auto& thread : m_threads) {
+        if(thread.joinable())
+            thread.join();
+    }
 }
 
 void StitchConsumer::run() { 

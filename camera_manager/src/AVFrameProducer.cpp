@@ -67,6 +67,7 @@ void AVFrameProducer::run() {
                 pkt_copy2.m_costTimes.image_frame_cnt[cam_id] = m_status.frame_cnt;
                 pkt_copy1.m_data = av_packet_clone(&pkt);
                 pkt_copy2.m_data = av_packet_clone(&pkt);
+                pkt_copy2.m_timestamp = get_now_time(); // 获取当前时间戳
                 m_packetSender1.push(pkt_copy1);
                 m_packetSender2.push(pkt_copy2);
             }
