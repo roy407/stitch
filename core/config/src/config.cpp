@@ -3,14 +3,14 @@
 
 #undef CFG_HANDLE
 
-std::string config::resource_config = "";
+std::string config::config_name = "";
 
 config::config() {
-    loadFromFile(resource_config);
+    loadFromFile();
 }
 
-bool config::loadFromFile(const std::string key) {
-    std::string filename = key + ".json";
+bool config::loadFromFile() {
+    std::string filename = config_name;
     std::ifstream infile(filename);
     if (!infile.is_open()) {
         std::cout<<"Failed to open config file: " <<filename<< std::endl;
@@ -33,8 +33,8 @@ void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
     cfg.mode = j.value("mode", "debug");
     cfg.type = j.value("type", "mp4");
     cfg.format =j.value("format","YUV420");
-    cfg.rtsp_record_duration = j.value("record_duration", 240);
-    cfg.rtsp_record_path = j.value("record_path", "/home/eric/mp4/");
+    cfg.record_duration = j.value("record_duration", 240);
+    cfg.record_path = j.value("record_path", "");
     cfg.decoder = j.value("decoder", "h264_cuvid");
     cfg.encoder = j.value("encoder", "h264_nvenc");
 }
@@ -67,7 +67,7 @@ void config::loadStitchConfig(const json& j, StitchConfig& stitch, uint64_t defa
         stitch.stitch_impl.mapping_table.file_path = m.value("file_path", "");
         stitch.stitch_impl.mapping_table.output_width = m.value("output_width", -1);
         loadMappingTable(stitch.stitch_impl.mapping_table.d_mapping_table,
-            resource_config + "/" + stitch.stitch_impl.mapping_table.file_path, stitch.stitch_impl.mapping_table.output_width, default_height);
+            stitch.stitch_impl.mapping_table.file_path, stitch.stitch_impl.mapping_table.output_width, default_height);
     }
 
     if (j.contains("stitch_impl") && j["stitch_impl"].contains("H_matrix_inv")) {
@@ -97,9 +97,9 @@ void config::loadPipelineConfig(const json& j, PipelineConfig& pipe) {
         pipe.main_stream = j.value("main_stream", "");
         pipe.sub_stream = j.value("sub_stream", "");
         if(pipe.use_substream == false) {
-            loadCamerasInfo(resource_config + "/" + pipe.main_stream, pipe);
+            loadCamerasInfo(pipe.main_stream, pipe);
         } else {
-            loadCamerasInfo(resource_config + "/" + pipe.sub_stream, pipe);
+            loadCamerasInfo(pipe.sub_stream, pipe);
         }
         if(j.contains("stitch")) {
             pipe.stitch.stitch_mode = j["stitch"].value("stitch_mode", "raw");
@@ -200,8 +200,8 @@ void config::praseCameraConfig(const json & j, CameraConfig &cam) {
     cam.output_url = j.value("output_url", "");
 }
 
-void config::SetConfigFileName(std::string key) {
-    resource_config = key;
+void config::SetConfigFileName(std::string cfg_name) {
+    config_name = cfg_name;
 }
 
 config &config::GetInstance()

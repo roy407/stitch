@@ -100,7 +100,7 @@
     "stitch":{
         "stitch_impl": {
             "mapping_table": {
-                "file_path":"cam8.bin",
+                "file_path":"resource/cam10/cam8.bin",
                 "output_width":20803
             },
             "H_matrix_inv": {

@@ -44,6 +44,7 @@ public:
         this->single_width = single_width;
         this->output_width = output_width;
         this->height = height;
+        LOG_DEBUG("stitch initing ... cam_num : {} , width : {} , stitched_width : {} , height : {}", num, single_width, output_width, height);
         CreateHWFramesCtx();
         static_cast<Derived*>(this)->init_impl();
     }

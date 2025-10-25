@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+# 或者使用简写形式
+# coding=utf-8
+import numpy as np
+if not hasattr(np, 'bool'):
+    np.bool = bool  # 或者 np.bool = np.bool_
 import pandas as pd
 import matplotlib.pyplot as plt
 import glob

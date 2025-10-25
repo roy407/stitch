@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # 默认相机数量
-NUM_CAM=5
+CAM_JSON=""
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -n|--num)
-            NUM_CAM="$2"
+        -c|--config)
+            CAM_JSON="$2"
             shift 2
             ;;
         *)
@@ -19,19 +19,21 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 根据数量选择配置文件
-case "$NUM_CAM" in
-    2)
-        CONFIG_FILE="resource/cam2"
+case "$CAM_JSON" in
+    "cam2")
+        CONFIG_FILE="resource/cam2.json"
         ;;
-    5)
-        CONFIG_FILE="resource/hk5"
+    "hk5")
+        CONFIG_FILE="resource/hk5.json"
         ;;
-    10)
-        CONFIG_FILE="resource/cam10"
+    "cam10")
+        CONFIG_FILE="resource/cam10.json"
+        ;;
+    "cam10_jetson")
+        CONFIG_FILE="resource/cam10_jetson.json"
         ;;
     *)
-        echo "错误: 不支持的相机数量: $NUM_CAM"
-        echo "仅支持 2, 5, 10"
+        echo "错误: 不支持的相机格式: $CAM_JSON"
         exit 1
         ;;
 esac

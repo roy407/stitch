@@ -57,8 +57,8 @@ struct GlobalConfig {
     std::string mode;
     std::string type;
     std::string format;
-    int rtsp_record_duration = 0;
-    std::string rtsp_record_path;
+    int record_duration = 0;
+    std::string record_path;
     std::string decoder;
     std::string encoder;
 };
@@ -79,9 +79,9 @@ struct MapEntry {
 class config {
 private:
     Config cfg;
-    static std::string resource_config;
+    static std::string config_name;
     config();
-    bool loadFromFile(const std::string key);
+    bool loadFromFile();
     void loadGlobalConfig(const json& j, GlobalConfig& cfg);
     void loadCamerasInfo(std::string file_path, PipelineConfig& pipe);
     void loadStitchConfig(const json& j, StitchConfig& stitch, uint64_t default_width, uint64_t default_height);
@@ -92,7 +92,7 @@ private:
                             uint64_t height);
     void praseCameraConfig(const json& j, CameraConfig& cam);
 public:
-    static void SetConfigFileName(std::string key); // 一定要在初始化的时候就配置好
+    static void SetConfigFileName(std::string cfg_name); // 一定要在初始化的时候就配置好
     static config& GetInstance();
     const Config GetConfig() const;
     const GlobalConfig GetGlobalConfig() const;

@@ -14,6 +14,8 @@ extern "C" {
 #include "tools.hpp"
 #include "TaskManager.h"
 #include "config.h"
+
+// 待修改
 class EncoderConsumer : public TaskManager {
 public:
     EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = CFG_HANDLE.GetGlobalConfig().encoder);
