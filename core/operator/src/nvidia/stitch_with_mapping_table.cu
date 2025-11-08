@@ -72,7 +72,9 @@ void launch_stitch_kernel_with_mapping_table(
     int cam_num, int single_width, int width, int height, const uint16_t* mapping_table,
     cudaStream_t stream) {
     
-    dim3 block(16,16); 
+    int max_threads_per_block;
+    cudaDeviceGetAttribute(&max_threads_per_block, cudaDevAttrMaxThreadsPerBlock, 0);
+    dim3 block(16, max_threads_per_block / 16);
     dim3 grid(
         (width + block.x - 1) / block.x,  // 水平方向块数
         (height + block.y - 1) / block.y  // 垂直方向块数

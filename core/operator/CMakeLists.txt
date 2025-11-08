@@ -2,7 +2,10 @@ enable_language(CUDA)
 
 add_library(operator_nvidia STATIC
   src/nvidia/scale.cu
-  src/nvidia/stitch.cu
+  src/nvidia/stitch_raw.cu
+  src/nvidia/stitch_with_crop.cu
+  src/nvidia/stitch_with_h_matrix_inv.cu
+  src/nvidia/stitch_with_h_matrix.cu
   src/nvidia/stitch_with_mapping_table.cu
 )
 
