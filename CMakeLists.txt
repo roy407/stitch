@@ -19,7 +19,6 @@ find_package(spdlog REQUIRED)
 
 # 设置ffmpeg的配置
 set(FFMPEG_INCLUDE_DIRS "/usr/local/include")
-link_libraries("/usr/local/lib")
 
 if(BUILD_SHARED_LIB)
     add_library(stitch_app SHARED lib.cpp)

@@ -64,8 +64,8 @@ bool config::loadFromFile(const std::string& filename) {
             stitch.output_width = -1;
         }
 
-        auto H_json = j["stitch"]["H_matrix"];
-        std::vector<std::array<double, 9>>& h_matrix = stitch.h_matrix;
+        auto H_json = j["stitch"]["H_matrix_inv"];
+        std::vector<std::array<double, 9>>& h_matrix_inv = stitch.h_matrix_inv;
         for (auto& [key, mat] : H_json.items()) {
             std::array<double, 9> arr{};
             int idx = 0;
@@ -74,7 +74,7 @@ bool config::loadFromFile(const std::string& filename) {
                     arr[idx++] = val.get<double>();
                 }
             }
-            h_matrix.push_back(arr);
+            h_matrix_inv.push_back(arr);
         }
 
         auto cam_polygons_json = j["stitch"]["cam_polygons"];
@@ -98,6 +98,26 @@ bool config::loadFromFile(const std::string& filename) {
         return false;
     }
 
+bool config::loadMappingTable(const std::string &filename, size_t expected_count) {
+    std::ifstream infile(filename + ".bin");
+    if (!infile.is_open()) {
+        LOG_ERROR("Failed to open config file: {}" ,filename + ".bin");
+        return false;
+    }
+    infile.seekg(0, std::ios::end);
+    size_t file_bytes = (size_t)infile.tellg();
+    infile.seekg(0, std::ios::beg);
+
+    size_t expected_bytes = expected_count * sizeof(uint16_t);
+    expected_bytes = file_bytes;
+    expected_count = file_bytes / sizeof(uint16_t);
+    if (file_bytes != expected_bytes) {
+        LOG_INFO("file size unexpected: {} is not equal {}", file_bytes, expected_bytes);
+    }
+    std::vector<uint16_t> buf(expected_count);
+    infile.read(reinterpret_cast<char*>(buf.data()), expected_bytes);
+    CHECK_CUDA(cudaMalloc(&d_mapping_table, expected_count * sizeof(uint16_t)));
+    CHECK_CUDA(cudaMemcpy(d_mapping_table, buf.data(), expected_count * sizeof(uint16_t), cudaMemcpyHostToDevice));
     return true;
 }
 
