@@ -47,11 +47,14 @@ private:
     GlobalConfig global;
     std::vector<CameraConfig> cameras;
     GlobalStitchConfig stitch;
+    uint16_t* d_mapping_table;
     config();
     bool loadFromFile(const std::string& filename);
+    bool loadMappingTable(const std::string& filename, size_t expected_count);
 public:
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;
     const std::vector<CameraConfig> GetCameraConfig() const;
     const GlobalStitchConfig GetGlobalStitchConfig() const;
+    const uint16_t* GetMappingTable() const;
 };

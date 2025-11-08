@@ -29,4 +29,6 @@ private:
     int* d_crop;
     float* h_matrix;
     float** d_cam_polygons;
+    const uint16_t* d_mapping_table{nullptr};
+    bool LoadMappingTable();
 };

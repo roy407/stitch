@@ -80,6 +80,7 @@ void Stitch::init(int width, int height, int cam_num) {
     delete[] crop;
     delete[] h_matrix;
     delete[] h_cam_ptrs;
+    LoadMappingTable();
 }
 
 Stitch::~Stitch()
@@ -141,12 +142,17 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     #define H_M
 
     #ifdef H_M
-    launch_stitch_kernel_with_h_matrix(d_inputs_y, d_inputs_uv,
+    // launch_stitch_kernel_with_h_matrix(d_inputs_y, d_inputs_uv,
+    //     d_input_linesize_y, d_input_linesize_uv,
+    //     d_h_matrix, d_cam_polygons,
+    //     output_y, output_uv,
+    //     output->linesize[0], output->linesize[1],
+    //     cam_num, single_width, output_width, height,stream);
+    launch_stitch_kernel_with_mapping_table(d_inputs_y, d_inputs_uv,
         d_input_linesize_y, d_input_linesize_uv,
-        d_h_matrix, d_cam_polygons,
         output_y, output_uv,
         output->linesize[0], output->linesize[1],
-        cam_num, single_width, output_width, height,stream);
+        cam_num, single_width, output_width, height, d_mapping_table, stream);
     #else
     launch_stitch_kernel_with_crop(d_inputs_y, d_inputs_uv,
                         d_input_linesize_y, d_input_linesize_uv,
@@ -157,4 +163,10 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     #endif
     cudaStreamSynchronize(stream);
     return output;
+}
+
+bool Stitch::LoadMappingTable()
+{
+    d_mapping_table = config::GetInstance().GetMappingTable();
+    return true;
 }

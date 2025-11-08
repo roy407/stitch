@@ -1,14 +1,15 @@
 #include "config.h"
 #include "log.hpp"
+#include <cuda_runtime.h>
 
 config::config() {
-    loadFromFile("resource/hk5.json"); //需要修改，设置在一个文件夹下
+    loadFromFile("resource/hk5"); //需要修改，设置在一个文件夹下
 }
 
 bool config::loadFromFile(const std::string& filename) {
-    std::ifstream infile(filename);
+    std::ifstream infile(filename + ".json");
     if (!infile.is_open()) {
-        LOG_ERROR("Failed to open config file: {}" ,filename);
+        LOG_ERROR("Failed to open config file: {}" ,filename + ".json");
         return false;
     }
 
@@ -97,7 +98,32 @@ bool config::loadFromFile(const std::string& filename) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
+    size_t expected_count = cameras[0].width * cameras[0].height * 3;
+    loadMappingTable(filename, expected_count);
+    return true;
+}
 
+bool config::loadMappingTable(const std::string &filename, size_t expected_count) {
+    std::ifstream infile(filename + ".bin");
+    if (!infile.is_open()) {
+        LOG_ERROR("Failed to open config file: {}" ,filename + ".bin");
+        return false;
+    }
+    infile.seekg(0, std::ios::end);
+    size_t file_bytes = (size_t)infile.tellg();
+    infile.seekg(0, std::ios::beg);
+
+    size_t expected_bytes = expected_count * sizeof(uint16_t);
+    expected_bytes = file_bytes;
+    expected_count = file_bytes / sizeof(uint16_t);
+    if (file_bytes != expected_bytes) {
+        std::cout<<file_bytes<<" "<<expected_bytes<<std::endl;
+        // LOG_INFO("file size unexpected: {} is not equal {}", file_bytes, expected_bytes);
+    }
+    std::vector<uint16_t> buf(expected_count);
+    infile.read(reinterpret_cast<char*>(buf.data()), expected_bytes);
+    CHECK_CUDA(cudaMalloc(&d_mapping_table, expected_count * sizeof(uint16_t)));
+    CHECK_CUDA(cudaMemcpy(d_mapping_table, buf.data(), expected_count * sizeof(uint16_t), cudaMemcpyHostToDevice));
     return true;
 }
 
@@ -116,4 +142,8 @@ const std::vector<CameraConfig> config::GetCameraConfig() const {
 
 const GlobalStitchConfig config::GetGlobalStitchConfig() const {
     return stitch;
+}
+
+const uint16_t* config::GetMappingTable() const {
+    return d_mapping_table;
 }

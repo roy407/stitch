@@ -3,6 +3,7 @@ enable_language(CUDA)
 add_library(operator_nvidia STATIC
   src/nvidia/scale.cu
   src/nvidia/stitch.cu
+  src/nvidia/stitch_with_mapping_table.cu
 )
 
 target_include_directories(operator_nvidia PUBLIC
@@ -12,5 +13,5 @@ target_include_directories(operator_nvidia PUBLIC
 
 target_link_libraries(operator_nvidia
     avcodec avformat avutil swscale
-    cuda nppicc nppc nppidei config 
+    cuda nppicc nppc nppidei
 )

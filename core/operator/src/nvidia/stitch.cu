@@ -365,8 +365,7 @@ void launch_stitch_kernel_with_h_matrix(
     dim3 block(16,16); 
     dim3 grid(
         (width + block.x - 1) / block.x,  // 水平方向块数
-        (height + block.y - 1) / block.y,        // 垂直方向块数
-        cam_num                                  // 摄像头数量
+        (height + block.y - 1) / block.y        // 垂直方向块数
     );
 
     USE_HNI<<<grid, block, 0, stream>>>(
