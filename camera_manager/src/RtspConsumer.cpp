@@ -103,6 +103,7 @@ bool RtspConsumer::destory_mediamtx() {
     } else {
         LOG_ERROR("Failed to kill PID {}", pid);
     }
+    return true;
 }
 
 RtspConsumer::~RtspConsumer() {

@@ -2,6 +2,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(OpenGL_GL_PREFERENCE "GLVND")
 
 set(HEADERS 
     include/widget.h
@@ -30,8 +31,6 @@ target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/data_processing/include
   ${FFMPEG_INCLUDE_DIRS}
 )
-target_link_libraries(qt PRIVATE Qt5::Widgets)
-target_link_options(qt PRIVATE -Wl,-rpath-link=/usr/local/lib)
 
 target_link_libraries(qt PRIVATE
   Qt5::Core

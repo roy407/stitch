@@ -14,19 +14,28 @@ public:
     ~Stitch();
     AVFrame* do_stitch(AVFrame** inputs);
 private:
+    std::atomic_bool running;
     AVFrame* output;
     AVBufferRef* hw_frames_ctx;
-    std::atomic_bool running;
+    bool CreateHWFramesCtx();
     int cam_num;
     int single_width;
     int height;
     int output_width;
-    uint8_t **d_inputs_y;
-    uint8_t **d_inputs_uv;
-    int* d_input_linesize_y;
-    int* d_input_linesize_uv;
-    float* d_h_matrix;
-    int* d_crop;
-    float* h_matrix;
-    float** d_cam_polygons;
+    bool SetCameraAttribute(int width, int height, int cam_num);
+// 下面的代码都是跟gpu有关
+    uint8_t **d_inputs_y{nullptr};
+    uint8_t **d_inputs_uv{nullptr};
+    int* d_input_linesize_y{nullptr};
+    int* d_input_linesize_uv{nullptr};
+    bool AllocateFrameBufPtr();
+    bool MemoryCpyFrameBufPtr(AVFrame** inputs);
+    int* d_crop{nullptr};
+    bool SetCrop();
+    float* d_h_matrix_inv{nullptr};
+    bool SetHMatrixInv();
+    float** d_cam_polygons{nullptr};
+    bool SetCamPolygons();
+    const uint16_t* d_mapping_table{nullptr};
+    bool LoadMappingTable();
 };

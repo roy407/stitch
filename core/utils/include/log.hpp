@@ -76,3 +76,11 @@ inline void AVFrame_log(const char* cam_name, const AVFrame* frame) {
         std::cout << "==========================================================" << std::endl;
     }
 }
+
+#define CHECK_CUDA(call) do { \
+    cudaError_t e = (call); \
+    if (e != cudaSuccess) { \
+        LOG_ERROR("CUDA Error : {}", cudaGetErrorString(e)); \
+        return false; \
+    } \
+} while(0)
