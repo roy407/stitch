@@ -7,16 +7,16 @@ __global__ void stitch_kernel_Y_with_mapping_table(
     uint8_t** inputs_y, int* input_linesize_y,
     uint8_t* output_y, int output_linesize_y,
     int cam_num, int single_width, int width, int height,
-    const uint16_t* mapping_table)
+    const cudaTextureObject_t mapping_table)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width || y >= height) return;
     
-    int idx = (x * height + y) * 3;
-    uint16_t cam_id = mapping_table[idx + 0];
-    uint16_t map_x  = mapping_table[idx + 1];
-    uint16_t map_y  = mapping_table[idx + 2];
+    ushort4 entry = tex2D<ushort4>(mapping_table, x, y);
+    uint16_t cam_id = entry.x;
+    uint16_t map_x  = entry.y;
+    uint16_t map_y  = entry.z;
     if (cam_id >= cam_num) {
         output_y[y * output_linesize_y + x] = 0;
         return;
@@ -32,7 +32,7 @@ __global__ void stitch_kernel_Y_with_mapping_table(
 __global__ void stitch_kernel_UV_with_mapping_table(
     uint8_t** inputs_uv, int* input_linesize_uv,
     uint8_t* output_uv, int output_linesize_uv,
-    int cam_num, int single_width, int width, int height, const uint16_t* mapping_table)
+    int cam_num, int single_width, int width, int height, const cudaTextureObject_t mapping_table)
 {
     int x = (blockIdx.x * blockDim.x + threadIdx.x) * 2;
     int y = (blockIdx.y * blockDim.y + threadIdx.y) * 2;
@@ -40,11 +40,10 @@ __global__ void stitch_kernel_UV_with_mapping_table(
     if (x >= width || y >= height)
         return;
 
-    int idx = (x * height + y) * 3;
-
-    uint16_t cam_id = mapping_table[idx + 0];
-    uint16_t map_x  = mapping_table[idx + 1];
-    uint16_t map_y  = mapping_table[idx + 2];
+    ushort4 entry = tex2D<ushort4>(mapping_table, x, y);
+    uint16_t cam_id = entry.x;
+    uint16_t map_x  = entry.y;
+    uint16_t map_y  = entry.z;
 
     if (cam_id >= cam_num) {
         int uv_out_x = (x & ~1);
@@ -80,7 +79,7 @@ void launch_stitch_kernel_with_mapping_table(
     int* input_linesize_y, int* input_linesize_uv,
     uint8_t* output_y, uint8_t* output_uv,
     int output_linesize_y, int output_linesize_uv,
-    int cam_num, int single_width, int width, int height, const uint16_t* mapping_table,
+    int cam_num, int single_width, int width, int height, const cudaTextureObject_t mapping_table,
     cudaStream_t stream1, cudaStream_t stream2) {
     
     int max_threads_per_block;

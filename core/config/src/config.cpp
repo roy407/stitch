@@ -97,9 +97,12 @@ bool config::loadFromFile(const std::string& filename) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
+    loadMappingTable(filename, cameras[0].width * cameras.size(), cameras[0].height);
+    return true;
+}
 
-bool config::loadMappingTable(const std::string &filename, size_t expected_count) {
-    std::ifstream infile(filename + ".bin");
+bool config::loadMappingTable(const std::string &filename, uint64_t width, uint64_t height) {
+    std::ifstream infile(filename + ".bin", std::ios::binary);
     if (!infile.is_open()) {
         LOG_ERROR("Failed to open config file: {}" ,filename + ".bin");
         return false;
@@ -108,16 +111,49 @@ bool config::loadMappingTable(const std::string &filename, size_t expected_count
     size_t file_bytes = (size_t)infile.tellg();
     infile.seekg(0, std::ios::beg);
 
-    size_t expected_bytes = expected_count * sizeof(uint16_t);
-    expected_bytes = file_bytes;
-    expected_count = file_bytes / sizeof(uint16_t);
-    if (file_bytes != expected_bytes) {
-        LOG_INFO("file size unexpected: {} is not equal {}", file_bytes, expected_bytes);
+    size_t expected_bytes = file_bytes;
+    size_t expected_count = file_bytes / sizeof(uint16_t);
+    std::vector<uint16_t> __buf(expected_count);
+    infile.read(reinterpret_cast<char*>(__buf.data()), expected_bytes);
+
+    size_t total = width * height;
+    std::vector<MapEntry> buf(total);
+    size_t src_idx = 0;
+    for (uint64_t x = 0; x < width; ++x) {
+        for (uint64_t y = 0; y < height; ++y) {
+            size_t dst_idx = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+            buf[dst_idx].cam_id = __buf[src_idx++]; // cam
+            buf[dst_idx].map_x  = __buf[src_idx++]; // map_x
+            buf[dst_idx].map_y  = __buf[src_idx++]; // map_y
+            buf[dst_idx].pad    = 0;
+        }
     }
-    std::vector<uint16_t> buf(expected_count);
-    infile.read(reinterpret_cast<char*>(buf.data()), expected_bytes);
-    CHECK_CUDA(cudaMalloc(&d_mapping_table, expected_count * sizeof(uint16_t)));
-    CHECK_CUDA(cudaMemcpy(d_mapping_table, buf.data(), expected_count * sizeof(uint16_t), cudaMemcpyHostToDevice));
+
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<ushort4>();
+    cudaArray_t cuArray;
+    cudaMallocArray(&cuArray, &channelDesc, width, height);
+    cudaMemcpy2DToArray(
+        cuArray,
+        0, 0,
+        buf.data(),
+        width * sizeof(MapEntry),
+        width * sizeof(MapEntry),
+        height,
+        cudaMemcpyHostToDevice);
+    struct cudaResourceDesc resDesc = {};
+    resDesc.resType = cudaResourceTypeArray;
+    resDesc.res.array.array = cuArray;
+
+    // 配置纹理描述符
+    struct cudaTextureDesc texDesc = {};
+    texDesc.addressMode[0] = cudaAddressModeClamp;
+    texDesc.addressMode[1] = cudaAddressModeClamp;
+    texDesc.filterMode = cudaFilterModePoint;
+    texDesc.readMode = cudaReadModeElementType;
+    texDesc.normalizedCoords = 0;  // 不归一化坐标
+
+    // 创建 texture 对象
+    cudaCreateTextureObject(&d_mapping_table, &resDesc, &texDesc, nullptr);
     return true;
 }
 
@@ -136,4 +172,8 @@ const std::vector<CameraConfig> config::GetCameraConfig() const {
 
 const GlobalStitchConfig config::GetGlobalStitchConfig() const {
     return stitch;
+}
+
+const cudaTextureObject_t config::GetMappingTable() const {
+    return d_mapping_table;
 }
