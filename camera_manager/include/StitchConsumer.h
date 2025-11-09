@@ -13,21 +13,15 @@ extern "C" {
 
 #include "safe_queue.hpp"
 #include "tools.hpp"
-#include "Stitch.h"
 #include "config.h"
 #include "image_encoder.h"
 #include "safe_queue.hpp"
 #include "LogConsumer.h"
-#define FRAMECACHE_SIZE 10
-struct FrameCache {
-    std::atomic<int> m_cnt{0};
-    Frame m_data;
-    uint64_t m_timestamp[10]{0}; // 最终所有timestamp取平均送给m_data 
-};
+
+class Stitch; // 提前声明，这样可以避免使用头文件，提高编译效率
 class StitchConsumer : public Consumer {
     std::vector<safe_queue<Frame>*> m_frame;
     std::vector<std::thread> m_threads; // 多路线程，分别做拼接
-    FrameCache m_frameCache[FRAMECACHE_SIZE];
     safe_queue<Frame> frame_output;
     int cam_num{0};
     int width{0};
@@ -37,7 +31,7 @@ class StitchConsumer : public Consumer {
     AVFormatContext* out_ctx;
     AVStream* out_stream;
     AVCodecParameters* codecpar;
-    Stitch stitch;
+    Stitch* stitch;
     std::unique_ptr<TaskManager> m_rtspConsumer; // 拼接图像的推流线程，自己创建
     friend class LogConsumer;
     void single_stitch(int cam_id);

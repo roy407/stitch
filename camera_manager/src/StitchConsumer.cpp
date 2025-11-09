@@ -1,4 +1,5 @@
 #include "StitchConsumer.h"
+#include "Stitch.h"
 
 void StitchConsumer::single_stitch(int cam_id) {
     while(running) {
@@ -19,7 +20,8 @@ StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch,
     if(config::GetInstance().GetGlobalStitchConfig().output_width != -1) {
         output_width = config::GetInstance().GetGlobalStitchConfig().output_width;
     }
-    stitch.init(width, height, cam_num);
+    stitch = new Stitch;
+    stitch->init(width, height, cam_num);
     url = config::GetInstance().GetGlobalStitchConfig().output_url;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
     
@@ -49,18 +51,11 @@ StitchConsumer::~StitchConsumer() {
 
 void StitchConsumer::start() {
     TaskManager::start();
-    for(int i=0;i<cam_num;i++) {
-        m_threads[i] = std::thread(&StitchConsumer::single_stitch, this, i);
-    }
 }
 
 void StitchConsumer::stop() {
     for(auto& i: m_frame) i->stop();
     TaskManager::stop();
-    for(auto& thread : m_threads) {
-        if(thread.joinable())
-            thread.join();
-    }
 }
 
 void StitchConsumer::run() { 
@@ -75,7 +70,7 @@ void StitchConsumer::run() {
             out_image.m_costTimes.when_get_packet[i] = tmp.m_costTimes.when_get_packet[i];
             out_image.m_costTimes.when_get_decoded_frame[i] = tmp.m_costTimes.when_get_decoded_frame[i];
         }
-        out_image.m_data = stitch.do_stitch(inputs);
+        out_image.m_data = stitch->do_stitch(inputs);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         frame_output.push(out_image);

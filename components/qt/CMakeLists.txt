@@ -29,6 +29,7 @@ target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/rtsp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/config/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/data_processing/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../core/operator/include/nvidia
   ${FFMPEG_INCLUDE_DIRS}
 )
 

@@ -9,6 +9,7 @@ target_include_directories(data_processing PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CORE_TOP_DIR}/utils/include
   ${CORE_TOP_DIR}/config/include
+  ${CORE_TOP_DIR}/operator/include/nvidia
   ${FFMPEG_INCLUDE_DIRS}
 )
 

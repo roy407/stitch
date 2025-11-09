@@ -2,10 +2,11 @@
 #include "log.hpp"
 
 config::config() {
-    loadFromFile("resource/hk5.json"); //需要修改，设置在一个文件夹下
+    loadFromFile("resource/hk5"); //需要修改，设置在一个文件夹下
 }
 
-bool config::loadFromFile(const std::string& filename) {
+bool config::loadFromFile(const std::string key) {
+    std::string filename = key + ".json";
     std::ifstream infile(filename);
     if (!infile.is_open()) {
         LOG_ERROR("Failed to open config file: {}" ,filename);
@@ -97,14 +98,15 @@ bool config::loadFromFile(const std::string& filename) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
-    loadMappingTable(filename, cameras[0].width * cameras.size(), cameras[0].height);
+    loadMappingTable(key, cameras[0].width * cameras.size(), cameras[0].height);
     return true;
 }
 
-bool config::loadMappingTable(const std::string &filename, uint64_t width, uint64_t height) {
-    std::ifstream infile(filename + ".bin", std::ios::binary);
+bool config::loadMappingTable(const std::string key, uint64_t width, uint64_t height) {
+    std::string filename = key + ".bin";
+    std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open()) {
-        LOG_ERROR("Failed to open config file: {}" ,filename + ".bin");
+        LOG_ERROR("Failed to open config file: {}" ,filename);
         return false;
     }
     infile.seekg(0, std::ios::end);

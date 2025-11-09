@@ -17,7 +17,6 @@ extern "C" {
     #include "libavcodec/bsf.h"
 }
 #include "safe_queue.hpp"
-#include "Stitch.h"
 #include "image_decoder.h"
 #include "image_encoder.h"
 #include "config.h"

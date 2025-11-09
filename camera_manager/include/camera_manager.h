@@ -19,7 +19,6 @@ extern "C" {
 
 #include "safe_queue.hpp"
 #include "tools.hpp"
-#include "Stitch.h"
 #include "image_decoder.h"
 #include "image_encoder.h"
 #include "AVFrameProducer.h"
