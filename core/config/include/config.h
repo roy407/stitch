@@ -5,6 +5,7 @@
 #include <vector>
 #include <atomic>
 #include <nlohmann/json.hpp>
+#include <cuda_runtime.h>
 
 using json = nlohmann::json;
 
@@ -41,20 +42,27 @@ struct GlobalStitchConfig {
     std::vector<std::array<float, 8>> cam_polygons;
 };
 
+struct MapEntry {
+    uint16_t cam_id;
+    uint16_t map_x;
+    uint16_t map_y;
+    uint16_t pad;  // 对齐为 8 字节
+};
+
 // 配置管理类
 class config {
 private:
     GlobalConfig global;
     std::vector<CameraConfig> cameras;
     GlobalStitchConfig stitch;
-    uint16_t* d_mapping_table;
+    cudaTextureObject_t d_mapping_table{0};
     config();
     bool loadFromFile(const std::string& filename);
-    bool loadMappingTable(const std::string& filename, size_t expected_count);
+    bool loadMappingTable(const std::string& filename, uint64_t width, uint64_t height);
 public:
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;
     const std::vector<CameraConfig> GetCameraConfig() const;
     const GlobalStitchConfig GetGlobalStitchConfig() const;
-    const uint16_t* GetMappingTable() const;
+    const cudaTextureObject_t GetMappingTable() const;
 };
