@@ -9,6 +9,6 @@ void launch_stitch_kernel_with_mapping_table(
     uint8_t* output_y, uint8_t* output_uv,
     int output_linesize_y, int output_linesize_uv,
     int cam_num, int single_width, int width, int height, const uint16_t* mapping_table,
-    cudaStream_t stream);
+    cudaStream_t stream1, cudaStream_t stream2);
 
 #define LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE
