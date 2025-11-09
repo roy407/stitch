@@ -57,8 +57,8 @@ private:
     GlobalStitchConfig stitch;
     cudaTextureObject_t d_mapping_table{0};
     config();
-    bool loadFromFile(const std::string& filename);
-    bool loadMappingTable(const std::string& filename, uint64_t width, uint64_t height);
+    bool loadFromFile(const std::string key);
+    bool loadMappingTable(const std::string key, uint64_t width, uint64_t height);
 public:
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;

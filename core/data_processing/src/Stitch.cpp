@@ -1,5 +1,4 @@
 #include "Stitch.h"
-#include "stitch_with_mapping_table.cuh"
 #include "scale.cuh"
 #include <iostream>
 
@@ -33,19 +32,6 @@ void Stitch::init(int width, int height, int cam_num) {
 }
 
 Stitch::~Stitch() {
-<<<<<<< HEAD
-    cudaFree(d_inputs_y);
-    cudaFree(d_inputs_uv);
-    cudaFree(d_crop);
-    cudaFree(d_input_linesize_y);
-    cudaFree(d_input_linesize_uv);
-    cudaFree(d_h_matrix_inv);
-}
-
-AVFrame* Stitch::do_stitch(AVFrame** inputs) {
-    MemoryCpyFrameBufPtr(inputs);
-
-=======
     #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
         cudaFree(d_inputs_y);
         cudaFree(d_inputs_uv);
@@ -74,7 +60,6 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     #else
         MemoryCpyFrameBufPtrYUV420P(inputs);
     #endif
->>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     output = av_frame_alloc();
     if (!output) {
         throw std::runtime_error("Failed to allocate output frame");
@@ -86,43 +71,64 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     if (av_hwframe_get_buffer(hw_frames_ctx, output, 0) < 0) {
         throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
     }
-    uint8_t* output_y = output->data[0];
-    uint8_t* output_uv = output->data[1];
-    cudaStream_t stream = 0;
-
     #if defined(LAUNCH_STITCH_KERNEL_RAW)
+        cudaStream_t stream = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
         launch_stitch_kernel_raw(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
             cam_num, single_width, output_width, height,stream);
+        cudaStreamSynchronize(stream);
     #elif defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
+        cudaStream_t stream = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
         launch_stitch_kernel_with_crop(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
             cam_num, single_width, output_width, height, stream, d_crop);
+        cudaStreamSynchronize(stream);
     #elif defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+        cudaStream_t stream = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
         launch_stitch_kernel_with_h_matrix_inv(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
             d_h_matrix_inv, d_cam_polygons,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
             cam_num, single_width, output_width, height,stream);
+        cudaStreamSynchronize(stream);
+    #elif defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+        cudaStream_t stream1 = 0, stream2 = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
+        launch_stitch_kernel_with_mapping_table_yuv420p(d_inputs_y, d_inputs_u, d_inputs_v,
+            d_input_linesize_y, d_input_linesize_u, d_input_linesize_v,
+            output_y, output_uv,
+            output->linesize[0], output->linesize[1],
+            cam_num, single_width, output_width, height, d_mapping_table, stream1, stream2);
+        cudaStreamSynchronize(stream1);
+        cudaStreamSynchronize(stream2);
     #elif defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE)
-        cudaStream_t stream2 = 0;
+        cudaStream_t stream1 = 0, stream2 = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
         launch_stitch_kernel_with_mapping_table(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
-            cam_num, single_width, output_width, height, d_mapping_table, stream, stream2);
+            cam_num, single_width, output_width, height, d_mapping_table, stream1, stream2);
+        cudaStreamSynchronize(stream1);
         cudaStreamSynchronize(stream2);
     #else
         static int __cnt__ = 0;
         __cnt__ ++;
         if(__cnt__ % 20 == 0) LOG_WARN("No kernel is running now");
     #endif
-    cudaStreamSynchronize(stream);
     return output;
 }
 
@@ -152,13 +158,8 @@ bool Stitch::SetCameraAttribute(int width, int height, int cam_num) {
     }
     return true;
 }
-<<<<<<< HEAD
-
-bool Stitch::AllocateFrameBufPtr() {
-=======
 #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
 bool Stitch::AllocateFrameBufPtrYUV420() {
->>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     CHECK_CUDA(cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num));
     CHECK_CUDA(cudaMalloc(&d_inputs_uv, sizeof(uint8_t*) * cam_num));
     CHECK_CUDA(cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int)));
@@ -166,7 +167,7 @@ bool Stitch::AllocateFrameBufPtrYUV420() {
     return true;
 }
 
-bool Stitch::MemoryCpyFrameBufPtr(AVFrame** inputs) {
+bool Stitch::MemoryCpyFrameBufPtrYUV420(AVFrame** inputs) {
     uint8_t* gpu_inputs_y[cam_num];
     uint8_t* gpu_inputs_uv[cam_num];
     for (int i = 0; i < cam_num; ++i) {
@@ -193,9 +194,6 @@ bool Stitch::MemoryCpyFrameBufPtr(AVFrame** inputs) {
     return true;
 }
 
-<<<<<<< HEAD
-bool Stitch::SetCrop() {
-=======
 #else
 bool Stitch::AllocateFrameBufPtrYUV420P() {
     CHECK_CUDA(cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num));
@@ -243,7 +241,6 @@ bool Stitch::MemoryCpyFrameBufPtrYUV420P(AVFrame **inputs) {
 #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
 bool Stitch::SetCrop()
 {
->>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     int* crop = new int[cam_num * 4];
     memset(crop,0,cam_num * 4);
     CHECK_CUDA(cudaMalloc(&d_crop, cam_num * 4 * sizeof(int)));
@@ -263,7 +260,9 @@ bool Stitch::SetCrop()
     delete[] crop;
     return true;
 }
+#endif
 
+#if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
 bool Stitch::SetHMatrixInv() {
     CHECK_CUDA(cudaMalloc(&d_h_matrix_inv, sizeof(float) * 9 * cam_num));
     const std::vector<std::array<double, 9>> __h_matrix_inv = config::GetInstance().GetGlobalStitchConfig().h_matrix_inv;
@@ -292,6 +291,7 @@ bool Stitch::SetCamPolygons() {
     delete[] h_cam_ptrs;
     return true;
 }
+#endif
 
 bool Stitch::LoadMappingTable() {
     d_mapping_table = config::GetInstance().GetMappingTable();

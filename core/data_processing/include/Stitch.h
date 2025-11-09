@@ -1,13 +1,15 @@
 #pragma once
 #include <thread>
 #include <atomic>
+#include <cuda_runtime.h>
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
 }
-#include <cuda_runtime.h>
+#include "stitch_with_mapping_table.cuh"
+
 class Stitch {
 public:
     explicit Stitch();

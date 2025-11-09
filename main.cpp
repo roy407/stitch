@@ -1,5 +1,6 @@
 #include <QApplication>
 #include "widget.h"
+#include "mainwindow.h"
 #include "camera_manager.h"
 
 void launch_with_no_window() {
