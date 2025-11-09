@@ -7,6 +7,7 @@ extern "C" {
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
 }
+#include <cuda_runtime.h>
 class Stitch {
 public:
     explicit Stitch();
@@ -36,6 +37,6 @@ private:
     bool SetHMatrixInv();
     float** d_cam_polygons{nullptr};
     bool SetCamPolygons();
-    const uint16_t* d_mapping_table{nullptr};
+    cudaTextureObject_t d_mapping_table{0};
     bool LoadMappingTable();
 };
