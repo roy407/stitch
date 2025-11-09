@@ -1,5 +1,5 @@
 #include "Stitch.h"
-#include "stitch_with_h_matrix_inv.cuh"
+#include "stitch_with_mapping_table.cuh"
 #include "scale.cuh"
 #include <iostream>
 
@@ -53,7 +53,7 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     }
     uint8_t* output_y = output->data[0];
     uint8_t* output_uv = output->data[1];
-    cudaStream_t stream = 0; // 修改，使用五个流，同时拼。
+    cudaStream_t stream = 0;
 
     #if defined(LAUNCH_STITCH_KERNEL_RAW)
         launch_stitch_kernel_raw(d_inputs_y, d_inputs_uv,
@@ -75,11 +75,13 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
             output->linesize[0], output->linesize[1],
             cam_num, single_width, output_width, height,stream);
     #elif defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE)
+        cudaStream_t stream2 = 0;
         launch_stitch_kernel_with_mapping_table(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
-            cam_num, single_width, output_width, height, d_mapping_table, stream);
+            cam_num, single_width, output_width, height, d_mapping_table, stream, stream2);
+        cudaStreamSynchronize(stream2);
     #else
         static int __cnt__ = 0;
         __cnt__ ++;
