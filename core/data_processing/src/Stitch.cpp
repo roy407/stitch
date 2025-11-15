@@ -16,7 +16,11 @@ Stitch::Stitch() {
 
 void Stitch::init(int width, int height, int cam_num) {
     SetCameraAttribute(width, height, cam_num);
-    AllocateFrameBufPtr();
+    #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+        AllocateFrameBufPtrYUV420();
+    #else
+        AllocateFrameBufPtrYUV420P();
+    #endif
     #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
         SetCrop();
     #endif
@@ -29,6 +33,7 @@ void Stitch::init(int width, int height, int cam_num) {
 }
 
 Stitch::~Stitch() {
+<<<<<<< HEAD
     cudaFree(d_inputs_y);
     cudaFree(d_inputs_uv);
     cudaFree(d_crop);
@@ -40,6 +45,36 @@ Stitch::~Stitch() {
 AVFrame* Stitch::do_stitch(AVFrame** inputs) {
     MemoryCpyFrameBufPtr(inputs);
 
+=======
+    #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+        cudaFree(d_inputs_y);
+        cudaFree(d_inputs_uv);
+        cudaFree(d_input_linesize_y);
+        cudaFree(d_input_linesize_uv);
+    #else
+        cudaFree(d_inputs_y);
+        cudaFree(d_inputs_u);
+        cudaFree(d_inputs_v);
+        cudaFree(d_input_linesize_y);
+        cudaFree(d_input_linesize_u);
+        cudaFree(d_input_linesize_v);
+    #endif
+    #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
+        cudaFree(d_crop);
+    #endif
+
+    #if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+        cudaFree(d_h_matrix_inv);
+    #endif
+}
+
+AVFrame* Stitch::do_stitch(AVFrame** inputs) {
+    #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+        MemoryCpyFrameBufPtrYUV420(inputs);
+    #else
+        MemoryCpyFrameBufPtrYUV420P(inputs);
+    #endif
+>>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     output = av_frame_alloc();
     if (!output) {
         throw std::runtime_error("Failed to allocate output frame");
@@ -117,8 +152,13 @@ bool Stitch::SetCameraAttribute(int width, int height, int cam_num) {
     }
     return true;
 }
+<<<<<<< HEAD
 
 bool Stitch::AllocateFrameBufPtr() {
+=======
+#if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+bool Stitch::AllocateFrameBufPtrYUV420() {
+>>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     CHECK_CUDA(cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num));
     CHECK_CUDA(cudaMalloc(&d_inputs_uv, sizeof(uint8_t*) * cam_num));
     CHECK_CUDA(cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int)));
@@ -153,7 +193,57 @@ bool Stitch::MemoryCpyFrameBufPtr(AVFrame** inputs) {
     return true;
 }
 
+<<<<<<< HEAD
 bool Stitch::SetCrop() {
+=======
+#else
+bool Stitch::AllocateFrameBufPtrYUV420P() {
+    CHECK_CUDA(cudaMalloc(&d_inputs_y, sizeof(uint8_t*) * cam_num));
+    CHECK_CUDA(cudaMalloc(&d_inputs_u, sizeof(uint8_t*) * cam_num));
+    CHECK_CUDA(cudaMalloc(&d_inputs_v, sizeof(uint8_t*) * cam_num));
+    CHECK_CUDA(cudaMalloc(&d_input_linesize_y, cam_num * sizeof(int)));
+    CHECK_CUDA(cudaMalloc(&d_input_linesize_u, cam_num * sizeof(int)));
+    CHECK_CUDA(cudaMalloc(&d_input_linesize_v, cam_num * sizeof(int)));
+    return true;
+}
+
+bool Stitch::MemoryCpyFrameBufPtrYUV420P(AVFrame **inputs) {
+    uint8_t* gpu_inputs_y[cam_num];
+    uint8_t* gpu_inputs_u[cam_num];
+    uint8_t* gpu_inputs_v[cam_num];
+    for (int i = 0; i < cam_num; ++i) {
+        if (!inputs[i]) {
+            return false;
+        }
+        gpu_inputs_y[i] = inputs[i]->data[0];
+        gpu_inputs_u[i] = inputs[i]->data[1];
+        gpu_inputs_v[i] = inputs[i]->data[2];
+    }
+
+    cudaMemcpy(d_inputs_y, gpu_inputs_y, sizeof(uint8_t*) * cam_num, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_inputs_u, gpu_inputs_u, sizeof(uint8_t*) * cam_num, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_inputs_v, gpu_inputs_v, sizeof(uint8_t*) * cam_num, cudaMemcpyHostToDevice);
+    /*如果是不变量，考虑只初始化一次---待修改*/
+    int h_input_linesize_y[cam_num];
+    int h_input_linesize_u[cam_num];
+    int h_input_linesize_v[cam_num];
+
+    for(int i=0;i<cam_num;i++) {
+        h_input_linesize_y[i] = inputs[i]->linesize[0];
+        h_input_linesize_u[i] = inputs[i]->linesize[1];
+        h_input_linesize_v[i] = inputs[i]->linesize[2];
+    }
+
+    cudaMemcpy(d_input_linesize_y, h_input_linesize_y, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input_linesize_u, h_input_linesize_u, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input_linesize_v, h_input_linesize_v, cam_num * sizeof(int), cudaMemcpyHostToDevice);
+    return true;
+}
+#endif
+#if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
+bool Stitch::SetCrop()
+{
+>>>>>>> ed58246... [fix]: fix yuv420 and yuv420p when macro chose
     int* crop = new int[cam_num * 4];
     memset(crop,0,cam_num * 4);
     CHECK_CUDA(cudaMalloc(&d_crop, cam_num * 4 * sizeof(int)));

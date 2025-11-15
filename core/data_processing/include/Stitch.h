@@ -24,19 +24,33 @@ private:
     int height;
     int output_width;
     bool SetCameraAttribute(int width, int height, int cam_num);
-// 下面的代码都是跟gpu有关
-    uint8_t **d_inputs_y{nullptr};
-    uint8_t **d_inputs_uv{nullptr};
-    int* d_input_linesize_y{nullptr};
-    int* d_input_linesize_uv{nullptr};
-    bool AllocateFrameBufPtr();
-    bool MemoryCpyFrameBufPtr(AVFrame** inputs);
-    int* d_crop{nullptr};
-    bool SetCrop();
-    float* d_h_matrix_inv{nullptr};
-    bool SetHMatrixInv();
-    float** d_cam_polygons{nullptr};
-    bool SetCamPolygons();
+    #if !defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
+        uint8_t **d_inputs_y{nullptr};
+        uint8_t **d_inputs_uv{nullptr};
+        int* d_input_linesize_y{nullptr};
+        int* d_input_linesize_uv{nullptr};
+        bool AllocateFrameBufPtrYUV420();
+        bool MemoryCpyFrameBufPtrYUV420(AVFrame** inputs);
+    #else
+        uint8_t **d_inputs_y{nullptr};
+        uint8_t **d_inputs_u{nullptr};
+        uint8_t **d_inputs_v{nullptr};
+        int* d_input_linesize_y{nullptr};
+        int* d_input_linesize_u{nullptr};
+        int* d_input_linesize_v{nullptr};
+        bool AllocateFrameBufPtrYUV420P();
+        bool MemoryCpyFrameBufPtrYUV420P(AVFrame** inputs);
+    #endif
+    #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
+        int* d_crop{nullptr};
+        bool SetCrop();
+    #endif
+    #if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+        float* d_h_matrix_inv{nullptr};
+        bool SetHMatrixInv();
+        float** d_cam_polygons{nullptr};
+        bool SetCamPolygons();
+    #endif
     cudaTextureObject_t d_mapping_table{0};
     bool LoadMappingTable();
 };
