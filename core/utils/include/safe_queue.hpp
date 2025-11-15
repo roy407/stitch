@@ -33,7 +33,7 @@ private:
     std::queue<T> queue_;
     std::condition_variable cv;
     std::atomic_bool isStop{false};
-    int max_queue_size{3}; //设置队列最大缓冲值，目前设置最大为10
+    int max_queue_size{10}; //设置队列最大缓冲值，目前设置最大为10
 };
 
 template<typename T>

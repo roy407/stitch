@@ -5,7 +5,8 @@ AVFrameProducer::AVFrameProducer(int cam_id) {
     this->cam_id = cam_id;
     m_name += std::to_string(this->cam_id);
     fmt_ctx = avformat_alloc_context();
-    av_dict_set(&options, "rtsp_transport", "udp", 0);
+    av_dict_set(&options, "buffer_size", "4096000", 0);
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
     av_dict_set(&options, "stimeout", "5000000", 0);
     const std::string status = config::GetInstance().GetGlobalConfig().status;
     if(status == "rtsp") { // 支持RTSP取流

@@ -1,15 +1,12 @@
 #include "Producer.h"
 
-Producer::Producer()
-{
+Producer::Producer() {
     m_name += "producer_";
 }
 
-Producer::~Producer()
-{
+Producer::~Producer() {
 }
 
-void Producer::run()
-{
+void Producer::run() {
 }
 
