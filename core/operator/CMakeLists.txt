@@ -7,6 +7,7 @@ add_library(operator_nvidia STATIC
   src/nvidia/stitch_with_h_matrix_inv.cu
   src/nvidia/stitch_with_h_matrix.cu
   src/nvidia/stitch_with_mapping_table.cu
+  src/nvidia/yuv_2_rgb.cu
 )
 
 target_include_directories(operator_nvidia PUBLIC

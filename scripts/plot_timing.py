@@ -2,12 +2,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # === 1️⃣ 读取 CSV 文件 ===
-df = pd.read_csv("../build/2025-10-07_14-07-45.csv")
+df = pd.read_csv("../build/2025-11-09_19-50-08.csv")
 
 # === 2️⃣ 选择要绘制的参数 ===
 # 可选值包括: 'Pkt->Dec(ms)', 'Dec->Stitch(ms)', 'Stitch->Show(ms)', 'Total(ms)'
 # 注意 ！ 由于Stitch->Show(ms)的时候，就只有一张图像了，因此不同cam的结果是一样的
-target_param = 'Dec->Stitch(ms)'  # ← 修改这里选择不同参数
+target_param = 'Total(ms)'  # ← 修改这里选择不同参数
 
 # === 3️⃣ 数据预处理 ===
 # 去掉 cam_ 前缀并提取编号
