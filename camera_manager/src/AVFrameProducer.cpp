@@ -25,7 +25,9 @@ void AVFrameProducer::start() {
     TaskManager::start();
 }
 void AVFrameProducer::stop() {
-    m_rtspConsumer->stop();
+    if(config::GetInstance().GetCameraConfig()[cam_id].rtsp) {
+        m_rtspConsumer->stop();
+    }
     TaskManager::stop();
     img_dec.close_image_decoder();
 }
@@ -42,10 +44,8 @@ void AVFrameProducer::run() {
                 img_dec.start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
                 if(config::GetInstance().GetCameraConfig()[cam_id].rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
-                } else {
-                    m_rtspConsumer = std::make_unique<Consumer>(); // 如果不推rtsp，那么就创建空的Consumer
+                    m_rtspConsumer->start();
                 }
-                m_rtspConsumer->start();
             }
         }
         avformat_close_input(&fmt_ctx);

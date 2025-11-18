@@ -88,5 +88,5 @@ void image_decoder::do_decode() {
     while(m_packetInput->size()) {
         m_packetInput->pop_and_free();
     }
-    LOG_DEBUG("decoder thread exit!");
+    LOG_DEBUG("thread decoder exit!");
 }
