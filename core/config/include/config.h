@@ -55,11 +55,13 @@ private:
     GlobalConfig global;
     std::vector<CameraConfig> cameras;
     GlobalStitchConfig stitch;
+    static std::string resource_config;
     cudaTextureObject_t d_mapping_table{0};
     config();
     bool loadFromFile(const std::string key);
     bool loadMappingTable(const std::string key, uint64_t width, uint64_t height);
 public:
+    static void SetConfigFileName(std::string key); // 一定要在初始化的时候就配置好
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;
     const std::vector<CameraConfig> GetCameraConfig() const;
