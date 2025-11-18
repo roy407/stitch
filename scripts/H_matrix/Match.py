@@ -34,13 +34,16 @@ def compute_homography(img1_path, img2_path, use_flann=True):
 
 # ------------------ 图像路径 ------------------
 image_paths = [
-    r"cam0.png",
-    r"cam1.png",
-    r"cam2.png",
-    r"cam3.png",
-    r"cam4.png"
+    r"5/cam0.png",
+    r"5/cam1.png"
+    # r"5/cam2.png",
+    # r"5/cam3.png",
+    # r"5/cam4.png",
+    # r"5/cam5.png",
+    # r"5/cam6.png",
+    # r"5/cam7.png"
 ]
-ref_idx = 2
+ref_idx = 0
 
 # ------------------ 相邻匹配 ------------------
 direct_matches = [(i, i+1) for i in range(len(image_paths)-1)]

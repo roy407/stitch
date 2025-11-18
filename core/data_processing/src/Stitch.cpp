@@ -23,7 +23,7 @@ void Stitch::init(int width, int height, int cam_num) {
     #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
         SetCrop();
     #endif
-    #if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+    #if defined(ENABLE_H_MATRIX_INV)
         SetHMatrixInv();
         SetCamPolygons();
     #endif
@@ -48,8 +48,7 @@ Stitch::~Stitch() {
     #if defined(LAUNCH_STITCH_KERNEL_WITH_CROP)
         cudaFree(d_crop);
     #endif
-
-    #if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+    #if defined(ENABLE_H_MATRIX_INV)
         cudaFree(d_h_matrix_inv);
     #endif
 }
@@ -97,11 +96,32 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
         uint8_t* output_uv = output->data[1];
         launch_stitch_kernel_with_h_matrix_inv(d_inputs_y, d_inputs_uv,
             d_input_linesize_y, d_input_linesize_uv,
-            d_h_matrix_inv, d_cam_polygons,
             output_y, output_uv,
             output->linesize[0], output->linesize[1],
-            cam_num, single_width, output_width, height,stream);
+            cam_num, single_width, output_width, height, d_h_matrix_inv, d_cam_polygons, stream);
         cudaStreamSynchronize(stream);
+    #elif defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV_V1_1)
+        cudaStream_t stream1 = 0, stream2 = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
+        launch_stitch_kernel_with_h_matrix_inv(d_inputs_y, d_inputs_uv,
+            d_input_linesize_y, d_input_linesize_uv,
+            output_y, output_uv,
+            output->linesize[0], output->linesize[1],
+            cam_num, single_width, output_width, height, d_h_matrix_inv, stream1, stream2);
+        cudaStreamSynchronize(stream1);
+        cudaStreamSynchronize(stream2);
+    #elif defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV_V2)
+        cudaStream_t stream1 = 0, stream2 = 0;
+        uint8_t* output_y = output->data[0];
+        uint8_t* output_uv = output->data[1];
+        launch_stitch_kernel_with_h_matrix_inv(d_inputs_y, d_inputs_uv,
+            d_input_linesize_y, d_input_linesize_uv,
+            output_y, output_uv,
+            output->linesize[0], output->linesize[1],
+            cam_num, single_width, output_width, height, d_h_matrix_inv, stream1, stream2);
+        cudaStreamSynchronize(stream1);
+        cudaStreamSynchronize(stream2);
     #elif defined(LAUNCH_STITCH_KERNEL_WITH_MAPPING_TABLE_YUV420P)
         cudaStream_t stream1 = 0, stream2 = 0;
         uint8_t* output_y = output->data[0];
@@ -262,7 +282,7 @@ bool Stitch::SetCrop()
 }
 #endif
 
-#if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+#if defined(ENABLE_H_MATRIX_INV)
 bool Stitch::SetHMatrixInv() {
     CHECK_CUDA(cudaMalloc(&d_h_matrix_inv, sizeof(float) * 9 * cam_num));
     const std::vector<std::array<double, 9>> __h_matrix_inv = config::GetInstance().GetGlobalStitchConfig().h_matrix_inv;

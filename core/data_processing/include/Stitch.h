@@ -8,7 +8,7 @@ extern "C" {
     #include <libavutil/opt.h>
     #include <libavutil/log.h>
 }
-#include "stitch_with_mapping_table.cuh"
+#include "h_matrix_inv/stitch_with_h_matrix_inv_v2.cuh"
 
 class Stitch {
 public:
@@ -47,7 +47,7 @@ private:
         int* d_crop{nullptr};
         bool SetCrop();
     #endif
-    #if defined(LAUNCH_STITCH_KERNEL_WITH_H_MATRIX_INV)
+    #if defined(ENABLE_H_MATRIX_INV)
         float* d_h_matrix_inv{nullptr};
         bool SetHMatrixInv();
         float** d_cam_polygons{nullptr};

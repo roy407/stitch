@@ -5,18 +5,21 @@ import os
 
 # ------------------ 图像路径列表 ------------------
 image_paths = [
-    r"cam0.png",
-    r"cam1.png",
-    r"cam2.png",
-    r"cam3.png",
-    r"cam4.png"
+    r"5/cam0.png",
+    r"5/cam1.png"
+    # r"5/cam2.png",
+    # r"5/cam3.png",
+    # r"5/cam4.png",
+    # r"5/cam5.png",
+    # r"5/cam6.png",
+    # r"5/cam7.png"
 ]
 
 ref_idx = 3  # 参考图像索引
 # output_folder = r"C:\Users\34139\Desktop\Trick\pinjie"
 
 # ------------------ 读取逆矩阵 JSON ------------------
-json_path = os.path.join( "H_inv_to_ref0.json")
+json_path = os.path.join( "H_inv_to_ref2.json")
 with open(json_path, "r") as f:
     H_inv_json = json.load(f)
 
