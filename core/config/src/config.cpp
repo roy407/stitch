@@ -2,7 +2,7 @@
 #include "log.hpp"
 
 config::config() {
-    loadFromFile("resource/hk5"); //需要修改，设置在一个文件夹下
+    loadFromFile("resource/hk8"); //需要修改，设置在一个文件夹下
 }
 
 bool config::loadFromFile(const std::string key) {
@@ -106,7 +106,7 @@ bool config::loadMappingTable(const std::string key, uint64_t width, uint64_t he
     std::string filename = key + ".bin";
     std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open()) {
-        LOG_ERROR("Failed to open config file: {}" ,filename);
+        // LOG_ERROR("Failed to open config file: {}" ,filename);
         return false;
     }
     infile.seekg(0, std::ios::end);
