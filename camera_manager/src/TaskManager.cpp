@@ -21,7 +21,7 @@ void TaskManager::stop() {
     if(m_thread.joinable()) {
         m_thread.join();
     }
-    LOG_DEBUG("thread {} destoryed",m_name);
+    LOG_DEBUG("thread {} exit!",m_name);
 }
 
 // bool TaskManager::init(void *initMessage)
