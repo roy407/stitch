@@ -17,13 +17,10 @@ public:
     virtual void stop();
     virtual void run();
     virtual ~RtspConsumer();
-    static bool init_mediamtx();
-    static bool destory_mediamtx();
 private:
     AVFormatContext* out_ctx{nullptr};
     AVCodecParameters** codecpar{nullptr};
     AVRational* time_base{nullptr};
     safe_queue<Packet>& packet_input;
     std::string output_url;
-    static pid_t pid;
 };
