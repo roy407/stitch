@@ -1,8 +1,10 @@
 #include "config.h"
 #include "log.hpp"
 
+std::string config::resource_config = "";
+
 config::config() {
-    loadFromFile("resource/hk8"); //需要修改，设置在一个文件夹下
+    loadFromFile(resource_config);
 }
 
 bool config::loadFromFile(const std::string key) {
@@ -159,7 +161,12 @@ bool config::loadMappingTable(const std::string key, uint64_t width, uint64_t he
     return true;
 }
 
-config& config::GetInstance() {  //是否线程安全？
+void config::SetConfigFileName(std::string key) {
+    resource_config = key;
+}
+
+config &config::GetInstance()
+{ // 是否线程安全？
     static config instance;
     return instance;
 }
