@@ -1,7 +1,12 @@
 #include "AVFrameProducer.h"
 #include "RtspConsumer.h"
 
-AVFrameProducer::AVFrameProducer(int cam_id) {
+void AVFrameProducer::setDecoder(std::string decoder_name) {
+    img_dec = new image_decoder;
+}
+
+AVFrameProducer::AVFrameProducer(int cam_id)
+{
     this->cam_id = cam_id;
     m_name += std::to_string(this->cam_id);
     fmt_ctx = avformat_alloc_context();
@@ -16,6 +21,7 @@ AVFrameProducer::AVFrameProducer(int cam_id) {
     }
     m_status.width = config::GetInstance().GetCameraConfig()[cam_id].width;
     m_status.height = config::GetInstance().GetCameraConfig()[cam_id].height;
+    setDecoder("");
 }
 
 AVFrameProducer::~AVFrameProducer() {
@@ -29,7 +35,8 @@ void AVFrameProducer::stop() {
         m_rtspConsumer->stop();
     }
     TaskManager::stop();
-    img_dec.close_image_decoder();
+    img_dec->close_image_decoder();
+    delete img_dec;
 }
 
 void AVFrameProducer::run() {
@@ -41,7 +48,7 @@ void AVFrameProducer::run() {
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
                 codecpar = stream->codecpar;
-                img_dec.start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
+                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
                 if(config::GetInstance().GetCameraConfig()[cam_id].rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
                     m_rtspConsumer->start();

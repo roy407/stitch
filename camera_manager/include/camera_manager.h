@@ -29,7 +29,9 @@ public:
     static camera_manager* GetInstance();
     void start();
     void stop();
-    safe_queue<Frame>& get_stitch_stream();
+    safe_queue<Frame>& get_stitch_camera_stream(); // 相机拼接图
+    safe_queue<Frame>& get_single_camera_sub_stream(int cam_id); // 单相机子码流，非拼接图
+    safe_queue<Frame>& get_stitch_IR_camera_stream(); // 红外相机拼接图
 private:
     camera_manager();
     ~camera_manager();
