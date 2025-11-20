@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
     videoLabel->setStyleSheet("background-color: black;");
     
     sf = QThread::create([this]() {
-        auto& q = cam->get_stitch_stream();
+        auto& q = cam->get_stitch_camera_stream();
         static std::string filename = std::string("build/") + get_current_time_filename(".txt");
 
         std::ofstream ofs(filename, std::ios::app);  // 追加写入

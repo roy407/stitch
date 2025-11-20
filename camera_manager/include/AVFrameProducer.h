@@ -21,7 +21,7 @@ class AVFrameProducer : public Producer {
     safe_queue<Frame> m_frameSender;
     safe_queue<Packet> m_packetSender1; // rtsp
     safe_queue<Packet> m_packetSender2; // decoder
-    image_decoder img_dec;
+    image_decoder* img_dec{nullptr};
     int cam_id{-1};    // 相机ID，一般是从0开始，依次加一
     AVFormatContext* fmt_ctx{nullptr};
     AVDictionary* options{nullptr};
@@ -31,6 +31,7 @@ class AVFrameProducer : public Producer {
     AVCodecParameters* codecpar{nullptr};
     CamStatus m_status{};
     bool created{false};
+    void setDecoder(std::string decoder_name); // 根据不同的名字，选择不同的解码器
 public:
     AVFrameProducer(int cam_id);
     virtual ~AVFrameProducer();

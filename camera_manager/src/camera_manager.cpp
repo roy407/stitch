@@ -64,12 +64,19 @@ void camera_manager::stop() {
     avformat_network_deinit();
 }
 
-safe_queue<Frame> &camera_manager::get_stitch_stream()
-{
+safe_queue<Frame> &camera_manager::get_stitch_IR_camera_stream() {
+    
+}
+
+safe_queue<Frame> &camera_manager::get_stitch_camera_stream() {
     if(stitch_handle) {
         auto x = dynamic_cast<StitchConsumer*>(stitch_handle);
         return x->get_stitch_frame();
     } else {
         throw std::runtime_error("stitchConsumer is not init");
     }
+}
+
+safe_queue<Frame> &camera_manager::get_single_camera_sub_stream(int cam_id) {
+
 }

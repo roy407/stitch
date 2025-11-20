@@ -46,7 +46,7 @@ Widget::Widget(QWidget *parent) :
     m_render = new Nv12Render();
     cam = camera_manager::GetInstance();
     cam->start();
-    q = &(cam->get_stitch_stream());
+    q = &(cam->get_stitch_camera_stream());
     con = QThread::create([this](){consumerThread();});
     con->start();
 }
