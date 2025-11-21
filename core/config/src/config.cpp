@@ -39,6 +39,14 @@ bool config::loadFromFile(const std::string key) {
             c.input_url = cam[cam_status.c_str()]["input_url"];
             c.width = cam[cam_status.c_str()]["width"];
             c.height = cam[cam_status.c_str()]["height"];
+
+            c.sub.input_url = cam["sub"]["input_url"];
+            c.sub.width = cam["sub"]["width"];
+            c.sub.height = cam["sub"]["height"];
+            c.main.input_url = cam["main"]["input_url"];
+            c.main.width = cam["main"]["width"];
+            c.main.height = cam["main"]["height"];
+
             c.output_url = cam["output_url"];
 
             // crop 是数组
@@ -58,13 +66,39 @@ bool config::loadFromFile(const std::string key) {
             cameras.push_back(c);
         }
 
+        for(const auto& IR_cam : j["IR_cameras"]) {
+            IRCameraConfig c;
+            c.name = IR_cam["name"];
+            c.input_url = IR_cam["input_url"];
+            c.width = IR_cam["width"];
+            c.height = IR_cam["height"];
+
+            c.output_url = IR_cam["output_url"];
+
+            // crop 是数组
+            for (const auto& val : IR_cam["crop"]) {
+                c.crop.push_back(val);
+            }
+
+            c.rtsp = IR_cam.value("rtsp", false); // 如果没有该字段则默认为 false
+
+            // 解析 stitch
+            if (IR_cam.contains("stitch")) {
+                const auto& s = IR_cam["stitch"];
+                c.stitch.enable = s.value("enable", false);
+                c.stitch.mode = s.value("mode", "");
+            }
+
+            IR_cameras.push_back(c);
+        }
+
         // 读取 stitch
         stitch.output_url = j["stitch"]["output_url"];
 
         if(j["stitch"].contains("output_width")) {
             stitch.output_width = j["stitch"]["output_width"];
         } else {
-            stitch.output_width = -1;
+            stitch.output_width = cameras[0].width * cameras.size();
         }
 
         auto H_json = j["stitch"]["H_matrix_inv"];
@@ -100,7 +134,7 @@ bool config::loadFromFile(const std::string key) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
-    loadMappingTable(key, cameras[0].width * cameras.size(), cameras[0].height);
+    loadMappingTable(key, stitch.output_width, cameras[0].height);
     return true;
 }
 

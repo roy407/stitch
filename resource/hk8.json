@@ -168,8 +168,36 @@
             "rtsp": false
         }
     ],
+    "IR_cameras":[
+        {
+            "name": "cam8",
+            "input_url": "rtsp://192.168.1.58:554/live?channel=0&subtype=1",
+            "width": 0,
+            "height": 0, 
+            "output_url": "rtsp://127.0.0.1:8554/cam8",
+            "crop": [0,0,0,0],
+            "stitch": {
+                "enable": true,
+                "mode": "crop"
+            },
+            "rtsp": false
+        },        {
+            "name": "cam9",
+            "input_url": "rtsp://192.168.1.59:554/live?channel=0&subtype=1",
+            "width": 0,
+            "height": 0, 
+            "output_url": "rtsp://127.0.0.1:8554/cam9",
+            "crop": [0,0,0,0],
+            "stitch": {
+                "enable": true,
+                "mode": "crop"
+            },
+            "rtsp": false
+        }
+    ],
     "stitch": {
         "output_url": "rtsp://127.0.0.1:8554/stitch",
+        "output_width": 20612,
         "H_matrix_inv": {
             "cam0": [
                 [1, 0, 7463],
