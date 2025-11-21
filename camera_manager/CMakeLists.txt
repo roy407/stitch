@@ -4,6 +4,7 @@ add_library(camera_manager STATIC
   src/Producer.cpp
   src/Consumer.cpp
   src/AVFrameProducer.cpp
+  src/ResizeConsumer.cpp
   src/RtspConsumer.cpp
   src/StitchConsumer.cpp
   src/LogConsumer.cpp

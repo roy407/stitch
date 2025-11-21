@@ -98,11 +98,11 @@ template <typename T>
 inline void safe_queue<T>::pop_and_free() {
     if constexpr (std::is_same<T, Packet>::value) {
         Packet pkt = queue_.front();
-        av_packet_unref(pkt.m_data);
+        av_packet_free(&pkt.m_data);
     }
     if constexpr (std::is_same<T, Frame>::value) {
         Frame frame = queue_.front();
-        av_frame_unref(frame.m_data);
+        av_frame_free(&frame.m_data);
     }
     queue_.pop();
 }

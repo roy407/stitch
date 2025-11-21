@@ -18,13 +18,14 @@ public:
     image_decoder(const std::string& codec_name = "h264_cuvid");
     ~image_decoder();
     void start_image_decoder(int cam_id, AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet);
+    void start_image_decoder(int cam_id, AVCodecParameters* codecpar, std::vector<safe_queue<Frame>*> m_frames, safe_queue<Packet>* m_packet);
     void close_image_decoder();
     void do_decode();
 private:
     int cam_id;
     AVCodecContext* codec_ctx;
     const AVCodec* codec;
-    safe_queue<Frame>* m_frameOutput;
+    std::vector<safe_queue<Frame>*> m_frameOutput;
     safe_queue<Packet>* m_packetInput;
     std::thread m_thread;
     bool running{false};
