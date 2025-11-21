@@ -14,7 +14,26 @@ struct StitchConfig {
     std::string mode;
 };
 
+struct CamInputConfig {
+    std::string input_url;
+    int width;
+    int height;
+};
+
 struct CameraConfig {
+    std::string name;
+    std::string input_url;
+    int width;
+    int height;
+    CamInputConfig sub;
+    CamInputConfig main;
+    std::string output_url;
+    std::vector<float> crop;
+    bool rtsp = false;
+    StitchConfig stitch;
+};
+
+struct IRCameraConfig {
     std::string name;
     std::string input_url;
     int width;
@@ -54,6 +73,7 @@ class config {
 private:
     GlobalConfig global;
     std::vector<CameraConfig> cameras;
+    std::vector<IRCameraConfig> IR_cameras;
     GlobalStitchConfig stitch;
     static std::string resource_config;
     cudaTextureObject_t d_mapping_table{0};
