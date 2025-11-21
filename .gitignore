@@ -4,3 +4,5 @@ scripts/*/*.json
 scripts/*.json
 *.zip
 *.bin
+.venv
+.vscode

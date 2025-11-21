@@ -33,8 +33,6 @@ public:
     void destory_channel_1();
     void create_channel_2(); // 红外拼接
     void destory_channel_2();
-    void create_channel_3(); // 相机子码流显示
-    void destory_channel_3();
     safe_queue<Frame>& get_stitch_camera_stream(); // 相机拼接图
     safe_queue<Frame>& get_single_camera_sub_stream(int cam_id); // 单相机子码流，非拼接图
     safe_queue<Frame>& get_stitch_IR_camera_stream(); // 红外相机拼接图
