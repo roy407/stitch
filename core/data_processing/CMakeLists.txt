@@ -2,7 +2,6 @@ add_library(data_processing STATIC
   src/cuda_handle_init.cpp
   src/image_decoder.cpp
   src/image_encoder.cpp
-  src/Stitch.cpp
 )
 
 target_include_directories(data_processing PRIVATE

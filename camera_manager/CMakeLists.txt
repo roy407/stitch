@@ -14,6 +14,7 @@ target_include_directories(camera_manager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/utils/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/rtsp/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/data_processing/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core/operator/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/operator/include/nvidia
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/config/include
     ${FFMPEG_INCLUDE_DIRS}

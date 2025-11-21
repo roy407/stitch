@@ -1,5 +1,5 @@
 #include "StitchConsumer.h"
-#include "Stitch.h"
+#include "StitchImpl.h"
 
 void StitchConsumer::single_stitch(int cam_id) {
     while(running) {
@@ -9,19 +9,14 @@ void StitchConsumer::single_stitch(int cam_id) {
     }
 }
 
-StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch, int width, int height)
+StitchConsumer::StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width)
 {
     m_frame = frame_to_stitch;
     m_name += "stitch";
     cam_num = m_frame.size();
-    this->width = width;
+    this->single_width = single_width;
     this->height = height;
-    int output_width = width * cam_num;
-    if(config::GetInstance().GetGlobalStitchConfig().output_width != -1) {
-        output_width = config::GetInstance().GetGlobalStitchConfig().output_width;
-    }
-    stitch = new Stitch;
-    stitch->init(width, height, cam_num);
+    this->ops = ops;
     url = config::GetInstance().GetGlobalStitchConfig().output_url;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
     
@@ -40,8 +35,7 @@ StitchConsumer::StitchConsumer(std::vector<safe_queue<Frame> *> frame_to_stitch,
     m_status.height = codecpar->height;
 }
 
-safe_queue<Frame> &StitchConsumer::get_stitch_frame()
-{
+safe_queue<Frame> &StitchConsumer::get_stitch_frame() {
     return frame_output;
 }
 
@@ -70,7 +64,7 @@ void StitchConsumer::run() {
             out_image.m_costTimes.when_get_packet[i] = tmp.m_costTimes.when_get_packet[i];
             out_image.m_costTimes.when_get_decoded_frame[i] = tmp.m_costTimes.when_get_decoded_frame[i];
         }
-        out_image.m_data = stitch->do_stitch(inputs);
+        out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         frame_output.push(out_image);

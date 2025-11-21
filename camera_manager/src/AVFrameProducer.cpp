@@ -5,22 +5,42 @@ void AVFrameProducer::setDecoder(std::string decoder_name) {
     img_dec = new image_decoder;
 }
 
-AVFrameProducer::AVFrameProducer(int cam_id)
-{
-    this->cam_id = cam_id;
-    m_name += std::to_string(this->cam_id);
+AVFrameProducer::AVFrameProducer(CameraConfig camera_config) {
+    this->cam_id = camera_config.cam_id;
+    m_name += camera_config.name;
     fmt_ctx = avformat_alloc_context();
     av_dict_set(&options, "buffer_size", "4096000", 0);
     av_dict_set(&options, "rtsp_transport", "tcp", 0);
     av_dict_set(&options, "stimeout", "5000000", 0);
-    const std::string status = config::GetInstance().GetGlobalConfig().status;
-    if(status == "rtsp") { // 支持RTSP取流
-        cam_path = config::GetInstance().GetCameraConfig()[cam_id].input_url;
-    } else if(status == "file") { // 文件读取暂不支持
-        cam_path = config::GetInstance().GetGlobalConfig().save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
-    }
-    m_status.width = config::GetInstance().GetCameraConfig()[cam_id].width;
-    m_status.height = config::GetInstance().GetCameraConfig()[cam_id].height;
+    cam_path = camera_config.input_url;
+    m_status.width = camera_config.width;
+    m_status.height = camera_config.height;
+    setDecoder("");
+}
+
+AVFrameProducer::AVFrameProducer(IRCameraConfig IR_camera_config) {
+    this->cam_id = IR_camera_config.cam_id;
+    m_name += IR_camera_config.name;
+    fmt_ctx = avformat_alloc_context();
+    av_dict_set(&options, "buffer_size", "4096000", 0);
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    av_dict_set(&options, "stimeout", "5000000", 0);
+    cam_path = IR_camera_config.input_url;
+    m_status.width = IR_camera_config.width;
+    m_status.height = IR_camera_config.height;
+    setDecoder("");
+}
+
+AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
+    this->cam_id = cam_id;
+    m_name += name;
+    fmt_ctx = avformat_alloc_context();
+    av_dict_set(&options, "buffer_size", "4096000", 0);
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    av_dict_set(&options, "stimeout", "5000000", 0);
+    cam_path = input_url;
+    m_status.width = width;
+    m_status.height = height;
     setDecoder("");
 }
 

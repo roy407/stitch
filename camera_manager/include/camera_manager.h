@@ -29,13 +29,25 @@ public:
     static camera_manager* GetInstance();
     void start();
     void stop();
+    void create_channel_1(); // 多路相机拼接
+    void destory_channel_1();
+    void create_channel_2(); // 红外拼接
+    void destory_channel_2();
+    void create_channel_3(); // 相机子码流显示
+    void destory_channel_3();
     safe_queue<Frame>& get_stitch_camera_stream(); // 相机拼接图
     safe_queue<Frame>& get_single_camera_sub_stream(int cam_id); // 单相机子码流，非拼接图
     safe_queue<Frame>& get_stitch_IR_camera_stream(); // 红外相机拼接图
 private:
     camera_manager();
     ~camera_manager();
-    std::vector<TaskManager*> m_task;
-    StitchConsumer* stitch_handle;
-    int cam_num{0};
+    std::vector<safe_queue<Frame>*> m_sub_stream; // 子码流
+    std::vector<TaskManager*> m_producer_task;
+    std::vector<StitchConsumer*> m_consumer_task;
+    std::vector<StitchOps*> opses; // 拼接kernel
+    TaskManager* channel_1_output;
+    TaskManager* channel_2_output;
+    LogConsumer* log;
+    int camera_num{0};
+    int IR_camera_num{0};
 };

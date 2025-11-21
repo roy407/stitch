@@ -18,25 +18,26 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "LogConsumer.h"
 
-class Stitch; // 提前声明，这样可以避免使用头文件，提高编译效率
+class StitchOps; // 提前声明
+
 class StitchConsumer : public Consumer {
     std::vector<safe_queue<Frame>*> m_frame;
     std::vector<std::thread> m_threads; // 多路线程，分别做拼接
     safe_queue<Frame> frame_output;
     int cam_num{0};
-    int width{0};
+    int single_width{0};
     int height{0};
     StitchStatus m_status{};
     std::string url;
     AVFormatContext* out_ctx;
     AVStream* out_stream;
     AVCodecParameters* codecpar;
-    Stitch* stitch;
+    StitchOps* ops;
     std::unique_ptr<TaskManager> m_rtspConsumer; // 拼接图像的推流线程，自己创建
     friend class LogConsumer;
     void single_stitch(int cam_id);
 public:
-    StitchConsumer(std::vector<safe_queue<Frame>*> frame_to_stitch, int width, int height);
+    StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width);
     safe_queue<Frame>& get_stitch_frame();
     virtual ~StitchConsumer();
     virtual void start();

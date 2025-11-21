@@ -23,6 +23,7 @@ struct CamInputConfig {
 struct CameraConfig {
     std::string name;
     std::string input_url;
+    int cam_id;
     int width;
     int height;
     CamInputConfig sub;
@@ -36,6 +37,7 @@ struct CameraConfig {
 struct IRCameraConfig {
     std::string name;
     std::string input_url;
+    int cam_id;
     int width;
     int height;
     std::string output_url;
@@ -56,7 +58,8 @@ struct GlobalConfig {
 // Stitch 配置
 struct GlobalStitchConfig {
     std::string output_url;
-    int output_width;
+    int camera_stitch_output_width;
+    int IR_camera_stitch_output_width;
     std::vector<std::array<double, 9>> h_matrix_inv;
     std::vector<std::array<float, 8>> cam_polygons;
 };
@@ -85,6 +88,7 @@ public:
     static config& GetInstance();
     const GlobalConfig GetGlobalConfig() const;
     const std::vector<CameraConfig> GetCameraConfig() const;
+    const std::vector<IRCameraConfig> GetIRCameraConfig() const;
     const GlobalStitchConfig GetGlobalStitchConfig() const;
     const cudaTextureObject_t GetMappingTable() const;
 };

@@ -127,7 +127,7 @@ void LogConsumer::run() {
         m_time += 2;
         LOG_INFO("============ Frame Statistics ============");
         for(int i=0;i<m_pro.size();i++) printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
-        printConsumer(m_con, prev_frame_cnt[31], prev_timestamp[31]);
+        for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
         printGPUStatus();
         printCPUStatus();
     }
@@ -138,5 +138,5 @@ void LogConsumer::setProducer(AVFrameProducer *pro) {
 }
 
 void LogConsumer::setConsumer(StitchConsumer *con) {
-    m_con = con;
+    m_con.push_back(con);
 }
