@@ -16,9 +16,11 @@ extern "C" {
     #include "libavcodec/bsf.h"
 }
 #include "config.h"
+#include "ResizeConsumer.h"
 
 class AVFrameProducer : public Producer {
-    safe_queue<Frame> m_frameSender;
+    safe_queue<Frame> m_frameSender1; // stitch
+    safe_queue<Frame> m_frameSender2; // scale
     safe_queue<Packet> m_packetSender1; // rtsp
     safe_queue<Packet> m_packetSender2; // decoder
     image_decoder* img_dec{nullptr};
@@ -37,6 +39,7 @@ public:
     AVFrameProducer(CameraConfig camera_config);
     AVFrameProducer(IRCameraConfig IR_camera_config);
     AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height);
+    void SetResizeConsumer(std::unique_ptr<ResizeConsumer> con);
     virtual ~AVFrameProducer();
     virtual void start();
     virtual void stop();
@@ -47,5 +50,6 @@ public:
     safe_queue<Packet>& getPacketSender();
 private:
     std::unique_ptr<TaskManager> m_rtspConsumer; // 单个相机的推流线程，自己创建
+    std::unique_ptr<TaskManager> m_resizeConsumer; // 相机的resize程序
     friend class LogConsumer;
 };

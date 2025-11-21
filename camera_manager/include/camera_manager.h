@@ -39,7 +39,7 @@ public:
 private:
     camera_manager();
     ~camera_manager();
-    std::vector<safe_queue<Frame>*> m_sub_stream; // 子码流
+    std::vector<safe_queue<Frame>*> m_sub_stream; // resize
     std::vector<TaskManager*> m_producer_task;
     std::vector<StitchConsumer*> m_consumer_task;
     std::vector<StitchOps*> opses; // 拼接kernel

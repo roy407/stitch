@@ -1,5 +1,6 @@
 #include "AVFrameProducer.h"
 #include "RtspConsumer.h"
+#include "ResizeConsumer.h"
 
 void AVFrameProducer::setDecoder(std::string decoder_name) {
     img_dec = new image_decoder;
@@ -25,7 +26,10 @@ AVFrameProducer::AVFrameProducer(CameraConfig camera_config) {
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
                 codecpar = stream->codecpar;
-                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
+                std::vector<safe_queue<Frame>*> m_frameSender;
+                m_frameSender.push_back(&m_frameSender1);
+                m_frameSender.push_back(&m_frameSender2);
+                img_dec->start_image_decoder(cam_id, codecpar, m_frameSender, &m_packetSender2);
                 if(rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
                     m_rtspConsumer->start();
@@ -56,7 +60,7 @@ AVFrameProducer::AVFrameProducer(IRCameraConfig IR_camera_config) {
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
                 codecpar = stream->codecpar;
-                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
+                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender1, &m_packetSender2);
                 if(rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
                     m_rtspConsumer->start();
@@ -86,7 +90,7 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
                 codecpar = stream->codecpar;
-                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender, &m_packetSender2);
+                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender1, &m_packetSender2);
                 if(rtsp) {
                     m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
                     m_rtspConsumer->start();
@@ -95,6 +99,11 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
         }
         avformat_close_input(&fmt_ctx);
     }
+}
+
+void AVFrameProducer::SetResizeConsumer(std::unique_ptr<ResizeConsumer> con) {
+    con->SetInputFrame(&m_frameSender2);
+    m_resizeConsumer = std::move(con);
 }
 
 AVFrameProducer::~AVFrameProducer() {
@@ -107,12 +116,16 @@ void AVFrameProducer::stop() {
     if(rtsp) {
         m_rtspConsumer->stop();
     }
+    if(m_resizeConsumer != nullptr) {
+        m_resizeConsumer->stop();
+    }
     TaskManager::stop();
     img_dec->close_image_decoder();
     delete img_dec;
 }
 
 void AVFrameProducer::run() {
+    if(m_resizeConsumer != nullptr) m_resizeConsumer->start();
     while(running) {
         int ret = 0;
         ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
@@ -150,7 +163,7 @@ int AVFrameProducer::getHeight() const {
 }
 
 safe_queue<Frame> &AVFrameProducer::getFrameSender() {
-    return m_frameSender;
+    return m_frameSender1;
 }
 
 safe_queue<Packet> &AVFrameProducer::getPacketSender() {

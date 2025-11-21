@@ -41,7 +41,7 @@ void RtspConsumer::run() {
         Packet pkt;
         if(!packet_input.wait_and_pop(pkt)) break;
         int ret = av_interleaved_write_frame(out_ctx, pkt.m_data);
-        av_packet_unref(pkt.m_data);
+        av_packet_free(&pkt.m_data);
     }
     packet_input.clear();
 }

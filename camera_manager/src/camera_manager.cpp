@@ -21,6 +21,7 @@ extern "C" {
 #include "image_encoder.h"
 #include "config.h"
 #include "StitchImpl.h"
+#include "ResizeConsumer.h"
 
 camera_manager* camera_manager::GetInstance() {
     static camera_manager cam;
@@ -74,6 +75,10 @@ void camera_manager::create_channel_1() {
         AVFrameProducer* pro = new AVFrameProducer(cameras[i]);
         width = pro->getWidth();
         height = pro->getHeight();
+        std::unique_ptr<ResizeConsumer> rcon = std::make_unique<ResizeConsumer>(width, height, 0.5);
+        auto& x = rcon->get_resize_frame();
+        m_sub_stream.push_back(&x);
+        pro->SetResizeConsumer(std::move(rcon));
         m_producer_task.emplace_back(pro);
         log->setProducer(pro);
         frames.push_back(&(pro->getFrameSender()));

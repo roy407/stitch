@@ -29,7 +29,19 @@ void image_decoder::start_image_decoder(int cam_id, AVCodecParameters* codecpar,
     if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
         throw std::runtime_error("Failed to open codec");
     }
-    m_frameOutput = m_frame;
+    m_frameOutput.push_back(m_frame);
+    m_packetInput = m_packet;
+    running = true;
+    m_thread = std::thread(&image_decoder::do_decode, this);
+}
+
+void image_decoder::start_image_decoder(int cam_id, AVCodecParameters *codecpar, std::vector<safe_queue<Frame> *> m_frames, safe_queue<Packet> *m_packet) {
+    this->cam_id = cam_id;
+    avcodec_parameters_to_context(codec_ctx, codecpar);
+    if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
+        throw std::runtime_error("Failed to open codec");
+    }
+    m_frameOutput = m_frames;
     m_packetInput = m_packet;
     running = true;
     m_thread = std::thread(&image_decoder::do_decode, this);
@@ -49,7 +61,7 @@ void image_decoder::close_image_decoder() {
 void image_decoder::do_decode() {
     Packet pkt;
     if(!m_packetInput) throw std::runtime_error("null pointer");
-    if(!m_frameOutput) throw std::runtime_error("null pointer");
+    if(m_frameOutput.size() == 0) throw std::runtime_error("null pointer");
     while(running) {
         if(!m_packetInput->wait_and_pop(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
@@ -72,7 +84,13 @@ void image_decoder::do_decode() {
                     frame.m_costTimes = pkt.m_costTimes;
                     frame.m_costTimes.when_get_decoded_frame[cam_id] = get_now_time();
                     frame.m_timestamp = pkt.m_timestamp; // 将packet时间戳提供给frame
-                    m_frameOutput->push(frame);
+                    for(auto &m_frame : m_frameOutput) {
+                        Frame frame_copy;
+                        frame_copy.m_data = av_frame_alloc();
+                        int ret = av_frame_ref(frame_copy.m_data, frame.m_data);
+                        m_frame->push(frame_copy);
+                    }
+                    av_frame_free(&frame.m_data);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 break;
@@ -83,7 +101,7 @@ void image_decoder::do_decode() {
                 break;
             }
         }
-        av_packet_unref(pkt.m_data);
+        av_packet_free(&pkt.m_data);
     }
     while(m_packetInput->size()) {
         m_packetInput->pop_and_free();
