@@ -32,16 +32,14 @@ camera_manager::camera_manager() {
     IR_camera_num = config::GetInstance().GetIRCameraConfig().size();
     log = new LogConsumer();
     create_channel_1();
-    create_channel_2();
-    create_channel_3();
+    // create_channel_2();
 }
 
 camera_manager::~camera_manager() {
     delete log;
     for(auto i: m_consumer_task) delete i;
     for(auto i: m_producer_task) delete i;
-    destory_channel_3();
-    destory_channel_2();
+    // destory_channel_2();
     destory_channel_1();
 }
 
@@ -91,7 +89,7 @@ void camera_manager::create_channel_1() {
 }
 
 void camera_manager::destory_channel_1() {
-
+    delete_stitch_ops<StitchImpl<YUV420, MappingTableKernel>>(opses[0]);
 }
 
 void camera_manager::create_channel_2() {
@@ -104,6 +102,7 @@ void camera_manager::create_channel_2() {
         width = pro->getWidth();
         height = pro->getHeight();
         m_producer_task.emplace_back(pro);
+        log->setProducer(pro);
         frames.push_back(&(pro->getFrameSender()));
     }
     int output_width = config::GetInstance().GetGlobalStitchConfig().IR_camera_stitch_output_width;
@@ -111,25 +110,12 @@ void camera_manager::create_channel_2() {
     ops->init(ops->obj, frames.size(), width, output_width, height);
     StitchConsumer * stitch = new StitchConsumer(ops, frames, width, height, output_width);
     channel_2_output = stitch;
+    log->setConsumer(stitch);
     opses.push_back(ops);
     m_consumer_task.push_back(stitch);
 }
 
 void camera_manager::destory_channel_2() {
-    delete_stitch_ops<StitchImpl<YUV420, MappingTableKernel>>(opses[0]);
-}
-
-void camera_manager::create_channel_3() {
-    const std::vector<CameraConfig> cameras = config::GetInstance().GetCameraConfig();
-    for(int i = 0;i < camera_num;i ++) {
-        AVFrameProducer* pro = new AVFrameProducer(cameras[i].cam_id, cameras[i].name,cameras[i].sub.input_url, cameras[i].sub.width, cameras[i].sub.height);
-        m_producer_task.emplace_back(pro);
-        auto& x = pro->getFrameSender();
-        m_sub_stream.push_back(&x);
-    }
-}
-
-void camera_manager::destory_channel_3() {
     delete_stitch_ops<StitchImpl<YUV420, RawKernel>>(opses[1]);
 }
 

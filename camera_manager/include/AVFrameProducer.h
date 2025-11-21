@@ -30,6 +30,7 @@ class AVFrameProducer : public Producer {
     int video_stream{-1};
     AVCodecParameters* codecpar{nullptr};
     CamStatus m_status{};
+    bool rtsp{false};
     bool created{false};
     void setDecoder(std::string decoder_name); // 根据不同的名字，选择不同的解码器
 public:

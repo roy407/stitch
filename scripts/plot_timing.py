@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # === 1️⃣ 读取 CSV 文件 ===
-df = pd.read_csv("../build/2025-11-09_19-50-08.csv")
+df = pd.read_csv("build/2025-11-21_19-39-11.csv")
 
 # === 2️⃣ 选择要绘制的参数 ===
 # 可选值包括: 'Pkt->Dec(ms)', 'Dec->Stitch(ms)', 'Stitch->Show(ms)', 'Total(ms)'
