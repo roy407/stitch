@@ -1,6 +1,6 @@
 #include <QApplication>
-#include "widget.h"
 #include "mainwindow.h"
+// #include "widget.h"
 #include "camera_manager.h"
 #include "config.h"
 void launch_with_no_window() {
@@ -18,7 +18,7 @@ int launch_with_widget(int argc, char *argv[]) {
 
 int launch_with_mainwindow(int argc, char *argv[]) {
     QApplication a(argc, argv);
-    MainWindow w;
+    StitchMainWindow w;
     w.show();
     return a.exec();
 }
@@ -29,5 +29,5 @@ int main(int argc, char *argv[]) {
         config_name = argv[1];
     }
     config::SetConfigFileName(config_name);
-    return launch_with_widget(argc, argv);
+    return launch_with_mainwindow(argc, argv);
 }
