@@ -1,41 +1,54 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#ifndef MAIN_WINDOW_H
+#define MAIN_WINDOW_H
 
 #include <QMainWindow>
+#include <QVBoxLayout>
+#include <QGridLayout>
+#include <QWidget>
 #include <QLabel>
+#include "visible_camera_widget.h"
+#include "infrared_camera_widget.h"
+#include "visible_single_camera_widget.h"
 #include "camera_manager.h"
-#include "safe_queue.hpp"
-#include "tools.hpp"
 
-extern "C" {
-    #include "libavformat/avformat.h"
-    #include "libavcodec/avcodec.h"
-    #include "libavutil/pixfmt.h"
-    #include "libavutil/pixdesc.h"
-    #include "libavutil/opt.h"
-    #include "libavutil/log.h"
-    #include "libavcodec/bsf.h"
-    #include <libswscale/swscale.h>   // sws_scale, sws_getContext
-}
-
-class MainWindow : public QMainWindow
+class StitchMainWindow : public QMainWindow
 {
     Q_OBJECT
+
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
-    void showFrame(AVFrame* frame); // 接收并显示 AVFrame
+    explicit StitchMainWindow(QWidget *parent = nullptr);
+    ~StitchMainWindow();
+
+ 
+    void setInfraredStitchWidget(QWidget* widget);
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private:
-    QLabel* videoLabel;
-    SwsContext* swsContext = nullptr;     // 复用转换上下文
-    AVFrame* cpuFrame = nullptr;          // 复用CPU帧
-    AVFrame* rgbFrame = nullptr;          // 复用RGB帧
-    uint8_t* rgbBuffer = nullptr;         // 复用RGB缓冲区
-    int lastWidth = -1;
-    int lastHeight = -1;
-    AVPixelFormat lastFormat = AV_PIX_FMT_NONE;
-    camera_manager *cam;
-    QThread* sf;
-    std::atomic<bool> running{true};
+    void setupUI();  // 设置UI界面
+    void setupCameras();  // 设置8路可见光相机（子码流）
+    
+    // 摄像头管理器（统一管理，避免重复启动）
+    camera_manager* cam;
+    
+    // UI组件
+    QWidget* mainWidget;          // 主窗口中心部件
+    QVBoxLayout* mainLayout;      // 主垂直布局
+    
+    // 上层：红外拼接（黑色占位符，暂未接入信号流）
+    QLabel* infraredStitchLabel;  // 红外拼接标题
+    QWidget* infraredStitchWidget; // 红外拼接显示组件（黑色占位符）
+    
+    // 中层：可见光拼接
+    QLabel* visibleStitchLabel;   // 可见光拼接标题
+    Widget* visibleStitchWidget;  // 可见光拼接显示组件
+    
+    // 下层：8路可见光相机（子码流）
+    QLabel* camerasLabel;         // 相机标题
+    QWidget* camerasWidget;       // 相机容器
+    QGridLayout* camerasLayout;   // 相机网格布局（2行4列）
+    std::vector<CameraDisplayWidget*> cameraDisplayWidgets;  // 8个相机显示组件
 };
-#endif // MAINWINDOW_H
+
+#endif // MAIN_WINDOW_H

@@ -33,14 +33,14 @@ camera_manager::camera_manager() {
     IR_camera_num = config::GetInstance().GetIRCameraConfig().size();
     log = new LogConsumer();
     create_channel_1();
-    // create_channel_2();
+    create_channel_2();
 }
 
 camera_manager::~camera_manager() {
     delete log;
     for(auto i: m_consumer_task) delete i;
     for(auto i: m_producer_task) delete i;
-    // destory_channel_2();
+    destory_channel_2();
     destory_channel_1();
 }
 
