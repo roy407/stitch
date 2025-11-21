@@ -33,7 +33,9 @@ class AVFrameProducer : public Producer {
     bool created{false};
     void setDecoder(std::string decoder_name); // 根据不同的名字，选择不同的解码器
 public:
-    AVFrameProducer(int cam_id);
+    AVFrameProducer(CameraConfig camera_config);
+    AVFrameProducer(IRCameraConfig IR_camera_config);
+    AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height);
     virtual ~AVFrameProducer();
     virtual void start();
     virtual void stop();

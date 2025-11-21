@@ -9,6 +9,7 @@
     "cameras": [
         {
             "name": "cam0",
+            "cam_id": 0,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -29,6 +30,7 @@
         },
         {
             "name": "cam1",
+            "cam_id": 1,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -49,6 +51,7 @@
         },
         {
             "name": "cam2",
+            "cam_id": 2,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -69,6 +72,7 @@
         },
         {
             "name": "cam3",
+            "cam_id": 3,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -89,6 +93,7 @@
         },
         {
             "name": "cam4",
+            "cam_id": 4,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -109,6 +114,7 @@
         },
         {
             "name": "cam5",
+            "cam_id": 5,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.55:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -129,6 +135,7 @@
         },
         {
             "name": "cam6",
+            "cam_id": 6,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.56:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -149,6 +156,7 @@
         },
         {
             "name": "cam7",
+            "cam_id": 7,
             "main": {
                 "input_url": "rtsp://admin:ky406sys@192.168.1.57:554/h265/ch1/main/av_stream",
                 "width": 3840,
@@ -171,9 +179,10 @@
     "IR_cameras":[
         {
             "name": "cam8",
+            "cam_id": 8,
             "input_url": "rtsp://192.168.1.58:554/live?channel=0&subtype=1",
-            "width": 0,
-            "height": 0, 
+            "width": 640,
+            "height": 512, 
             "output_url": "rtsp://127.0.0.1:8554/cam8",
             "crop": [0,0,0,0],
             "stitch": {
@@ -183,9 +192,10 @@
             "rtsp": false
         },        {
             "name": "cam9",
+            "cam_id": 9,
             "input_url": "rtsp://192.168.1.59:554/live?channel=0&subtype=1",
-            "width": 0,
-            "height": 0, 
+            "width": 640,
+            "height": 512, 
             "output_url": "rtsp://127.0.0.1:8554/cam9",
             "crop": [0,0,0,0],
             "stitch": {
@@ -197,7 +207,7 @@
     ],
     "stitch": {
         "output_url": "rtsp://127.0.0.1:8554/stitch",
-        "output_width": 20612,
+        "camera_stitch_output_width": 20612,
         "H_matrix_inv": {
             "cam0": [
                 [1, 0, 7463],

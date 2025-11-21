@@ -30,6 +30,7 @@ bool config::loadFromFile(const std::string key) {
         for (const auto& cam : j["cameras"]) {
             CameraConfig c;
             c.name = cam["name"];
+            c.cam_id = cam["cam_id"];
             std::string cam_status;
             if(global.use_sub_input) {
                 cam_status = "sub";
@@ -48,6 +49,8 @@ bool config::loadFromFile(const std::string key) {
             c.main.height = cam["main"]["height"];
 
             c.output_url = cam["output_url"];
+
+            stitch.camera_stitch_output_width += c.width;
 
             // crop 是数组
             for (const auto& val : cam["crop"]) {
@@ -69,11 +72,14 @@ bool config::loadFromFile(const std::string key) {
         for(const auto& IR_cam : j["IR_cameras"]) {
             IRCameraConfig c;
             c.name = IR_cam["name"];
+            c.cam_id = IR_cam["cam_id"];
             c.input_url = IR_cam["input_url"];
             c.width = IR_cam["width"];
             c.height = IR_cam["height"];
 
             c.output_url = IR_cam["output_url"];
+
+            stitch.IR_camera_stitch_output_width += c.width;
 
             // crop 是数组
             for (const auto& val : IR_cam["crop"]) {
@@ -95,10 +101,12 @@ bool config::loadFromFile(const std::string key) {
         // 读取 stitch
         stitch.output_url = j["stitch"]["output_url"];
 
-        if(j["stitch"].contains("output_width")) {
-            stitch.output_width = j["stitch"]["output_width"];
-        } else {
-            stitch.output_width = cameras[0].width * cameras.size();
+        if(j["stitch"].contains("camera_stitch_output_width")) {
+            stitch.camera_stitch_output_width = j["stitch"]["camera_stitch_output_width"];
+        }
+
+        if(j["stitch"].contains("IR_camera_stitch_output_width")) {
+            stitch.IR_camera_stitch_output_width = j["stitch"]["IR_camera_stitch_output_width"];
         }
 
         auto H_json = j["stitch"]["H_matrix_inv"];
@@ -134,7 +142,7 @@ bool config::loadFromFile(const std::string key) {
         LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
         return false;
     }
-    loadMappingTable(key, stitch.output_width, cameras[0].height);
+    loadMappingTable(key, stitch.camera_stitch_output_width, cameras[0].height);
     return true;
 }
 
@@ -211,6 +219,10 @@ const GlobalConfig config::GetGlobalConfig() const {
 
 const std::vector<CameraConfig> config::GetCameraConfig() const {
     return cameras;
+}
+
+const std::vector<IRCameraConfig> config::GetIRCameraConfig() const {
+    return IR_cameras;
 }
 
 const GlobalStitchConfig config::GetGlobalStitchConfig() const {
