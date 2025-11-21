@@ -1,6 +1,7 @@
 #pragma once
 #include <thread>
 #include <atomic>
+#include<iostream>
 extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
@@ -15,7 +16,9 @@ public:
     AVFrame* do_stitch(AVFrame** inputs);
 private:
     AVFrame* output;
+    AVFrame* resizeoutput;
     AVBufferRef* hw_frames_ctx;
+    AVBufferRef* hw_frames_ctx1;
     std::atomic_bool running;
     int cam_num;
     int single_width;

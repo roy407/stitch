@@ -13,6 +13,8 @@
 #include "cuda_handle_init.h"
 #include "config.h"
 
+#include"resize.cuh"
+
 Stitch::Stitch() {
     
 }
@@ -21,7 +23,7 @@ void Stitch::init(int width, int height, int cam_num) {
     this->single_width = width;
     this->height = height;
     this->cam_num = cam_num;
-    output_width = single_width * cam_num;
+    output_width = 16251;
     if(config::GetInstance().GetGlobalStitchConfig().output_width != -1) {
         output_width = config::GetInstance().GetGlobalStitchConfig().output_width;
     }
@@ -77,6 +79,18 @@ void Stitch::init(int width, int height, int cam_num) {
     if (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
         throw std::runtime_error("Failed to initialize CUDA hwframe context");
     }
+    hw_frames_ctx1 = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
+AVHWFramesContext* frames_ctx1 = (AVHWFramesContext*)hw_frames_ctx1->data;
+frames_ctx1->format = AV_PIX_FMT_CUDA;
+frames_ctx1->sw_format = AV_PIX_FMT_NV12;
+frames_ctx1->width = 8192;  
+frames_ctx1->height = 2160;
+frames_ctx1->initial_pool_size = 20;
+
+int ret = av_hwframe_ctx_init(hw_frames_ctx1);
+if (ret < 0) {
+throw std::runtime_error("Failed to initialize CUDA hwframe context");
+}
     delete[] crop;
     delete[] h_matrix;
     delete[] h_cam_ptrs;
@@ -155,6 +169,33 @@ AVFrame* Stitch::do_stitch(AVFrame** inputs) {
                         cam_num, single_width, output_width, height,
                         stream,d_crop);
     #endif
+    // cudaStreamSynchronize(stream);
+
+AVFrame* resizeoutput = av_frame_alloc();
+resizeoutput->format = AV_PIX_FMT_CUDA;
+resizeoutput->width = 8192;  
+resizeoutput->height = 2160;
+resizeoutput->hw_frames_ctx = av_buffer_ref(hw_frames_ctx1);
+
+if (av_hwframe_get_buffer(hw_frames_ctx1, resizeoutput, 0) < 0) {
+    av_buffer_unref(&hw_frames_ctx1);
+    av_frame_free(&resizeoutput);
+    return nullptr;
+}
+
+    // LOG_DEBUG(resizeoutput->width);
+    ReSize(
+        output->data[0], output->data[1],  
+        output->width, output->height,output->linesize[0],output->linesize[1],     
+        resizeoutput->data[0], resizeoutput->data[1],  
+        resizeoutput->width, resizeoutput->height,resizeoutput->linesize[0],resizeoutput->linesize[1],      
+        stream
+    );
+
     cudaStreamSynchronize(stream);
-    return output;
+    // LOG_DEBUG(resizeoutput->width);
+
+    av_frame_free(&output);
+
+    return resizeoutput;
 }

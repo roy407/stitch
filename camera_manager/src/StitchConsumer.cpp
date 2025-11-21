@@ -60,6 +60,7 @@ void StitchConsumer::run() {
             out_image.m_costTimes.when_get_decoded_frame[i] = tmp.m_costTimes.when_get_decoded_frame[i];
         }
         out_image.m_data = stitch.do_stitch(inputs);
+        LOG_DEBUG(out_image.m_data->width);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         frame_output.push(out_image);

@@ -3,6 +3,7 @@ enable_language(CUDA)
 add_library(operator_nvidia STATIC
   src/nvidia/scale.cu
   src/nvidia/stitch.cu
+  src/nvidia/resize.cu
 )
 
 target_include_directories(operator_nvidia PUBLIC

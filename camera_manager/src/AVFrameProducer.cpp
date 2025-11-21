@@ -15,22 +15,8 @@ AVFrameProducer::AVFrameProducer(int cam_id) {
     }
     m_status.width = config::GetInstance().GetCameraConfig()[cam_id].width;
     m_status.height = config::GetInstance().GetCameraConfig()[cam_id].height;
-}
 
-AVFrameProducer::~AVFrameProducer() {
-}
-
-void AVFrameProducer::start() {
-    TaskManager::start();
-}
-void AVFrameProducer::stop() {
-    m_rtspConsumer->stop();
-    TaskManager::stop();
-    img_dec.close_image_decoder();
-}
-
-void AVFrameProducer::run() {
-    { // 初始化在这个地方
+        { // 初始化在这个地方
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
         if(ret < 0) return;
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
@@ -49,6 +35,22 @@ void AVFrameProducer::run() {
         }
         avformat_close_input(&fmt_ctx);
     }
+}
+
+AVFrameProducer::~AVFrameProducer() {
+}
+
+void AVFrameProducer::start() {
+    TaskManager::start();
+}
+void AVFrameProducer::stop() {
+    m_rtspConsumer->stop();
+    TaskManager::stop();
+    img_dec.close_image_decoder();
+}
+
+void AVFrameProducer::run() {
+
     while(running) {
         int ret = 0;
         ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
