@@ -28,13 +28,7 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
 }
 
 StitchMainWindow::~StitchMainWindow()
-{
-    // 停止摄像头管理器
-    if (cam) {
-        cam->stop();
-    }
-    
-    
+{      
     cameraDisplayWidgets.clear();
     
     // Qt会自动清理所有子对象（包括Widget、Label等）
@@ -147,7 +141,7 @@ void StitchMainWindow::setupUI()
     mainLayout->addWidget(visibleStitchLabel);
     
     // 创建可见光拼接显示组件
-    visibleStitchWidget = new Widget(this);
+    visibleStitchWidget = new visible_camera_widget(this);
     visibleStitchWidget->setMinimumHeight(360);  // 设置最小高度
     // 设置大小策略：允许水平和垂直拉伸（这是主要显示区域，应该占据更多空间）
     visibleStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);

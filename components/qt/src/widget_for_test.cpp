@@ -1,5 +1,5 @@
-// widget.cpp
-#include "widget.h"
+// widget_for_test.cpp
+#include "widget_for_test.h"
 #include <QDebug>
 #include <QMetaObject>
 #include <memory>
@@ -10,7 +10,7 @@ extern "C" {
 }
 #include "log.hpp"
 
-void* Widget::aligned_alloc(size_t size, size_t alignment) {
+void* widget_for_test::aligned_alloc(size_t size, size_t alignment) {
     void* ptr = nullptr;
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
@@ -22,7 +22,7 @@ void* Widget::aligned_alloc(size_t size, size_t alignment) {
     return ptr;
 }
 
-void Widget::aligned_free(void* ptr) {
+void widget_for_test::aligned_free(void* ptr) {
 #ifdef _WIN32
     _aligned_free(ptr);
 #else
@@ -30,7 +30,7 @@ void Widget::aligned_free(void* ptr) {
 #endif
 }
 
-Widget::Widget(QWidget *parent) : 
+widget_for_test::widget_for_test(QWidget *parent) : 
     QOpenGLWidget(parent),
     m_render(nullptr),
     cam(nullptr),
@@ -51,11 +51,11 @@ Widget::Widget(QWidget *parent) :
     con->start();
 }
 
-Widget::~Widget() {
+widget_for_test::~widget_for_test() {
     cleanup();
 }
 
-void Widget::cleanup() {
+void widget_for_test::cleanup() {
     running.store(false);
     if (con) {
         q->stop();
@@ -76,23 +76,23 @@ void Widget::cleanup() {
     }
 }
 
-void Widget::initializeGL() {
+void widget_for_test::initializeGL() {
     if (m_render) {
         m_render->initialize();
     }
 }
 
-void Widget::paintGL() {
+void widget_for_test::paintGL() {
     if (!m_buffer.empty() && m_width > 0 && m_height > 0) {
         m_render->render(m_buffer.data(), m_width, m_height, m_y_stride, m_uv_stride);
     }
 }
 
-void Widget::resizeGL(int w, int h) {
+void widget_for_test::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 
-void Widget::consumerThread() {
+void widget_for_test::consumerThread() {
     static std::string filename = std::string("build/") + get_current_time_filename(".csv");
 
     std::ofstream ofs(filename, std::ios::app);  // 追加写入

@@ -42,7 +42,7 @@ private:
     
     // 中层：可见光拼接
     QLabel* visibleStitchLabel;   // 可见光拼接标题
-    Widget* visibleStitchWidget;  // 可见光拼接显示组件
+    visible_camera_widget* visibleStitchWidget;  // 可见光拼接显示组件
     
     // 下层：8路可见光相机（子码流）
     QLabel* camerasLabel;         // 相机标题

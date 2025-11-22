@@ -1,4 +1,4 @@
-// widget.h
+// visible_camera_widget.h
 #ifndef WIDGET_H
 #define WIDGET_H
 
@@ -15,11 +15,11 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
-class Widget : public QOpenGLWidget {
+class visible_camera_widget : public QOpenGLWidget {
     Q_OBJECT
 public:
-    explicit Widget(QWidget *parent = nullptr);
-    ~Widget();
+    explicit visible_camera_widget(QWidget *parent = nullptr);
+    ~visible_camera_widget();
 
 protected:
     void initializeGL() override;

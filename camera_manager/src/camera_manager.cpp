@@ -98,6 +98,7 @@ void camera_manager::destory_channel_1() {
 }
 
 void camera_manager::create_channel_2() {
+    if(IR_camera_num == 0) return;
     std::vector<safe_queue<Frame>*> frames;
     const std::vector<IRCameraConfig> IR_cameras = config::GetInstance().GetIRCameraConfig();
     int width = 0; // 默认都是大小相同的相机
@@ -121,6 +122,7 @@ void camera_manager::create_channel_2() {
 }
 
 void camera_manager::destory_channel_2() {
+    if(IR_camera_num == 0) return;
     delete_stitch_ops<StitchImpl<YUV420, RawKernel>>(opses[1]);
 }
 

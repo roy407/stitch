@@ -10,7 +10,7 @@ extern "C" {
 }
 #include "log.hpp"
 
-void* Widget::aligned_alloc(size_t size, size_t alignment) {
+void* visible_camera_widget::aligned_alloc(size_t size, size_t alignment) {
     void* ptr = nullptr;
 #ifdef _WIN32
     ptr = _aligned_malloc(size, alignment);
@@ -22,7 +22,7 @@ void* Widget::aligned_alloc(size_t size, size_t alignment) {
     return ptr;
 }
 
-void Widget::aligned_free(void* ptr) {
+void visible_camera_widget::aligned_free(void* ptr) {
 #ifdef _WIN32
     _aligned_free(ptr);
 #else
@@ -30,7 +30,7 @@ void Widget::aligned_free(void* ptr) {
 #endif
 }
 //可见光拼接初始化
-Widget::Widget(QWidget *parent) : 
+visible_camera_widget::visible_camera_widget(QWidget *parent) : 
     QOpenGLWidget(parent),
     m_render(nullptr),
     cam(nullptr),
@@ -54,11 +54,11 @@ Widget::Widget(QWidget *parent) :
     con->start();
 }
 //这边都是原来可见光拼接的
-Widget::~Widget() {
+visible_camera_widget::~visible_camera_widget() {
     cleanup();
 }
 
-void Widget::cleanup() {
+void visible_camera_widget::cleanup() {
     running.store(false);
     if (con) {
         // 注意：不要调用q->stop()，因为队列是共享的，停止队列会影响其他Widget
@@ -71,7 +71,7 @@ void Widget::cleanup() {
         }
         delete con;
         con = nullptr;
-        LOG_DEBUG("widget consumer thread destroyed!");
+        LOG_DEBUG("visible_camera_widget consumer thread destroyed!");
     }
     
     // 不在这里停止摄像头管理器，由主窗口统一管理
@@ -86,24 +86,24 @@ void Widget::cleanup() {
     }
 }
 
-void Widget::initializeGL() {
+void visible_camera_widget::initializeGL() {
     if (m_render) {
         m_render->initialize();
     }
 }
 
-void Widget::paintGL() {
+void visible_camera_widget::paintGL() {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_buffer.empty() && m_width > 0 && m_height > 0) {
         m_render->render(m_buffer.data(), m_width, m_height, m_y_stride, m_uv_stride);
     }
 }
 
-void Widget::resizeGL(int w, int h) {
+void visible_camera_widget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 //可见光拼接帧的处理
-void Widget::consumerThread() {
+void visible_camera_widget::consumerThread() {
     static std::string filename = std::string("build/") + get_current_time_filename(".csv");
 
     std::ofstream ofs(filename, std::ios::app);  // 追加写入
