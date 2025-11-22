@@ -30,6 +30,8 @@ struct CameraConfig {
     CamInputConfig main;
     std::string output_url;
     std::vector<float> crop;
+    bool resize = false;
+    float scale_factor = 1;
     bool rtsp = false;
     StitchConfig stitch;
 };

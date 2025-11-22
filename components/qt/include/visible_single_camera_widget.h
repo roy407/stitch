@@ -23,7 +23,7 @@ class CameraDisplayWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit CameraDisplayWidget(int cameraIndex, QWidget *parent = nullptr);
+    explicit CameraDisplayWidget(CameraConfig camera_config, QWidget *parent = nullptr);
     ~CameraDisplayWidget();
 
 private slots:

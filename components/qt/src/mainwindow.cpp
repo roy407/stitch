@@ -187,12 +187,14 @@ void StitchMainWindow::setupCameras()
     
     int row = 0, col = 0;
     for (size_t i = 0; i < cameras.size(); ++i) {
-        // 创建摄像头显示组件（从camera_manager获取子码流）
-        CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(i, this);
-        cameraDisplayWidgets.push_back(cameraWidget);
-        
-        // 添加到网格布局：2行4列
-        camerasLayout->addWidget(cameraWidget, row, col);
+        if(cameras[i].resize == true) {
+            // 创建摄像头显示组件（从camera_manager获取子码流）
+            CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(cameras[i], this);
+            cameraDisplayWidgets.push_back(cameraWidget);
+            
+            // 添加到网格布局：2行4列
+            camerasLayout->addWidget(cameraWidget, row, col);
+        }
         
         col++;
         if (col >= 4) {

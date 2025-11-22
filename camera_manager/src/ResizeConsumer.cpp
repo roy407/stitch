@@ -3,10 +3,10 @@
 #include "scale.cuh"
 
 // 构造函数中不能调用其他构造函数，否则只是创建了临时对象，应该像现在这样，以委托构造的方式
-ResizeConsumer::ResizeConsumer(int width, int height, float scale) : ResizeConsumer(width,
+ResizeConsumer::ResizeConsumer(int width, int height, float scale_factor) : ResizeConsumer(width,
     height,
-    int(width * scale),
-    int(height * scale)) {
+    int(width * scale_factor),
+    int(height * scale_factor)) {
 }
 
 ResizeConsumer::ResizeConsumer(int width, int height, AVRational rational) : ResizeConsumer(width,
