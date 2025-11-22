@@ -57,6 +57,8 @@ bool config::loadFromFile(const std::string key) {
                 c.crop.push_back(val);
             }
 
+            c.resize = cam.value("resize", false);
+            c.scale_factor = cam.value("scale_factor", 1.0);
             c.rtsp = cam.value("rtsp", false); // 如果没有该字段则默认为 false
 
             // 解析 stitch

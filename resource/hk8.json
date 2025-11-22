@@ -4,10 +4,7 @@
         "software_status": "debug",
         "status": "rtsp",
         "save_rtsp_data_time": 240,
-        "save_rtsp_data_path": "/home/eric/mp4/",
-        "rtsp":false,
-        "resize":false,
-        "resize_scale":0.2
+        "save_rtsp_data_path": "/home/eric/mp4/"
     },
     "cameras": [
         {
@@ -30,7 +27,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -53,7 +50,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -76,7 +73,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -99,7 +96,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -122,7 +119,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -145,7 +142,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -168,7 +165,7 @@
                 "mode": "crop"
             },
             "resize": false,
-            "resize_scale": 0.2,
+            "scale_factor": 0.2,
             "rtsp": false
         },
         {
@@ -190,8 +187,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "resize_scale": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         }
     ],
@@ -208,8 +205,6 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "resize_scale": 0.2,
             "rtsp": false
         },        {
             "name": "cam9",
@@ -223,8 +218,6 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "resize_scale": 0.2,
             "rtsp": false
         }
     ],

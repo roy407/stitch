@@ -74,12 +74,14 @@ void camera_manager::create_channel_1() {
     int height = 0;
     for(int i = 0;i < camera_num;i ++) {
         AVFrameProducer* pro = new AVFrameProducer(cameras[i]);
-        width = pro->getWidth();
-        height = pro->getHeight();
-        std::unique_ptr<ResizeConsumer> rcon = std::make_unique<ResizeConsumer>(width, height, 0.5);
-        auto& x = rcon->get_resize_frame();
-        m_sub_stream.push_back(&x);
-        pro->SetResizeConsumer(std::move(rcon));
+        width = cameras[i].width;
+        height = cameras[i].height;
+        if(cameras[i].resize == true) {
+            std::unique_ptr<ResizeConsumer> rcon = std::make_unique<ResizeConsumer>(width, height, cameras[i].scale_factor);
+            auto& x = rcon->get_resize_frame();
+            m_resize_stream[i] = &x;
+            pro->SetResizeConsumer(std::move(rcon));
+        }
         m_producer_task.emplace_back(pro);
         log->setProducer(pro);
         frames.push_back(&(pro->getFrameSender()));
@@ -137,6 +139,6 @@ safe_queue<Frame> &camera_manager::get_stitch_camera_stream() {
     return x->get_stitch_frame();
 }
 
-safe_queue<Frame> &camera_manager::get_single_camera_sub_stream(int cam_id) {
-    return *m_sub_stream[cam_id];
+safe_queue<Frame> *camera_manager::get_single_camera_sub_stream(int cam_id) {
+    return m_resize_stream[cam_id];
 }

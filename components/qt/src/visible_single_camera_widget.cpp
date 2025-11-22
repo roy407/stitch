@@ -66,9 +66,9 @@ static QImage convertNV12ToQImage(const uchar* nv12_data, int width, int height,
 }
 
 // CameraDisplayWidget 实现
-CameraDisplayWidget::CameraDisplayWidget(int cameraIndex, QWidget *parent)
+CameraDisplayWidget::CameraDisplayWidget(CameraConfig camera_config, QWidget *parent)
     : QWidget(parent),
-      m_cameraIndex(cameraIndex),
+      m_cameraIndex(camera_config.cam_id),
       m_videoLabel(nullptr),
       m_videoThread(nullptr),
       m_running(true),
@@ -83,7 +83,7 @@ CameraDisplayWidget::CameraDisplayWidget(int cameraIndex, QWidget *parent)
     layout->setContentsMargins(2, 2, 2, 2);
     
     // 创建标签显示摄像头编号
-    QLabel* titleLabel = new QLabel(QString("摄像头 %1").arg(cameraIndex), this);
+    QLabel* titleLabel = new QLabel(camera_config.name.c_str(), this);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 5px; font-weight: bold; }");
     layout->addWidget(titleLabel);
@@ -101,10 +101,10 @@ CameraDisplayWidget::CameraDisplayWidget(int cameraIndex, QWidget *parent)
     
     // 获取对应相机的子码流队列
     // 注意：如果m_sub_stream未初始化，get_single_camera_sub_stream会崩溃
-    // 暂时使用拼接流作为替代（虽然会被StitchConsumer消费，但至少不会崩溃）
+    // 使用resizeConsumer获取的流
     // 需要camera_manager正确初始化m_sub_stream后才能使用子码流
      // 获取对应相机的子码流队列（从独立的子码流producer获取）
-     q = &(cam->get_single_camera_sub_stream(m_cameraIndex));
+     q = cam->get_single_camera_sub_stream(m_cameraIndex);
     
     startVideoThread();
 }

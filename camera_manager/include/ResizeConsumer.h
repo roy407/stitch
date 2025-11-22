@@ -13,7 +13,7 @@ extern "C" {
 
 class ResizeConsumer : public Consumer {
 public:
-    ResizeConsumer(int width, int height, float scale);
+    ResizeConsumer(int width, int height, float scale_factor);
     ResizeConsumer(int width, int height, AVRational rational);
     ResizeConsumer(int width, int height, int output_width, int output_height);
     void SetInputFrame(safe_queue<Frame>* InputFrame);
