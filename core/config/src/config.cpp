@@ -11,7 +11,7 @@ bool config::loadFromFile(const std::string key) {
     std::string filename = key + ".json";
     std::ifstream infile(filename);
     if (!infile.is_open()) {
-        LOG_ERROR("Failed to open config file: {}" ,filename);
+        std::cout<<"Failed to open config file: " <<filename<< std::endl;
         return false;
     }
 
@@ -139,7 +139,7 @@ bool config::loadFromFile(const std::string key) {
         }
 
     } catch (const std::exception& e) {
-        LOG_WARN("parsing JSON failed, use default setting: {}",e.what());
+        std::cout<< "parsing JSON failed, use default setting:" << e.what() << std::endl;
         return false;
     }
     loadMappingTable(key, stitch.camera_stitch_output_width, cameras[0].height);
@@ -150,7 +150,7 @@ bool config::loadMappingTable(const std::string key, uint64_t width, uint64_t he
     std::string filename = key + ".bin";
     std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open()) {
-        LOG_ERROR("Failed to open config file: {}" ,filename);
+        std::cout<<"Failed to open config file: "<<filename<<std::endl;
         return false;
     }
     infile.seekg(0, std::ios::end);
