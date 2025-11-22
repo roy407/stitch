@@ -23,6 +23,11 @@ extern "C" {
 #include "image_encoder.h"
 #include "AVFrameProducer.h"
 
+#define cameras_debug
+
+#if defined(cameras_debug)
+#include "AVFrameProducer_debug.h"
+#endif
 // 是否可以看一下简单的工厂模式
 class camera_manager {
 public:

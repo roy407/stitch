@@ -73,7 +73,11 @@ void camera_manager::create_channel_1() {
     int width = 0; // 默认都是大小相同的相机
     int height = 0;
     for(int i = 0;i < camera_num;i ++) {
+        #if defined(cameras_debug)
+        AVFrameProducer_debug* pro = new AVFrameProducer_debug(cameras[i]);
+        #else
         AVFrameProducer* pro = new AVFrameProducer(cameras[i]);
+        #endif
         width = cameras[i].width;
         height = cameras[i].height;
         if(cameras[i].resize == true) {

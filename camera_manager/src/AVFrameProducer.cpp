@@ -6,7 +6,12 @@ void AVFrameProducer::setDecoder(std::string decoder_name) {
     img_dec = new image_decoder;
 }
 
-AVFrameProducer::AVFrameProducer(CameraConfig camera_config) {
+AVFrameProducer::AVFrameProducer() {
+    
+}
+
+AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
+{
     this->cam_id = camera_config.cam_id;
     m_name += camera_config.name;
     fmt_ctx = avformat_alloc_context();
