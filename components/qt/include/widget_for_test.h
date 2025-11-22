@@ -1,6 +1,6 @@
-// widget.h
-#ifndef WIDGET_H
-#define WIDGET_H
+// widget_for_test.h
+#ifndef WIDGET_FOR_TEST_H
+#define WIDGET_FOR_TEST_H
 
 #include <QOpenGLWidget>
 #include <QThread>
@@ -15,11 +15,11 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
-class Widget : public QOpenGLWidget {
+class widget_for_test : public QOpenGLWidget {
     Q_OBJECT
 public:
-    explicit Widget(QWidget *parent = nullptr);
-    ~Widget();
+    explicit widget_for_test(QWidget *parent = nullptr);
+    ~widget_for_test();
 
 protected:
     void initializeGL() override;
@@ -45,4 +45,4 @@ private:
     void aligned_free(void* ptr);
 };
 
-#endif // WIDGET_H
+#endif // WIDGET_FOR_TEST_H

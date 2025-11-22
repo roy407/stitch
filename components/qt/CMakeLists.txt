@@ -9,7 +9,7 @@ set(HEADERS
     include/nv12render.h
     include/mainwindow.h
     include/visible_single_camera_widget.h
-    # include/widget.h
+    include/widget_for_test.h
 )
 
 set(SOURCES
@@ -18,7 +18,7 @@ set(SOURCES
     src/nv12render.cpp
     src/mainwindow.cpp
     src/visible_single_camera_widget.cpp
-    # src/widget.cpp
+    src/widget_for_test.cpp
 )
 
 add_library(qt STATIC

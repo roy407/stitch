@@ -1,6 +1,6 @@
 #include <QApplication>
 #include "mainwindow.h"
-// #include "widget.h"
+#include "widget_for_test.h"
 #include "camera_manager.h"
 #include "config.h"
 void launch_with_no_window() {
@@ -11,7 +11,7 @@ void launch_with_no_window() {
 
 int launch_with_widget(int argc, char *argv[]) {
     QApplication a(argc, argv);
-    Widget w;
+    widget_for_test w;
     w.show();
     return a.exec();
 }
@@ -29,5 +29,11 @@ int main(int argc, char *argv[]) {
         config_name = argv[1];
     }
     config::SetConfigFileName(config_name);
-    return launch_with_mainwindow(argc, argv);
+    if(config_name == "resource/hk8") {
+        return launch_with_mainwindow(argc, argv);
+    } else if(config_name == "resource/hk5") {
+        return launch_with_widget(argc, argv);
+    } else {
+        launch_with_no_window();
+    }
 }
