@@ -14,9 +14,9 @@ extern "C" {
 #include "log.hpp"
 
 struct costTimes {
-    uint64_t image_frame_cnt[5];
-    uint64_t when_get_packet[5];
-    uint64_t when_get_decoded_frame[5];
+    uint64_t image_frame_cnt[10];
+    uint64_t when_get_packet[10];
+    uint64_t when_get_decoded_frame[10];
     uint64_t when_get_stitched_frame;
     uint64_t when_show_on_the_screen;
 };
