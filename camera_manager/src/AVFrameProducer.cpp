@@ -119,8 +119,8 @@ void AVFrameProducer::stop() {
     if(m_resizeConsumer != nullptr) {
         m_resizeConsumer->stop();
     }
-    TaskManager::stop();
     img_dec->close_image_decoder();
+    TaskManager::stop();
     delete img_dec;
 }
 

@@ -7,6 +7,7 @@
 #include "log.hpp"
 
 image_decoder::image_decoder(const std::string& codec_name) {
+    m_name += codec_name + "decoder";
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
     if (!codec) {
         throw std::runtime_error("CUDA decoder not found: " + codec_name);
@@ -31,8 +32,7 @@ void image_decoder::start_image_decoder(int cam_id, AVCodecParameters* codecpar,
     }
     m_frameOutput.push_back(m_frame);
     m_packetInput = m_packet;
-    running = true;
-    m_thread = std::thread(&image_decoder::do_decode, this);
+    TaskManager::start();
 }
 
 void image_decoder::start_image_decoder(int cam_id, AVCodecParameters *codecpar, std::vector<safe_queue<Frame> *> m_frames, safe_queue<Packet> *m_packet) {
@@ -43,14 +43,12 @@ void image_decoder::start_image_decoder(int cam_id, AVCodecParameters *codecpar,
     }
     m_frameOutput = m_frames;
     m_packetInput = m_packet;
-    running = true;
-    m_thread = std::thread(&image_decoder::do_decode, this);
+    TaskManager::start();
 }
 
 void image_decoder::close_image_decoder() {
-    running = false;
     m_packetInput->stop();
-    if(m_thread.joinable()) m_thread.join();
+    TaskManager::stop();
     if(codec_ctx && codec_ctx->hw_device_ctx) {
         av_buffer_unref(&(codec_ctx->hw_device_ctx));
         codec_ctx->hw_device_ctx = nullptr;
@@ -58,7 +56,7 @@ void image_decoder::close_image_decoder() {
     avcodec_free_context(&codec_ctx);
 }
 
-void image_decoder::do_decode() {
+void image_decoder::run() {
     Packet pkt;
     if(!m_packetInput) throw std::runtime_error("null pointer");
     if(m_frameOutput.size() == 0) throw std::runtime_error("null pointer");
@@ -106,5 +104,4 @@ void image_decoder::do_decode() {
     while(m_packetInput->size()) {
         m_packetInput->pop_and_free();
     }
-    LOG_DEBUG("thread decoder exit!");
 }

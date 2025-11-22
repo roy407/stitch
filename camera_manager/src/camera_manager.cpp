@@ -61,6 +61,7 @@ void camera_manager::stop() {
         m_producer_task[i]->stop();
     }
     for(int i=0;i<m_consumer_task.size();i++) {
+        LOG_DEBUG("stitch consumer exit !");
         m_consumer_task[i]->stop();
     }
     avformat_network_deinit();

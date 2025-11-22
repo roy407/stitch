@@ -9,30 +9,30 @@ void StitchConsumer::single_stitch(int cam_id) {
     }
 }
 
-StitchConsumer::StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width)
-{
-    m_frame = frame_to_stitch;
+StitchConsumer::StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width) {
     m_name += "stitch";
-    cam_num = m_frame.size();
+    this->ops = ops;
+    m_frame = frame_to_stitch;
     this->single_width = single_width;
     this->height = height;
-    this->ops = ops;
+    this->output_width = output_width;
+    cam_num = m_frame.size();
+    m_status.width = output_width;
+    m_status.height = height;
+}
+
+void StitchConsumer::init_rtsp() {
     url = config::GetInstance().GetGlobalStitchConfig().output_url;
     avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
-    
     out_stream = avformat_new_stream(out_ctx, nullptr);
     out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
     out_stream->time_base = (AVRational){1, 20};
-
     codecpar = out_stream->codecpar;
     codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
     codecpar->codec_id = AV_CODEC_ID_H264;   
     codecpar->width = output_width;                  
     codecpar->height = height;                 
     codecpar->format = AV_PIX_FMT_CUDA;
-
-    m_status.width = codecpar->width;
-    m_status.height = codecpar->height;
 }
 
 safe_queue<Frame> &StitchConsumer::get_stitch_frame() {

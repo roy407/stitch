@@ -113,13 +113,11 @@ CameraDisplayWidget::~CameraDisplayWidget()
 {
     m_running.store(false);
     if (m_videoThread) {
-        m_videoThread->quit();
-        m_videoThread->wait(1000);
-        if (m_videoThread->isRunning()) {
-            m_videoThread->terminate();
-            m_videoThread->wait();
-        }
+        q->stop();
+        m_videoThread->wait();
         delete m_videoThread;
+        m_videoThread = nullptr;
+        LOG_DEBUG("CameraDisplayWidget consumer thread destroyed!");
     }
 }
 
@@ -224,72 +222,4 @@ void CameraDisplayWidget::updateFrame(const QImage& image)
     if (m_videoLabel && !image.isNull()) {
         m_videoLabel->setPixmap(QPixmap::fromImage(image));
     }
-}
-
-// VisibleCameraShow 实现
-VisibleCameraShow::VisibleCameraShow(QWidget *parent)
-    : QMainWindow(parent),
-      m_centralWidget(nullptr),
-      m_gridLayout(nullptr)
-{
-    setWindowTitle("可见光摄像头");
-    setupUI();
-    setupCameras();
-}
-
-VisibleCameraShow::~VisibleCameraShow()
-{
-    for (auto* widget : m_cameraWidgets) {
-        delete widget;
-    }
-}
-
-void VisibleCameraShow::setupUI()
-{
-    m_centralWidget = new QWidget(this);
-    setCentralWidget(m_centralWidget);
-    
-    m_gridLayout = new QGridLayout(m_centralWidget);
-    m_gridLayout->setSpacing(5);
-    m_gridLayout->setContentsMargins(10, 10, 10, 10);
-    
-    // 设置窗口大小：2行4列，每个640x360，加上间距和标题
-    resize(640 * 4 + 50, 360 * 2 + 100);
-    
-    // 居中显示窗口
-    QScreen *screen = QApplication::primaryScreen();
-    if (screen) {
-        QRect screenGeometry = screen->geometry();
-        int x = (screenGeometry.width() - width()) / 2;
-        int y = (screenGeometry.height() - height()) / 2;
-        move(x, y);
-    }
-}
-
-void VisibleCameraShow::setupCameras()
-{
-    // 从配置文件读取摄像头数量
-    auto& config = config::GetInstance();
-    auto cameras = config.GetCameraConfig();
-    
-    int row = 0, col = 0;
-    for (size_t i = 0; i < cameras.size() && i < 8; ++i) {
-        // 创建摄像头显示组件（不再需要RTSP URL）
-        CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(i, this);
-        m_cameraWidgets.push_back(cameraWidget);
-        
-        // 添加到网格布局：2行4列
-        m_gridLayout->addWidget(cameraWidget, row, col);
-        
-        col++;
-        if (col >= 4) {
-            col = 0;
-            row++;
-        }
-    }
-}
-
-void VisibleCameraShow::closeEvent(QCloseEvent *event)
-{
-    event->accept();
 }

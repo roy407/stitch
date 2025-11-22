@@ -34,9 +34,6 @@ template <typename Derived>
 class IStitch {
 public:
     ~IStitch() {
-        if (output) {
-            av_frame_free(&output);
-        }
         if (hw_frames_ctx) {
             av_buffer_unref(&hw_frames_ctx);
         }

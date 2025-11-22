@@ -48,19 +48,12 @@ InfraredWidget::~InfraredWidget() {
 void InfraredWidget::cleanup() {
     running.store(false);
     if (con) {
-      
-        con->wait(3000);  // 等待最多3秒
-        if (con->isRunning()) {
-            con->terminate();  // 如果还在运行，强制终止
-            con->wait();
-        }
+        q->stop();
+        con->wait();
         delete con;
         con = nullptr;
         LOG_DEBUG("infrared widget consumer thread destroyed!");
     }
-    
-
-    
     if (m_render) {
         delete m_render;
         m_render = nullptr;

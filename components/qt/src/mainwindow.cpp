@@ -130,7 +130,7 @@ void StitchMainWindow::setupUI()
         infraredStitchWidget->setStyleSheet("QWidget { background-color: black; }");
         infraredStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         mainLayout->addWidget(infraredStitchWidget, 1);
-        infraredStitchLabel->setText("红外拼接（暂未接入）");
+        infraredStitchLabel->setText("红外拼接");
     }
     
     // ========== 中层：可见光拼接 ==========
@@ -148,8 +148,8 @@ void StitchMainWindow::setupUI()
     // 添加时指定拉伸比例：3（可见光拼接区域，占据更多空间）
     mainLayout->addWidget(visibleStitchWidget, 3);
     
-    // ========== 下层：8路可见光相机（子码流） ==========
-    camerasLabel = new QLabel("8路可见光相机（子码流）", this);
+    // ========== 下层：8路可见光相机 ==========
+    camerasLabel = new QLabel("单路可见光相机", this);
     camerasLabel->setAlignment(Qt::AlignCenter);
     camerasLabel->setFont(labelFont);
     camerasLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 8px; }");
@@ -186,7 +186,7 @@ void StitchMainWindow::setupCameras()
     auto cameras = config.GetCameraConfig();
     
     int row = 0, col = 0;
-    for (size_t i = 0; i < cameras.size() && i < 8; ++i) {
+    for (size_t i = 0; i < cameras.size(); ++i) {
         // 创建摄像头显示组件（从camera_manager获取子码流）
         CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(i, this);
         cameraDisplayWidgets.push_back(cameraWidget);
