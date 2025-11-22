@@ -49,7 +49,6 @@ image_encoder::image_encoder(int width, int height, safe_queue<Frame>& frame_inp
         throw std::runtime_error("Failed to initialize HW frame context");
     }
     codec_ctx->hw_frames_ctx = av_buffer_ref(frames_ref);
-    running.store(false);
 }
 
 image_encoder::~image_encoder() {
@@ -71,16 +70,15 @@ void image_encoder::start_image_encoder() {
             throw std::runtime_error("Failed to open encoder");
         }
         is_created.store(true);
-        running.store(true);
         pkt = av_packet_alloc();
-        m_thread = std::thread(&image_encoder::do_encode,this);
+        TaskManager::start();
     }
 }
 void image_encoder::close_image_encoder() {
-    running.store(false);
+    TaskManager::stop();
 }
 
-void image_encoder::do_encode() {
+void image_encoder::run() {
     Frame frame;
     Packet packet;
     while(running) {

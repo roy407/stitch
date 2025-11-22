@@ -6,6 +6,7 @@
 class TaskManager {
 private:
     std::thread m_thread;
+    static uint64_t thread_cnt;
 protected:
     std::string m_name;
     bool running{false};

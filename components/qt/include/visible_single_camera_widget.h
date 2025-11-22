@@ -47,24 +47,4 @@ private:
     const int m_targetFps = 20;      // 目标帧率（降低到10fps以节省内存）
 };
 
-class VisibleCameraShow : public QMainWindow
-{
-    Q_OBJECT
-
-public:
-    explicit VisibleCameraShow(QWidget *parent = nullptr);
-    ~VisibleCameraShow();  
-
-protected:
-    void closeEvent(QCloseEvent *event) override;
-
-private:
-    void setupUI();
-    void setupCameras();
-    
-    QWidget* m_centralWidget;
-    QGridLayout* m_gridLayout;
-    std::vector<CameraDisplayWidget*> m_cameraWidgets;
-};
-
 #endif // VISIBLE_CAMERA_SHOW_H

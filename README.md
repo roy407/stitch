@@ -58,7 +58,6 @@ stitch/
 │   ├── operator/                   # 异构 算法实现
 │   │   ├── nvidia/
 │   │   ├── ascend/
-│   ├── data_processing/            # 数据处理与拼接流程
 │   ├── utils/                      # 工具类库
 │   │   ├── include/
 │   │   │   ├── log.hpp             # 日志封装

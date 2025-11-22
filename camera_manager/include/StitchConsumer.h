@@ -26,6 +26,7 @@ class StitchConsumer : public Consumer {
     safe_queue<Frame> frame_output;
     int cam_num{0};
     int single_width{0};
+    int output_width{0};
     int height{0};
     StitchStatus m_status{};
     std::string url;
@@ -38,6 +39,7 @@ class StitchConsumer : public Consumer {
     void single_stitch(int cam_id);
 public:
     StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width);
+    void init_rtsp();
     safe_queue<Frame>& get_stitch_frame();
     virtual ~StitchConsumer();
     virtual void start();

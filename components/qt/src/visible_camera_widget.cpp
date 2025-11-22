@@ -61,25 +61,12 @@ visible_camera_widget::~visible_camera_widget() {
 void visible_camera_widget::cleanup() {
     running.store(false);
     if (con) {
-        // 注意：不要调用q->stop()，因为队列是共享的，停止队列会影响其他Widget
-        // 只需要设置running=false，线程会自动退出
-        q->stop();  // 注释掉，避免影响其他Widget
-        con->wait(3000);  // 等待最多3秒
-        if (con->isRunning()) {
-            con->terminate();  // 如果还在运行，强制终止
-            con->wait();
-        }
+        q->stop();
+        con->wait();
         delete con;
         con = nullptr;
         LOG_DEBUG("visible_camera_widget consumer thread destroyed!");
     }
-    
-    // 不在这里停止摄像头管理器，由主窗口统一管理
-    // if (cam) {
-    //     cam->stop();
-    //     LOG_DEBUG("camera_service stopped!");
-    // }
-    
     if (m_render) {
         delete m_render;
         m_render = nullptr;

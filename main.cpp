@@ -6,7 +6,7 @@
 void launch_with_no_window() {
     camera_manager* cam = camera_manager::GetInstance();
     cam->start();
-    while(1);
+    cam->stop();
 }
 
 int launch_with_widget(int argc, char *argv[]) {
