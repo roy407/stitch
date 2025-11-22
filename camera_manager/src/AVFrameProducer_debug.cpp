@@ -1,0 +1,78 @@
+#include "AVFrameProducer_debug.h"
+#include "RtspConsumer.h"
+
+AVFrameProducer_debug::AVFrameProducer_debug(CameraConfig camera_config): AVFrameProducer() {
+    this->cam_id = camera_config.cam_id;
+    m_name += camera_config.name;
+    fmt_ctx = avformat_alloc_context();
+    av_dict_set(&options, "buffer_size", "4096000", 0);
+    av_dict_set(&options, "rtsp_transport", "tcp", 0);
+    av_dict_set(&options, "stimeout", "5000000", 0);
+    // 从文件中获取数据
+    cam_path = config::GetInstance().GetGlobalConfig().save_rtsp_data_path + std::to_string(cam_id) + ".mp4";
+    m_status.width = camera_config.width;
+    m_status.height = camera_config.height;
+    rtsp = camera_config.rtsp;
+    setDecoder("");
+}
+
+void AVFrameProducer_debug::run() {
+    if(m_resizeConsumer != nullptr) m_resizeConsumer->start();
+    {
+        int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
+        if(ret < 0) return;
+        if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
+            video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+            if(video_stream >= 0) {
+                stream = fmt_ctx->streams[video_stream];
+                codecpar = stream->codecpar;
+                std::vector<safe_queue<Frame>*> m_frameSender;
+                m_frameSender.push_back(&m_frameSender1);
+                m_frameSender.push_back(&m_frameSender2);
+                img_dec->start_image_decoder(cam_id, codecpar, m_frameSender, &m_packetSender2);
+                if(rtsp) {
+                    m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
+                    m_rtspConsumer->start();
+                }
+            }
+        }
+    }
+
+    auto start_time = std::chrono::steady_clock::now();
+    double start_pts = AV_NOPTS_VALUE;
+
+    AVPacket pkt;
+    while(running && av_read_frame(fmt_ctx, &pkt) >= 0) {
+        if(pkt.stream_index == video_stream) {
+            m_status.frame_cnt ++;
+            m_status.timestamp = get_now_time();
+            Packet pkt_copy1, pkt_copy2;
+            pkt_copy2.cam_id = cam_id;
+            pkt_copy2.m_costTimes.when_get_packet[cam_id] = get_now_time();
+            pkt_copy2.m_costTimes.image_frame_cnt[cam_id] = m_status.frame_cnt;
+            pkt_copy1.m_data = av_packet_clone(&pkt);
+            pkt_copy2.m_data = av_packet_clone(&pkt);
+
+            double pts_sec = pkt.pts * av_q2d(stream->time_base);
+            if (start_pts == AV_NOPTS_VALUE) {
+                start_pts = pts_sec;
+                start_time = std::chrono::steady_clock::now();
+            }
+
+            double relative_pts = pts_sec - start_pts;
+            auto target_time = start_time + std::chrono::duration<double>(relative_pts);
+            auto now = std::chrono::steady_clock::now();
+            
+            if (now < target_time) {
+                std::this_thread::sleep_until(target_time);
+            }
+
+            pkt_copy2.m_timestamp = get_now_time(); // 获取当前时间戳
+            m_packetSender1.push(pkt_copy1);
+            m_packetSender2.push(pkt_copy2);
+        }
+        av_packet_unref(&pkt);
+    }
+    avformat_close_input(&fmt_ctx);
+}
+

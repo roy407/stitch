@@ -19,6 +19,7 @@ extern "C" {
 #include "ResizeConsumer.h"
 
 class AVFrameProducer : public Producer {
+protected:
     safe_queue<Frame> m_frameSender1; // stitch
     safe_queue<Frame> m_frameSender2; // scale
     safe_queue<Packet> m_packetSender1; // rtsp
@@ -35,7 +36,11 @@ class AVFrameProducer : public Producer {
     bool rtsp{false};
     bool created{false};
     void setDecoder(std::string decoder_name); // 根据不同的名字，选择不同的解码器
+    std::unique_ptr<TaskManager> m_rtspConsumer; // 单个相机的推流线程，自己创建
+    std::unique_ptr<TaskManager> m_resizeConsumer; // 相机的resize程序
+    friend class LogConsumer;
 public:
+    AVFrameProducer(); // for AVFrameProducer_debug, do nothing!
     AVFrameProducer(CameraConfig camera_config);
     AVFrameProducer(IRCameraConfig IR_camera_config);
     AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height);
@@ -48,8 +53,4 @@ public:
     int getHeight() const;
     safe_queue<Frame>& getFrameSender();
     safe_queue<Packet>& getPacketSender();
-private:
-    std::unique_ptr<TaskManager> m_rtspConsumer; // 单个相机的推流线程，自己创建
-    std::unique_ptr<TaskManager> m_resizeConsumer; // 相机的resize程序
-    friend class LogConsumer;
 };
