@@ -26,8 +26,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -49,8 +49,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -72,8 +72,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -95,8 +95,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -118,8 +118,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -141,8 +141,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
@@ -164,8 +164,8 @@
                 "enable": true,
                 "mode": "crop"
             },
-            "resize": false,
-            "scale_factor": 0.2,
+            "resize": true,
+            "scale_factor": 0.5,
             "rtsp": false
         },
         {
