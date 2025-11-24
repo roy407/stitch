@@ -108,7 +108,7 @@ inline void save_cost_times_to_timestamped_file(const costTimes& t, std::ofstrea
 
     ofs << "--------------------------------------------------------\n";
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 10; ++i) {
         if (t.when_get_packet[i] == 0 || t.when_get_decoded_frame[i] == 0)
             continue;
 
@@ -137,7 +137,7 @@ inline void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
         isWriteHeader = true;
     }
 
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 10; ++i) {
         if (t.when_get_packet[i] == 0 || t.when_get_decoded_frame[i] == 0)
             continue;
 

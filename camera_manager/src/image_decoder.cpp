@@ -79,11 +79,14 @@ void image_decoder::run() {
             ret = avcodec_receive_frame(codec_ctx, frame.m_data);
             if (ret == 0) {
                 if (frame.m_data->format == AV_PIX_FMT_CUDA) {
+                    frame.cam_id = pkt.cam_id;
                     frame.m_costTimes = pkt.m_costTimes;
                     frame.m_costTimes.when_get_decoded_frame[cam_id] = get_now_time();
                     frame.m_timestamp = pkt.m_timestamp; // 将packet时间戳提供给frame
                     for(auto &m_frame : m_frameOutput) {
                         Frame frame_copy;
+                        frame_copy.cam_id = frame.cam_id;
+                        frame_copy.m_costTimes = frame.m_costTimes;
                         frame_copy.m_data = av_frame_alloc();
                         int ret = av_frame_ref(frame_copy.m_data, frame.m_data);
                         m_frame->push(frame_copy);
