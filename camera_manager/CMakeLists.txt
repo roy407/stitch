@@ -34,4 +34,5 @@ target_link_libraries(camera_manager PRIVATE
   config
   cuda 
   operator_nvidia
+  utils
 )

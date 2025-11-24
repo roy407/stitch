@@ -23,6 +23,12 @@ extern "C" {
 #include "StitchImpl.h"
 #include "ResizeConsumer.h"
 
+#define cameras_debug
+
+#if defined(cameras_debug)
+#include "AVFrameProducer_debug.h"
+#endif
+
 camera_manager* camera_manager::GetInstance() {
     static camera_manager cam;
     return &cam;

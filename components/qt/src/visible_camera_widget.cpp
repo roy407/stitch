@@ -99,7 +99,7 @@ void visible_camera_widget::consumerThread() {
         return;
     }
 
-AVFrame* cpu_frame = av_frame_alloc();    
+    AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
         if(!q->wait_and_pop(frame)) break;
