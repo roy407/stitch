@@ -20,18 +20,23 @@ class InfraredWidget : public QOpenGLWidget {
 public:
     explicit InfraredWidget(QWidget *parent = nullptr);
     ~InfraredWidget();
-
+signals:
+    void IRTitle(const QString& title); 
 protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
     void consumerThread();
 
+private slots:
+    void IRTitleTime(double dec_to_stitch);  
 private:
     Nv12Render* m_render;
     camera_manager* cam;
     QThread* con;
     std::mutex m_mutex;
+    std::chrono::steady_clock::time_point last_title_update;
+    std::chrono::seconds update_interval;
     std::atomic<bool> running;
     safe_queue<Frame>* q;
     std::vector<uchar> m_buffer;

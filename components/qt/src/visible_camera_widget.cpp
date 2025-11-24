@@ -39,7 +39,9 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     m_width(0),
     m_height(0),
     m_y_stride(0),
-    m_uv_stride(0)
+    m_uv_stride(0),
+    last_title_update(std::chrono::steady_clock::now()),
+    update_interval(std::chrono::seconds(1)) 
 {
     // 设置最小尺寸，允许窗口缩放（移除固定尺寸限制）
     setMinimumSize(640, 360);  // 最小尺寸：360p
@@ -89,6 +91,12 @@ void visible_camera_widget::paintGL() {
 void visible_camera_widget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
+void visible_camera_widget::VisibleTitleTime(double cost_time){
+    QString title = QString("可见光拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    emit VisibleTitle(title);
+} 
+
+        
 //可见光拼接帧的处理
 void visible_camera_widget::consumerThread() {
     static std::string filename = std::string("build/") + get_current_time_filename(".csv");
@@ -102,9 +110,23 @@ void visible_camera_widget::consumerThread() {
     AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
+  
         if(!q->wait_and_pop(frame)) break;
-
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
+        double dec_to_stitch = 0.0;
+        int active_cam_count = 0;
+        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+        for (int i = 0; i < 10; ++i) {
+            if (frame.m_costTimes.when_get_packet[i] != 0) {
+                double cam_dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - frame.m_costTimes.when_get_packet[i]) * 1e-6;
+                dec_to_stitch += cam_dec_to_stitch;
+                active_cam_count++;
+            }
+        }
+        
+        if (active_cam_count > 0) {
+            dec_to_stitch = dec_to_stitch / active_cam_count;
+        }
         if (!lock.owns_lock()) {
             av_frame_free(&frame.m_data);
             continue;
@@ -127,7 +149,7 @@ void visible_camera_widget::consumerThread() {
         m_height = process_frame->height;
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
-        
+
         // 确保行对齐是32字节的倍数
         if (m_y_stride % 32 != 0) {
             m_y_stride = ((m_y_stride + 31) / 32) * 32;
@@ -145,14 +167,21 @@ void visible_camera_widget::consumerThread() {
             m_buffer.resize(total_size);
         }
         
+        
         // 复制Y和UV数据
         memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
         memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
         
         av_frame_free(&frame.m_data);
+        
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_title_update >= update_interval) {
+       
+        QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
+                                Q_ARG(double, dec_to_stitch));
+              last_title_update = now;  // 更新时间戳
+        }
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
         save_cost_table_csv(frame.m_costTimes,ofs);
     }
     q->clear();
