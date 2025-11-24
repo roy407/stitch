@@ -42,3 +42,8 @@ echo "launch stitch_app..."
 
 echo "stitch_app exit"
 
+echo "开始绘制 timing 图..."
+
+python3 scripts/plot_timing.py
+
+echo "绘图完成"

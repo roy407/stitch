@@ -79,14 +79,6 @@ void InfraredWidget::resizeGL(int w, int h) {
 
 //红外拼接帧的处理
 void InfraredWidget::consumerThread() {
-    static std::string filename = std::string("build/infrared_") + get_current_time_filename(".csv");
-
-    std::ofstream ofs(filename, std::ios::app);  // 追加写入
-    if (!ofs.is_open()) {
-        LOG_ERROR("Failed to open file: {}", filename);
-        return;
-    }
-
     AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
@@ -141,7 +133,6 @@ void InfraredWidget::consumerThread() {
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
-        save_cost_table_csv(frame.m_costTimes, ofs);
     }
     q->clear();
     av_frame_free(&cpu_frame);
