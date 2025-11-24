@@ -4,7 +4,7 @@
 // 获取当前 ns 时间
 // ------------------------
 uint64_t get_now_time() {
-    auto now = std::chrono::system_clock::now();
+    auto now = std::chrono::steady_clock::now();
     auto ns_since_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(
         now.time_since_epoch()
     ).count();

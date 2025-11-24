@@ -5,7 +5,7 @@
 #include <QDebug>
 #include <QCloseEvent>
 #include "config.h"
-
+#include "infrared_camera_widget.h"
 StitchMainWindow::StitchMainWindow(QWidget *parent)
     : QMainWindow(parent),
       cam(nullptr),
@@ -101,7 +101,7 @@ void StitchMainWindow::setupUI()
     labelFont.setBold(true);
     
     // ========== 上层：红外拼接（可通过setInfraredStitchWidget接口设置显示组件） ==========
-    infraredStitchLabel = new QLabel("红外拼接", this);
+     infraredStitchLabel = new QLabel("红外拼接", this);
     infraredStitchLabel->setAlignment(Qt::AlignCenter);
     infraredStitchLabel->setFont(labelFont);
     infraredStitchLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 8px; }");
@@ -122,13 +122,22 @@ void StitchMainWindow::setupUI()
         // 设置大小策略：允许水平和垂直拉伸
         infraredStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
         // 添加时指定拉伸比例：1（红外拼接区域）
+        InfraredWidget* irWidget = qobject_cast<InfraredWidget*>(infraredStitchWidget);
+        connect(irWidget, &InfraredWidget::IRTitle, 
+                this, [this](const QString& title) {
+            // 更新红外拼接标签的标题，而不是主窗口标题
+            infraredStitchLabel->setText(title);
+           
+        });
         mainLayout->addWidget(infraredStitchWidget, 1, Qt::AlignCenter);
+        
     } else {
         // 没有红外相机或create_channel_2()未调用，创建黑色占位符
         infraredStitchWidget = new QWidget(this);
         infraredStitchWidget->setMinimumHeight(200);
         infraredStitchWidget->setStyleSheet("QWidget { background-color: black; }");
         infraredStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        
         mainLayout->addWidget(infraredStitchWidget, 1);
         infraredStitchLabel->setText("红外拼接");
     }
@@ -146,6 +155,17 @@ void StitchMainWindow::setupUI()
     // 设置大小策略：允许水平和垂直拉伸（这是主要显示区域，应该占据更多空间）
     visibleStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     // 添加时指定拉伸比例：3（可见光拼接区域，占据更多空间）
+    visible_camera_widget* visibleWidget = qobject_cast<visible_camera_widget*>(visibleStitchWidget);
+   
+    connect(visibleWidget, &visible_camera_widget::VisibleTitle, 
+                this, [this](const QString& title) {
+           
+            visibleStitchLabel->setText(title);
+           
+        });
+   
+
+ 
     mainLayout->addWidget(visibleStitchWidget, 3);
     
     // ========== 下层：8路可见光相机 ==========

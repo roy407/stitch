@@ -13,7 +13,7 @@ extern "C" {
 }
 #include "log.hpp"
 #include "config.h"
-
+#include "tools.hpp"
 //红外拼接初始化
 InfraredWidget::InfraredWidget(QWidget *parent) : 
     QOpenGLWidget(parent),
@@ -24,7 +24,9 @@ InfraredWidget::InfraredWidget(QWidget *parent) :
     m_width(0),
     m_height(0),
     m_y_stride(0),
-    m_uv_stride(0)
+    m_uv_stride(0),
+    last_title_update(std::chrono::steady_clock::now()),
+    update_interval(std::chrono::seconds(1)) 
 {
     // 设置最小尺寸，允许窗口缩放（移除固定尺寸限制）
     setFixedSize(640, 360);  // 最小尺寸：360p
@@ -76,10 +78,14 @@ void InfraredWidget::paintGL() {
 void InfraredWidget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
-
+void InfraredWidget::IRTitleTime(double cost_time){
+    QString title = QString("红外拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    emit IRTitle(title);
+}
 //红外拼接帧的处理
 void InfraredWidget::consumerThread() {
     AVFrame* cpu_frame = av_frame_alloc();    
+    
     while (running.load()) {
         Frame frame;
         if(!q->wait_and_pop(frame)) break;
@@ -107,6 +113,13 @@ void InfraredWidget::consumerThread() {
         m_height = process_frame->height;
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
+
+        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+        double dec_to_stitch = 0.0;
+        if (frame.m_costTimes.when_get_packet[8] != 0) {
+            dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - 
+                                        frame.m_costTimes.when_get_packet[8]) * 1e-6;
+        }
         
         // 确保行对齐是32字节的倍数
         if (m_y_stride % 32 != 0) {
@@ -128,13 +141,20 @@ void InfraredWidget::consumerThread() {
         // 复制Y和UV数据（红外相机也使用NV12/YUV格式）
         memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
         memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
-        
+       
         av_frame_free(&frame.m_data);
-        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_title_update >= update_interval) {
+        QMetaObject::invokeMethod(this, "IRTitleTime", Qt::QueuedConnection, 
+                                Q_ARG(double, dec_to_stitch));
+        last_title_update = now;  
+        }
+        
+        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
     }
     q->clear();
+ 
     av_frame_free(&cpu_frame);
 }
 
