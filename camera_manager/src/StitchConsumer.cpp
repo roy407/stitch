@@ -60,9 +60,9 @@ void StitchConsumer::run() {
             Frame tmp;
             if(!m_frame[i]->wait_and_pop(tmp)) goto cleanup;
             inputs[i] = tmp.m_data;
-            out_image.m_costTimes.image_frame_cnt[i] = tmp.m_costTimes.image_frame_cnt[i];
-            out_image.m_costTimes.when_get_packet[i] = tmp.m_costTimes.when_get_packet[i];
-            out_image.m_costTimes.when_get_decoded_frame[i] = tmp.m_costTimes.when_get_decoded_frame[i];
+            out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
+            out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
+            out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
         }
         out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
