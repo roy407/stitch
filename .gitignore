@@ -6,3 +6,61 @@ scripts/*.json
 *.bin
 .venv
 .vscode
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# CMake / C++ / Qt
+CMakeFiles/
+CMakeCache.txt
+*.pro.user
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.obj
+*.moc
+*.qmake.stash
+
+# Logs
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+Thumbs.db
+
+# Backups
+*~
+*.bak
+*.orig
+
+# Virtual envs
+.env
+env/
+
+# CUDA
+*.cubin
+*.ptx
+*.fatbin
+
+# FFmpeg outputs
+*.mp4
+*.h265
+*.h264
+*.ts
+
+# Config leftovers
+*.local
+*.cache
+*.tmp
+
+# Data
+data/
+datasets/
+weights/
+models/
+checkpoints/
