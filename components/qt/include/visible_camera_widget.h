@@ -41,6 +41,8 @@ private:
     int m_height;
     int m_y_stride;
     int m_uv_stride;
+    std::chrono::steady_clock::time_point last_title_update;
+    std::chrono::seconds update_interval;
     
     void cleanup();
     void* aligned_alloc(size_t size, size_t alignment);

@@ -29,13 +29,14 @@ protected:
     void consumerThread();
 
 private slots:
-    void IRTitleTime(double cost_time);  
+    void IRTitleTime(double dec_to_stitch);  
 private:
     Nv12Render* m_render;
     camera_manager* cam;
     QThread* con;
     std::mutex m_mutex;
-  
+     std::chrono::steady_clock::time_point last_title_update;
+    std::chrono::seconds update_interval;
     std::atomic<bool> running;
     safe_queue<Frame>* q;
     std::vector<uchar> m_buffer;

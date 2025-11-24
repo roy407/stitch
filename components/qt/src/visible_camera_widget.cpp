@@ -39,7 +39,9 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     m_width(0),
     m_height(0),
     m_y_stride(0),
-    m_uv_stride(0)
+    m_uv_stride(0),
+    last_title_update(std::chrono::steady_clock::now()),
+    update_interval(std::chrono::seconds(1)) 
 {
     // 设置最小尺寸，允许窗口缩放（移除固定尺寸限制）
     setMinimumSize(640, 360);  // 最小尺寸：360p
@@ -108,9 +110,9 @@ void visible_camera_widget::consumerThread() {
 AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
-  
+        
         if(!q->wait_and_pop(frame)) break;
-        frame.m_costTimes.when_get_stitched_frame = get_now_time();
+        
         
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
          double dec_to_stitch = 0.0;
@@ -178,10 +180,16 @@ AVFrame* cpu_frame = av_frame_alloc();
         memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
         
         av_frame_free(&frame.m_data);
-        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
+        
+        
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_title_update >= update_interval) {
+       
         QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
                                 Q_ARG(double, dec_to_stitch));
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+              last_title_update = now;  // 更新时间戳
+        }
+        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         save_cost_table_csv(frame.m_costTimes,ofs);
     }
     q->clear();

@@ -24,7 +24,9 @@ InfraredWidget::InfraredWidget(QWidget *parent) :
     m_width(0),
     m_height(0),
     m_y_stride(0),
-    m_uv_stride(0)
+    m_uv_stride(0),
+    last_title_update(std::chrono::steady_clock::now()),
+    update_interval(std::chrono::seconds(1)) 
 {
     // 设置最小尺寸，允许窗口缩放（移除固定尺寸限制）
     setFixedSize(640, 360);  // 最小尺寸：360p
@@ -91,6 +93,7 @@ void InfraredWidget::consumerThread() {
     }
 
     AVFrame* cpu_frame = av_frame_alloc();    
+    
     while (running.load()) {
         Frame frame;
         if(!q->wait_and_pop(frame)) break;
@@ -119,17 +122,16 @@ void InfraredWidget::consumerThread() {
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
         double dec_to_stitch = 0.0;
-        int active_cam_count = 0;
+      
         
         
             if (frame.m_costTimes.when_get_decoded_frame[8] != 0 && 
                 frame.m_costTimes.when_get_stitched_frame != 0) {
                 
-                double cam_dec_to_stitch = (frame.m_costTimes.when_get_stitched_frame - 
+                double dec_to_stitch = (frame.m_costTimes.when_get_stitched_frame - 
                                           frame.m_costTimes.when_get_decoded_frame[8]) * 1e-6;
-               
-                dec_to_stitch = cam_dec_to_stitch;
-                
+
+        
             }
         
         
@@ -166,15 +168,18 @@ void InfraredWidget::consumerThread() {
             }
        
         av_frame_free(&frame.m_data);
-        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         
         
         
-        // 使用信号更新标题
+       
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_title_update >= update_interval) {
         QMetaObject::invokeMethod(this, "IRTitleTime", Qt::QueuedConnection, 
                                 Q_ARG(double, dec_to_stitch));
+        last_title_update = now;  
+        }
         
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
+        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
         save_cost_table_csv(frame.m_costTimes, ofs);
     }
     q->clear();
