@@ -10,7 +10,7 @@
 #include "nv12render.h"
 #include "camera_manager.h"
 #include "safe_queue.hpp"
-
+#include "tools.hpp"
 extern "C" {
 #include <libavutil/frame.h>
 }
@@ -20,13 +20,15 @@ class visible_camera_widget : public QOpenGLWidget {
 public:
     explicit visible_camera_widget(QWidget *parent = nullptr);
     ~visible_camera_widget();
-
+signals:
+    void VisibleTitle(const QString& title); 
 protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
     void consumerThread();
-
+private slots:
+    void VisibleTitleTime(double dec_to_stitch);  
 private:
     Nv12Render* m_render;
     camera_manager* cam;

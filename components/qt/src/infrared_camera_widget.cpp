@@ -13,7 +13,7 @@ extern "C" {
 }
 #include "log.hpp"
 #include "config.h"
-
+#include "tools.hpp"
 //红外拼接初始化
 InfraredWidget::InfraredWidget(QWidget *parent) : 
     QOpenGLWidget(parent),
@@ -76,7 +76,10 @@ void InfraredWidget::paintGL() {
 void InfraredWidget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
-
+void InfraredWidget::IRTitleTime(double cost_time){
+    QString title = QString("红外拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    emit IRTitle(title);
+}
 //红外拼接帧的处理
 void InfraredWidget::consumerThread() {
     static std::string filename = std::string("build/infrared_") + get_current_time_filename(".csv");
@@ -115,6 +118,20 @@ void InfraredWidget::consumerThread() {
         m_height = process_frame->height;
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
+        double dec_to_stitch = 0.0;
+        int active_cam_count = 0;
+        
+        
+            if (frame.m_costTimes.when_get_decoded_frame[8] != 0 && 
+                frame.m_costTimes.when_get_stitched_frame != 0) {
+                
+                double cam_dec_to_stitch = (frame.m_costTimes.when_get_stitched_frame - 
+                                          frame.m_costTimes.when_get_decoded_frame[8]) * 1e-6;
+               
+                dec_to_stitch = cam_dec_to_stitch;
+                
+            }
+        
         
         // 确保行对齐是32字节的倍数
         if (m_y_stride % 32 != 0) {
@@ -136,14 +153,32 @@ void InfraredWidget::consumerThread() {
         // 复制Y和UV数据（红外相机也使用NV12/YUV格式）
         memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
         memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
+      
         
+
+        if (frame.m_costTimes.when_get_decoded_frame[8] != 0 && 
+                frame.m_costTimes.when_get_stitched_frame != 0) {
+                
+                double dec_to_stitch = (frame.m_costTimes.when_get_stitched_frame - 
+                                          frame.m_costTimes.when_get_decoded_frame[8]) * 1e-6;
+                
+               
+            }
+       
         av_frame_free(&frame.m_data);
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-
+        
+        
+        
+        // 使用信号更新标题
+        QMetaObject::invokeMethod(this, "IRTitleTime", Qt::QueuedConnection, 
+                                Q_ARG(double, dec_to_stitch));
+        
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
         save_cost_table_csv(frame.m_costTimes, ofs);
     }
     q->clear();
+ 
     av_frame_free(&cpu_frame);
 }
 

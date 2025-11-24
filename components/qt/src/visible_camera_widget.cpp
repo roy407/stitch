@@ -89,6 +89,12 @@ void visible_camera_widget::paintGL() {
 void visible_camera_widget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
+void visible_camera_widget::VisibleTitleTime(double cost_time){
+    QString title = QString("可见光拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    emit VisibleTitle(title);
+} 
+
+        
 //可见光拼接帧的处理
 void visible_camera_widget::consumerThread() {
     static std::string filename = std::string("build/") + get_current_time_filename(".csv");
@@ -102,9 +108,30 @@ void visible_camera_widget::consumerThread() {
 AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
+  
         if(!q->wait_and_pop(frame)) break;
-
+        frame.m_costTimes.when_get_stitched_frame = get_now_time();
+        
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
+         double dec_to_stitch = 0.0;
+        int active_cam_count = 0;
+        
+        for (int i = 0; i < 8; ++i) {
+            if (frame.m_costTimes.when_get_decoded_frame[i] != 0 && 
+                frame.m_costTimes.when_get_stitched_frame != 0) {
+                
+                double cam_dec_to_stitch = (frame.m_costTimes.when_get_stitched_frame - frame.m_costTimes.when_get_decoded_frame[i]) * 1e-6;
+                                          
+               
+                dec_to_stitch += cam_dec_to_stitch;
+                active_cam_count++;
+            }
+        }
+        
+        if (active_cam_count > 0) {
+            dec_to_stitch = dec_to_stitch / active_cam_count;
+            
+        }
         if (!lock.owns_lock()) {
             av_frame_free(&frame.m_data);
             continue;
@@ -145,13 +172,15 @@ AVFrame* cpu_frame = av_frame_alloc();
             m_buffer.resize(total_size);
         }
         
+        
         // 复制Y和UV数据
         memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
         memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
         
         av_frame_free(&frame.m_data);
         QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-
+        QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
+                                Q_ARG(double, dec_to_stitch));
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
         save_cost_table_csv(frame.m_costTimes,ofs);
     }
