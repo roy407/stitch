@@ -16,7 +16,7 @@ extern "C" {
 
 class image_decoder : TaskManager {
 public:
-    image_decoder(const std::string& codec_name = "h264_cuvid");
+    image_decoder(const std::string& codec_name = config::GetInstance().GetGlobalConfig().image_decoder);
     ~image_decoder();
     void start_image_decoder(int cam_id, AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet);
     void start_image_decoder(int cam_id, AVCodecParameters* codecpar, std::vector<safe_queue<Frame>*> m_frames, safe_queue<Packet>* m_packet);

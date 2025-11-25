@@ -13,10 +13,10 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "tools.hpp"
 #include "TaskManager.h"
-
+#include "config.h"
 class image_encoder : public TaskManager {
 public:
-    image_encoder(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = "h264_nvenc");
+    image_encoder(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = config::GetInstance().GetGlobalConfig().image_encoder);
     ~image_encoder();
     void start_image_encoder();
     void close_image_encoder();
