@@ -25,7 +25,8 @@ bool config::loadFromFile(const std::string key) {
         global.status = j["global"]["status"];
         global.save_rtsp_data_time = j["global"]["save_rtsp_data_time"];
         global.save_rtsp_data_path = j["global"]["save_rtsp_data_path"];
-
+        global.image_decoder=j["global"]["image_decoder"];
+        global.image_encoder=j["global"]["image_encoder"];
         // 读取 cameras
         for (const auto& cam : j["cameras"]) {
             CameraConfig c;

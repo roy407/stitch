@@ -4,7 +4,9 @@
         "software_status": "debug",
         "status": "rtsp",
         "save_rtsp_data_time": 240,
-        "save_rtsp_data_path": "/home/eric/mp4/"
+        "save_rtsp_data_path": "/home/eric/mp4/",
+        "image_decoder":"h264_cuvid",
+        "image_encoder":"h264_nvenc"
     },
     "cameras": [
         {

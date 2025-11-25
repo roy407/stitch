@@ -55,6 +55,8 @@ struct GlobalConfig {
     std::string status;
     int save_rtsp_data_time;
     std::string save_rtsp_data_path;
+    std::string image_decoder;
+    std::string image_encoder;
 };
 
 // Stitch 配置
