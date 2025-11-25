@@ -23,7 +23,7 @@ extern "C" {
 #include "StitchImpl.h"
 #include "ResizeConsumer.h"
 
-// #define cameras_debug
+#define cameras_debug
 
 #if defined(cameras_debug)
 #include "AVFrameProducer_debug.h"

@@ -20,6 +20,7 @@ extern "C" {
 #include "AVFrameProducer.h"
 
 class AVFrameProducer_debug : public AVFrameProducer {
+    bool inited = false;
 public:
     // 目前只有第一个构造函数可以被使用
     AVFrameProducer_debug(CameraConfig camera_config);

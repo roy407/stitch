@@ -11,6 +11,7 @@ add_library(operator_nvidia STATIC
   src/nvidia/stitch_with_mapping_table_yuv420p.cu
   src/nvidia/stitch_with_mapping_table.cu
   src/nvidia/yuv_2_rgb.cu
+  src/nvidia/resize.cu
 )
 
 target_include_directories(operator_nvidia PUBLIC
