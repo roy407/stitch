@@ -44,7 +44,7 @@ private:
     std::vector<uchar> m_buffer;      // 存储NV12数据的缓冲区
     int m_width, m_height;            // 视频宽高
     int m_y_stride, m_uv_stride;      // Y和UV分量的行步长
-    const int m_targetFps = 20;      // 目标帧率（降低到10fps以节省内存）
+    const int m_targetFps = 10;      // 目标帧率（降低到10fps以节省内存）
 };
 
 #endif // VISIBLE_CAMERA_SHOW_H

@@ -1,6 +1,6 @@
 #include "ResizeConsumer.h"
 #include "cuda_handle_init.h"
-#include "scale.cuh"
+#include "resize.cuh"
 
 // 构造函数中不能调用其他构造函数，否则只是创建了临时对象，应该像现在这样，以委托构造的方式
 ResizeConsumer::ResizeConsumer(int width, int height, float scale_factor) : ResizeConsumer(width,
@@ -72,11 +72,13 @@ void ResizeConsumer::run() {
         int output_linesize_uv = out_image.m_data->linesize[1];
 
         cudaStream_t stream = 0;
-        launch_scale_1_2_kernel(input_y, input_uv,
+        ReSize(input_y, input_uv,
+        width, height,
         input_linesize_y, input_linesize_uv,
         output_y, output_uv,
+        output_width, output_height,
         output_linesize_y, output_linesize_uv,
-        width, height, stream);
+        stream);
         cudaStreamSynchronize(stream);
         out_image.m_data->pts = tmp.m_data->pts;
         OutputFrame.push(out_image);

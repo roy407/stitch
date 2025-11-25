@@ -29,7 +29,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -52,7 +52,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -75,7 +75,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -98,7 +98,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -121,7 +121,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -144,7 +144,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -167,7 +167,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         },
         {
@@ -190,7 +190,7 @@
                 "mode": "crop"
             },
             "resize": true,
-            "scale_factor": 0.5,
+            "scale_factor": 0.16666667,
             "rtsp": false
         }
     ],
@@ -225,7 +225,7 @@
     ],
     "stitch": {
         "output_url": "rtsp://127.0.0.1:8554/stitch",
-        "camera_stitch_output_width": 20612,
+        "camera_stitch_output_width": 20803,
         "H_matrix_inv": {
             "cam0": [
                 [1, 0, 7463],

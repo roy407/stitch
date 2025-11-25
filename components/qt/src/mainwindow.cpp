@@ -180,23 +180,9 @@ void StitchMainWindow::setupUI()
     camerasLayout = new QGridLayout(camerasWidget);
     camerasLayout->setSpacing(5);
     camerasLayout->setContentsMargins(5, 5, 5, 5);
-    // 设置大小策略：允许水平和垂直拉伸
-    camerasWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     // 添加时指定拉伸比例：2（8路相机区域）
     mainLayout->addWidget(camerasWidget, 2);
-    
-    // 设置窗口最小尺寸（允许用户缩放窗口）
-    setMinimumSize(1280, 720);  // 最小尺寸：720p
-    resize(1920, 1080);  // 初始尺寸：1080p
-    
-    // 居中显示窗口
-    QScreen *screen = QApplication::primaryScreen();
-    if (screen) {
-        QRect screenGeometry = screen->geometry();
-        int x = (screenGeometry.width() - width()) / 2;
-        int y = (screenGeometry.height() - height()) / 2;
-        move(x, y);
-    }
+    setFixedSize(2560, 1440);
 }
 
 void StitchMainWindow::setupCameras()
