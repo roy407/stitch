@@ -30,7 +30,7 @@ class __LOGGER__ {
 private:
     __LOGGER__() {
         console = spdlog::stdout_color_mt("console");
-        std::string str = config::GetInstance().GetGlobalConfig().software_status;
+        std::string str = CFG_HANDLE.GetGlobalConfig().mode;
         spdlog::level::level_enum level_num = spdlog::level::info;
         if (str == "debug") {
             level_num = spdlog::level::debug;

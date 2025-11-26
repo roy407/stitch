@@ -1,46 +1,27 @@
 #include "StitchConsumer.h"
 #include "StitchImpl.h"
 
-void StitchConsumer::single_stitch(int cam_id) {
-    while(running) {
-        Frame tmp;
-        if(!m_frame[cam_id]->wait_and_pop(tmp)) break;
-        
-    }
-}
-
-StitchConsumer::StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width) {
+StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int output_width) {
     m_name += "stitch";
     this->ops = ops;
-    m_frame = frame_to_stitch;
     this->single_width = single_width;
     this->height = height;
     this->output_width = output_width;
-    cam_num = m_frame.size();
     m_status.width = output_width;
     m_status.height = height;
+    m_channel2show = new FrameChannel;
 }
 
-void StitchConsumer::init_rtsp() {
-    url = config::GetInstance().GetGlobalStitchConfig().output_url;
-    avformat_alloc_output_context2(&out_ctx, nullptr, "rtsp", url.c_str());
-    out_stream = avformat_new_stream(out_ctx, nullptr);
-    out_stream->id = out_ctx->nb_streams - 1; // 设置流ID
-    out_stream->time_base = (AVRational){1, 20};
-    codecpar = out_stream->codecpar;
-    codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-    codecpar->codec_id = AV_CODEC_ID_H264;   
-    codecpar->width = output_width;                  
-    codecpar->height = height;                 
-    codecpar->format = AV_PIX_FMT_CUDA;
+void StitchConsumer::setChannels(std::vector<FrameChannel*> channels) {
+    m_channelsFromDecoder = channels;
 }
 
-safe_queue<Frame> &StitchConsumer::get_stitch_frame() {
-    return frame_output;
+FrameChannel *StitchConsumer::getChannel2Show() {
+    return m_channel2show;
 }
 
 StitchConsumer::~StitchConsumer() {
-
+    delete m_channel2show;
 }
 
 void StitchConsumer::start() {
@@ -48,37 +29,41 @@ void StitchConsumer::start() {
 }
 
 void StitchConsumer::stop() {
-    for(auto& i: m_frame) i->stop();
+    for(auto& i: m_channelsFromDecoder) {
+        i->stop();
+    }
     TaskManager::stop();
 }
 
 void StitchConsumer::run() { 
     Frame out_image;
-    AVFrame** inputs = new AVFrame*[cam_num];
+    AVFrame** inputs = new AVFrame*[10];
     while (running) {
-        for (int i = 0; i < cam_num; i++) {
+        int frame_size = 0;
+        for (auto& channel : m_channelsFromDecoder) {
             Frame tmp;
-            if(!m_frame[i]->wait_and_pop(tmp)) goto cleanup;
-            inputs[i] = tmp.m_data;
+            if(!channel->recv(tmp)) goto cleanup;
+            inputs[frame_size] = tmp.m_data;
             out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
             out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
             out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
+            frame_size ++;
         }
         out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
-        frame_output.push(out_image);
+        m_channel2show->send(out_image);
         m_status.frame_cnt ++;
         m_status.timestamp = get_now_time();
-        for (int i = 0; i < cam_num; ++i) {
+        for (int i = 0; i < m_channelsFromDecoder.size(); ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
             }
         }
     }
 cleanup:
-    for(int i = 0;i < cam_num; i++) {
-        m_frame[i]->clear();
+    for(auto& channel : m_channelsFromDecoder) {
+        channel->clear();
     }
     delete[] inputs;
 }

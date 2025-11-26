@@ -1,12 +1,12 @@
 
-#include "image_decoder.h"
+#include "DecoderConsumer.h"
 #include "cuda_handle_init.h"
 #include <vector>
 #include <thread>
 #include <chrono>
 #include "log.hpp"
 
-image_decoder::image_decoder(const std::string& codec_name) {
+DecoderConsumer::DecoderConsumer(const std::string& codec_name) {
     m_name += codec_name + "decoder";
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
     if (!codec) {
@@ -19,36 +19,15 @@ image_decoder::image_decoder(const std::string& codec_name) {
     }
 
     codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
+
+    m_channel2resize = new FrameChannel;
+    m_channel2stitch = new FrameChannel;
 }
 
-image_decoder::~image_decoder() {
-}
+DecoderConsumer::~DecoderConsumer() {
+    delete m_channel2resize;
+    delete m_channel2stitch;
 
-void image_decoder::start_image_decoder(int cam_id, AVCodecParameters* codecpar, safe_queue<Frame>* m_frame, safe_queue<Packet>* m_packet) {
-    this->cam_id = cam_id;
-    avcodec_parameters_to_context(codec_ctx, codecpar);
-    if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
-        throw std::runtime_error("Failed to open codec");
-    }
-    m_frameOutput.push_back(m_frame);
-    m_packetInput = m_packet;
-    TaskManager::start();
-}
-
-void image_decoder::start_image_decoder(int cam_id, AVCodecParameters *codecpar, std::vector<safe_queue<Frame> *> m_frames, safe_queue<Packet> *m_packet) {
-    this->cam_id = cam_id;
-    avcodec_parameters_to_context(codec_ctx, codecpar);
-    if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
-        throw std::runtime_error("Failed to open codec");
-    }
-    m_frameOutput = m_frames;
-    m_packetInput = m_packet;
-    TaskManager::start();
-}
-
-void image_decoder::close_image_decoder() {
-    m_packetInput->stop();
-    TaskManager::stop();
     if(codec_ctx && codec_ctx->hw_device_ctx) {
         av_buffer_unref(&(codec_ctx->hw_device_ctx));
         codec_ctx->hw_device_ctx = nullptr;
@@ -56,12 +35,42 @@ void image_decoder::close_image_decoder() {
     avcodec_free_context(&codec_ctx);
 }
 
-void image_decoder::run() {
+void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar) {
+    avcodec_parameters_to_context(codec_ctx, codecpar);
+}
+
+void DecoderConsumer::setChannel(PacketChannel *channel) {
+    m_channelFromAVFramePro = channel;
+}
+
+FrameChannel *DecoderConsumer::getChannel2Resize() {
+    return m_channel2resize;
+}
+
+FrameChannel *DecoderConsumer::getChannel2Stitch() {
+    return m_channel2stitch;
+}
+
+void DecoderConsumer::start() {
+    if(m_channelFromAVFramePro == nullptr) {
+        LOG_ERROR("m_channelFromAVFramePro has not inited");
+        return;
+    }
+    if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
+        throw std::runtime_error("Failed to open codec");
+    }
+    TaskManager::start();
+}
+
+void DecoderConsumer::stop() {
+    m_channelFromAVFramePro->stop();
+    TaskManager::stop();
+}
+
+void DecoderConsumer::run() {
     Packet pkt;
-    if(!m_packetInput) throw std::runtime_error("null pointer");
-    if(m_frameOutput.size() == 0) throw std::runtime_error("null pointer");
     while(running) {
-        if(!m_packetInput->wait_and_pop(pkt)) break;
+        if(!m_channelFromAVFramePro->recv(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
         if (ret < 0) {
             char errbuf[256];
@@ -81,17 +90,16 @@ void image_decoder::run() {
                 if (frame.m_data->format == AV_PIX_FMT_CUDA) {
                     frame.cam_id = pkt.cam_id;
                     frame.m_costTimes = pkt.m_costTimes;
-                    frame.m_costTimes.when_get_decoded_frame[cam_id] = get_now_time();
+                    frame.m_costTimes.when_get_decoded_frame[frame.cam_id] = get_now_time();
                     frame.m_timestamp = pkt.m_timestamp; // 将packet时间戳提供给frame
-                    for(auto &m_frame : m_frameOutput) {
-                        Frame frame_copy;
-                        frame_copy.cam_id = frame.cam_id;
-                        frame_copy.m_costTimes = frame.m_costTimes;
-                        frame_copy.m_data = av_frame_alloc();
-                        int ret = av_frame_ref(frame_copy.m_data, frame.m_data);
-                        m_frame->push(frame_copy);
-                    }
-                    av_frame_free(&frame.m_data);
+                    m_channel2stitch->send(frame);
+                    
+                    Frame frame_copy;
+                    frame_copy.cam_id = frame.cam_id;
+                    frame_copy.m_costTimes = frame.m_costTimes;
+                    frame_copy.m_data = av_frame_alloc();
+                    int ret = av_frame_ref(frame_copy.m_data, frame.m_data);
+                    m_channel2resize->send(frame_copy);
                 }
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 break;
@@ -104,7 +112,5 @@ void image_decoder::run() {
         }
         av_packet_free(&pkt.m_data);
     }
-    while(m_packetInput->size()) {
-        m_packetInput->pop_and_free();
-    }
+    m_channelFromAVFramePro->clear();
 }

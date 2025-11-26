@@ -52,7 +52,7 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     m_render = new Nv12Render();
     // 只获取实例，不启动（由主窗口统一管理）
     cam = camera_manager::GetInstance();
-   q = &(cam->get_stitch_camera_stream());
+   q = cam->getStitchCameraStream(0);
     con = QThread::create([this](){consumerThread();});
     con->start();
 }
@@ -112,7 +112,7 @@ void visible_camera_widget::consumerThread() {
     while (running.load()) {
         Frame frame;
   
-        if(!q->wait_and_pop(frame)) break;
+        if(!q->recv(frame)) break;
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         double dec_to_stitch = 0.0;
         int active_cam_count = 0;
@@ -150,7 +150,11 @@ void visible_camera_widget::consumerThread() {
         m_height = process_frame->height;
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
-        draw_vertical_line_nv12(process_frame, 2000, "120");
+        draw_vertical_line_nv12(process_frame, 200, "-120°", 150, 0);
+        draw_vertical_line_nv12(process_frame, 5350, "-60°", 150, 0);
+        draw_vertical_line_nv12(process_frame, 10500, "0°", 150, 0);
+        draw_vertical_line_nv12(process_frame, 15550, "60°", 150, 0);
+        draw_vertical_line_nv12(process_frame, 20600, "120°", 360, 0);
 
         // 确保行对齐是32字节的倍数
         if (m_y_stride % 32 != 0) {

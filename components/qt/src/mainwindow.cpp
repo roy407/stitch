@@ -4,6 +4,7 @@
 #include <QGridLayout>
 #include <QDebug>
 #include <QCloseEvent>
+#include <QScrollArea>
 #include "config.h"
 #include "infrared_camera_widget.h"
 StitchMainWindow::StitchMainWindow(QWidget *parent)
@@ -22,9 +23,17 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
     // 统一启动摄像头管理器（只启动一次）
     cam = camera_manager::GetInstance();
     cam->start();
+
+    central = new QWidget(this);
+    setCentralWidget(central);
+
+    stackedLayout = new QStackedLayout(central);
     
     setupUI();
     setupCameras();
+
+    stackedLayout->setCurrentIndex(0); 
+    setFixedSize(2560,1440);
 }
 
 StitchMainWindow::~StitchMainWindow()
@@ -43,6 +52,22 @@ void StitchMainWindow::closeEvent(QCloseEvent *event)
     
     // 接受关闭事件
     event->accept();
+}
+
+void StitchMainWindow::mousePressEvent(QMouseEvent* event)
+{
+    if (!stackedLayout) return;
+
+    int count = stackedLayout->count();
+    if (event->button() == Qt::RightButton) {
+        stackedLayout->setCurrentIndex(1);
+    }
+    else if (event->button() == Qt::LeftButton) {
+        stackedLayout->setCurrentIndex(0);
+    }
+    else {
+        QMainWindow::mousePressEvent(event);
+    }
 }
 
 void StitchMainWindow::setInfraredStitchWidget(QWidget* widget)
@@ -89,7 +114,7 @@ void StitchMainWindow::setupUI()
     
     // 创建主窗口中心部件
     mainWidget = new QWidget(this);
-    setCentralWidget(mainWidget);
+    mainWidget->showMaximized();
     
     // 创建主布局（垂直布局）
     mainLayout = new QVBoxLayout(mainWidget);
@@ -108,13 +133,13 @@ void StitchMainWindow::setupUI()
     mainLayout->addWidget(infraredStitchLabel);
     
     // 检查是否有红外相机配置
-    auto& config = config::GetInstance();
-    auto IR_cameras = config.GetIRCameraConfig();
+    auto& config = CFG_HANDLE;
+    auto cameras = config.GetCamerasConfig(1);
     
     // 注意：只有当camera_manager中create_channel_2()被调用时，才创建InfraredWidget
     // 目前create_channel_2()被注释掉了，所以暂时不创建InfraredWidget，避免段错误
     // 如果后续需要启用红外拼接，需要取消注释camera_manager中的create_channel_2()调用
-    if (IR_cameras.size() > 0) {
+    if (cameras.size() > 0) {
         // 有红外相机，创建红外拼接显示组件
         InfraredWidget* infraredWidget = new InfraredWidget(this);
         infraredStitchWidget = infraredWidget;
@@ -158,10 +183,8 @@ void StitchMainWindow::setupUI()
     visible_camera_widget* visibleWidget = qobject_cast<visible_camera_widget*>(visibleStitchWidget);
    
     connect(visibleWidget, &visible_camera_widget::VisibleTitle, 
-                this, [this](const QString& title) {
-           
+            this, [this](const QString& title) {
             visibleStitchLabel->setText(title);
-           
         });
    
 
@@ -182,30 +205,83 @@ void StitchMainWindow::setupUI()
     camerasLayout->setContentsMargins(5, 5, 5, 5);
     // 添加时指定拉伸比例：2（8路相机区域）
     mainLayout->addWidget(camerasWidget, 2);
-    setFixedSize(2560, 1440);
+
+    stackedLayout->addWidget(mainWidget);
+
+    full_size_stitch_widget = new full_stitch_widget;
+    QScrollArea* area = new QScrollArea(this);
+    area->setWidgetResizable(false);  // 不自动缩放你的 widget
+
+    area->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    area->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    area->setWidget(full_size_stitch_widget);
+
+    stackedLayout->addWidget(area);
 }
 
 void StitchMainWindow::setupCameras()
 {
     // 从配置文件读取摄像头信息
-    auto& config = config::GetInstance();
-    auto cameras = config.GetCameraConfig();
+    auto& config = CFG_HANDLE;
+    auto cameras = config.GetCamerasConfig(0);
     
-    int row = 0, col = 0;
-    for (size_t i = 0; i < cameras.size(); ++i) {
-        if(cameras[i].resize == true) {
-            // 创建摄像头显示组件（从camera_manager获取子码流）
-            CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(cameras[i], this);
-            cameraDisplayWidgets.push_back(cameraWidget);
-            
-            // 添加到网格布局：2行4列
-            camerasLayout->addWidget(cameraWidget, row, col);
-        }
-        
-        col++;
-        if (col >= 4) {
-            col = 0;
-            row++;
-        }
+    // 先清理布局（如果需要，避免重复添加）
+    QLayoutItem *child;
+    while ((child = camerasLayout->takeAt(0)) != nullptr) {
+        delete child->widget(); // 若想保留已有 widget，请改为只 delete child
+        delete child;
     }
+
+    // 布局间距/边距（按需调整）
+    camerasLayout->setContentsMargins(6, 6, 6, 6);
+    camerasLayout->setHorizontalSpacing(8);
+    camerasLayout->setVerticalSpacing(4);
+
+    // 我们要 2 行 widget，每个 widget 上方一个 label -> 网格使用 4 列，实际占用行数为 4（label row + widget row）
+    // 对 4 列设置列拉伸，让 widget 横向尽可能大
+    for (int c = 0; c < 4; ++c) {
+        camerasLayout->setColumnStretch(c, 1);
+    }
+
+    // 遍历 cameras，按 idx 放到 2x4 的网格中
+    int visibleCount = 0;
+    for (size_t i = 0; i < cameras.size(); ++i) {
+        if (!cameras[i].resize) continue;
+
+        int idx = visibleCount;          // 第几个可见摄像头（0..n-1）
+        int col = idx % 4;               // 0..3
+        int widgetRow = (idx / 4) * 2 + 1; // 1 或 3 -> widget 放在奇数行
+        int labelRow  = widgetRow - 1;     // 0 或 2 -> label 放在上面一行
+
+        // 创建小 label
+        QLabel* nameLabel = new QLabel(QString::fromStdString(cameras[i].name), this);
+        nameLabel->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+        nameLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        nameLabel->setMaximumHeight(18); // label 高度尽量小，按需调节
+        QFont f = nameLabel->font();
+        f.setPointSizeF(f.pointSizeF() * 0.85); // 字体略小
+        nameLabel->setFont(f);
+        nameLabel->setStyleSheet("QLabel { background-color: #34495e; color: white;}");
+
+        // 创建 widget（摄像头显示）
+        CameraDisplayWidget* cameraWidget = new CameraDisplayWidget(cameras[i], this);
+        cameraWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+        // 把 label 和 widget 添加到布局（label 在上，widget 在下）
+        camerasLayout->addWidget(nameLabel, labelRow, col);
+        camerasLayout->addWidget(cameraWidget, widgetRow, col);
+
+        // 行拉伸：让 widget 行拉伸占主空间，label 行不拉伸（0）
+        camerasLayout->setRowStretch(labelRow, 0);
+        camerasLayout->setRowStretch(widgetRow, 1);
+
+        // 保存 widget 引用（如果你原本想 push）
+        cameraDisplayWidgets.push_back(cameraWidget);
+
+        visibleCount++;
+        // 如果已经放满 8 个（2x4），可以 break
+        if (visibleCount >= 8) break;
+    }
+
 }

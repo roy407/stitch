@@ -4,11 +4,13 @@
 #include <QMainWindow>
 #include <QVBoxLayout>
 #include <QGridLayout>
+#include <QStackedLayout>
 #include <QWidget>
 #include <QLabel>
 #include "visible_camera_widget.h"
 #include "infrared_camera_widget.h"
 #include "visible_single_camera_widget.h"
+#include "full_stitch_widget.h"
 #include "camera_manager.h"
 
 class StitchMainWindow : public QMainWindow
@@ -24,6 +26,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void mousePressEvent(QMouseEvent* event) override;
 
 private:
     void setupUI();  // 设置UI界面
@@ -31,6 +34,9 @@ private:
     
     // 摄像头管理器（统一管理，避免重复启动）
     camera_manager* cam;
+
+    QWidget *central{nullptr};
+    QStackedLayout* stackedLayout{nullptr};
     
     // UI组件
     QWidget* mainWidget;          // 主窗口中心部件
@@ -49,6 +55,8 @@ private:
     QWidget* camerasWidget;       // 相机容器
     QGridLayout* camerasLayout;   // 相机网格布局（2行4列）
     std::vector<CameraDisplayWidget*> cameraDisplayWidgets;  // 8个相机显示组件
+
+    full_stitch_widget* full_size_stitch_widget{nullptr};
 };
 
 #endif // MAIN_WINDOW_H

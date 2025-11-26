@@ -10,8 +10,9 @@ add_library(camera_manager STATIC
   src/StitchConsumer.cpp
   src/LogConsumer.cpp
   src/cuda_handle_init.cpp
-  src/image_decoder.cpp
-  src/image_encoder.cpp
+  src/DecoderConsumer.cpp
+  src/EncoderConsumer.cpp
+  src/Pipeline.cpp
 )
 
 target_include_directories(camera_manager PRIVATE 

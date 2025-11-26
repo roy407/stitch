@@ -1,10 +1,4 @@
 #include "AVFrameProducer.h"
-#include "RtspConsumer.h"
-#include "ResizeConsumer.h"
-
-void AVFrameProducer::setDecoder(std::string decoder_name) {
-    img_dec = new image_decoder;
-}
 
 AVFrameProducer::AVFrameProducer() {
     
@@ -21,8 +15,6 @@ AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
     cam_path = camera_config.input_url;
     m_status.width = camera_config.width;
     m_status.height = camera_config.height;
-    rtsp = camera_config.rtsp;
-    setDecoder("");
     {
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
         if(ret < 0) return;
@@ -30,50 +22,14 @@ AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
-                codecpar = stream->codecpar;
-                std::vector<safe_queue<Frame>*> m_frameSender;
-                m_frameSender.push_back(&m_frameSender1);
-                m_frameSender.push_back(&m_frameSender2);
-                img_dec->start_image_decoder(cam_id, codecpar, m_frameSender, &m_packetSender2);
-                if(rtsp) {
-                    m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
-                    m_rtspConsumer->start();
-                }
+                codecpar = avcodec_parameters_alloc();
+                avcodec_parameters_copy(codecpar, stream->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
     }
-}
-
-AVFrameProducer::AVFrameProducer(IRCameraConfig IR_camera_config) {
-    this->cam_id = IR_camera_config.cam_id;
-    m_name += IR_camera_config.name;
-    fmt_ctx = avformat_alloc_context();
-    av_dict_set(&options, "buffer_size", "4096000", 0);
-    av_dict_set(&options, "rtsp_transport", "tcp", 0);
-    av_dict_set(&options, "stimeout", "5000000", 0);
-    cam_path = IR_camera_config.input_url;
-    m_status.width = IR_camera_config.width;
-    m_status.height = IR_camera_config.height;
-    rtsp = IR_camera_config.rtsp;
-    setDecoder("");
-    {
-        int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
-        if(ret < 0) return;
-        if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
-            video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
-            if(video_stream >= 0) {
-                stream = fmt_ctx->streams[video_stream];
-                codecpar = stream->codecpar;
-                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender1, &m_packetSender2);
-                if(rtsp) {
-                    m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
-                    m_rtspConsumer->start();
-                }
-            }
-        }
-        avformat_close_input(&fmt_ctx);
-    }
+    m_channel2rtsp = new PacketChannel;
+    m_channel2decoder = new PacketChannel;
 }
 
 AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
@@ -86,7 +42,6 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
     cam_path = input_url;
     m_status.width = width;
     m_status.height = height;
-    setDecoder("");
     {
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
         if(ret < 0) return;
@@ -94,43 +49,30 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
                 stream = fmt_ctx->streams[video_stream];
-                codecpar = stream->codecpar;
-                img_dec->start_image_decoder(cam_id, codecpar, &m_frameSender1, &m_packetSender2);
-                if(rtsp) {
-                    m_rtspConsumer = std::make_unique<RtspConsumer>(m_packetSender1, &codecpar, &(stream->time_base), config::GetInstance().GetCameraConfig()[cam_id].output_url);
-                    m_rtspConsumer->start();
-                }
+                codecpar = avcodec_parameters_alloc();
+                avcodec_parameters_copy(codecpar, stream->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
     }
-}
-
-void AVFrameProducer::SetResizeConsumer(std::unique_ptr<ResizeConsumer> con) {
-    con->SetInputFrame(&m_frameSender2);
-    m_resizeConsumer = std::move(con);
+    m_channel2rtsp = new PacketChannel;
+    m_channel2decoder = new PacketChannel;
 }
 
 AVFrameProducer::~AVFrameProducer() {
+    avcodec_parameters_free(&codecpar);
+    delete m_channel2rtsp;
+    delete m_channel2decoder;
 }
 
 void AVFrameProducer::start() {
     TaskManager::start();
 }
 void AVFrameProducer::stop() {
-    if(rtsp) {
-        m_rtspConsumer->stop();
-    }
-    if(m_resizeConsumer != nullptr) {
-        m_resizeConsumer->stop();
-    }
-    img_dec->close_image_decoder();
     TaskManager::stop();
-    delete img_dec;
 }
 
 void AVFrameProducer::run() {
-    if(m_resizeConsumer != nullptr) m_resizeConsumer->start();
     while(running) {
         int ret = 0;
         ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
@@ -144,14 +86,14 @@ void AVFrameProducer::run() {
                 m_status.frame_cnt ++;
                 m_status.timestamp = get_now_time();
                 Packet pkt_copy1, pkt_copy2;
+                pkt_copy1.m_data = av_packet_clone(&pkt);
+                m_channel2rtsp->send(pkt_copy1); // 因为rtsp直接就向外部发送，所以可以不记录时间
                 pkt_copy2.cam_id = cam_id;
                 pkt_copy2.m_costTimes.when_get_packet[cam_id] = get_now_time();
                 pkt_copy2.m_costTimes.image_frame_cnt[cam_id] = m_status.frame_cnt;
-                pkt_copy1.m_data = av_packet_clone(&pkt);
                 pkt_copy2.m_data = av_packet_clone(&pkt);
-                pkt_copy2.m_timestamp = get_now_time(); // 获取当前时间戳
-                m_packetSender1.push(pkt_copy1);
-                m_packetSender2.push(pkt_copy2);
+                pkt_copy2.m_timestamp = get_now_time();
+                m_channel2decoder->send(pkt_copy2);
             }
             av_packet_unref(&pkt);
         }
@@ -167,10 +109,19 @@ int AVFrameProducer::getHeight() const {
     return m_status.height;
 }
 
-safe_queue<Frame> &AVFrameProducer::getFrameSender() {
-    return m_frameSender1;
+AVStream *AVFrameProducer::getAVStream() const {
+    return stream;
 }
 
-safe_queue<Packet> &AVFrameProducer::getPacketSender() {
-    return m_packetSender1;
+AVCodecParameters *AVFrameProducer::getAVCodecParameters() const {
+    return codecpar;
 }
+
+PacketChannel *AVFrameProducer::getChannel2Rtsp() const {
+    return m_channel2rtsp;
+}
+
+PacketChannel *AVFrameProducer::getChannel2Decoder() const {
+    return m_channel2decoder;
+}
+

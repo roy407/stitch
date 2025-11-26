@@ -14,10 +14,10 @@ extern "C" {
 #include "tools.hpp"
 #include "TaskManager.h"
 #include "config.h"
-class image_encoder : public TaskManager {
+class EncoderConsumer : public TaskManager {
 public:
-    image_encoder(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = config::GetInstance().GetGlobalConfig().image_encoder);
-    ~image_encoder();
+    EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = CFG_HANDLE.GetGlobalConfig().encoder);
+    ~EncoderConsumer();
     void start_image_encoder();
     void close_image_encoder();
 

@@ -1,304 +1,33 @@
 {
     "global": {
-        "use_sub_input": false,
-        "software_status": "debug",
-        "status": "rtsp",
-        "save_rtsp_data_time": 240,
-        "save_rtsp_data_path": "/home/eric/mp4/",
-        "image_decoder":"h264_cuvid",
-        "image_encoder":"h264_nvenc"
+        "mode": "debug",
+        "rtsp_record_duration": 240,
+        "rtsp_record_path": "/home/eric/mp4/",
+        "decoder": "h264_cuvid",
+        "encoder": "h264_nvenc"
     },
-    "cameras": [
+    "pipeline": [
         {
-            "name": "cam0",
-            "cam_id": 0,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam0",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
+            "name" : "group0",
+            "pipeline_id":0,
+            "enable":true,
+            "use_sub_input": false,
+            "main_stream":"group0_mainstream.json",
+            "sub_stream":"group0_substream.json",
+            "stitch":{
+                "stitch_mode":"mapping_table"
+            }
         },
         {
-            "name": "cam1",
-            "cam_id": 1,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam1",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam2",
-            "cam_id": 2,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam2",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam3",
-            "cam_id": 3,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam3",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam4",
-            "cam_id": 4,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam4",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam5",
-            "cam_id": 5,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.55:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.55:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam5",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam6",
-            "cam_id": 6,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.56:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.56:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam6",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
-        },
-        {
-            "name": "cam7",
-            "cam_id": 7,
-            "main": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.57:554/h265/ch1/main/av_stream",
-                "width": 3840,
-                "height": 2160
-            },
-            "sub": {
-                "input_url": "rtsp://admin:ky406sys@192.168.1.57:554/h265/ch1/sub/av_stream",
-                "width": 640,
-                "height": 360
-            },
-            "output_url": "rtsp://127.0.0.1:8554/cam7",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "resize": true,
-            "scale_factor": 0.16666667,
-            "rtsp": false
+            "name" : "group1",
+            "pipeline_id":1,
+            "enable":true,
+            "use_sub_input": true,
+            "main_stream":"group1_mainstream.json",
+            "sub_stream":"group1_substream.json",
+            "stitch":{
+                "stitch_mode":"mapping_table"
+            }
         }
-    ],
-    "IR_cameras":[
-        {
-            "name": "cam8",
-            "cam_id": 8,
-            "input_url": "rtsp://192.168.1.58:554/live?channel=0&subtype=1",
-            "width": 640,
-            "height": 512, 
-            "output_url": "rtsp://127.0.0.1:8554/cam8",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "rtsp": false
-        },        {
-            "name": "cam9",
-            "cam_id": 9,
-            "input_url": "rtsp://192.168.1.59:554/live?channel=0&subtype=1",
-            "width": 640,
-            "height": 512, 
-            "output_url": "rtsp://127.0.0.1:8554/cam9",
-            "crop": [0,0,0,0],
-            "stitch": {
-                "enable": true,
-                "mode": "crop"
-            },
-            "rtsp": false
-        }
-    ],
-    "stitch": {
-        "output_url": "rtsp://127.0.0.1:8554/stitch",
-        "camera_stitch_output_width": 20803,
-        "H_matrix_inv": {
-            "cam0": [
-                [1, 0, 7463],
-                [0, 1, -31.64],
-                [0, 0, 1]
-            ],
-            "cam1": [
-                [1, 0, 4971],
-                [0, 1, -63.18],
-                [0, 0, 1]
-            ],
-            "cam2": [
-                [1, 0, 2463],
-                [0, 1, -18.32],
-                [0, 0, 1]
-            ],
-            "cam3": [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1]
-            ],
-            "cam4": [
-                [1, 0, -2507],
-                [0, 1, -2.664],
-                [0, 0, 1]
-            ],
-            "cam5": [
-                [1, 0, -5023],
-                [0, 1, 31.32],
-                [0, 0, 1]
-            ],
-            "cam6": [
-                [1, 0, -7595],
-                [0, 1, 50.32],
-                [0, 0, 1]
-            ],
-            "cam7": [
-                [1, 0, -9963],
-                [0, 1, -10.38],
-                [0, 0, 1]
-            ]
-        },
-        "cam_polygons":{
-            "cam0": [
-                [-6198, 151.1],
-                [-2879, -10.35],
-                [-3021, 2079],
-                [-6339, 2084]
-            ],
-            "cam1": [
-                [-3303, 25.8],
-                [379.7, -102.5],
-                [330.2, 2063],
-                [-3362, 2098]
-            ],
-            "cam2": [
-                [0, 0],
-                [3840, 0],
-                [3840, 2160],
-                [0, 2160]
-            ],
-            "cam3": [
-                [3509, -175.4],
-                [7098, -87.09],
-                [7171, 1943],
-                [3581, 1989]
-            ],
-            "cam4": [
-                [6784, -107.2],
-                [1.004e+04, -80.83],
-                [1.016e+04, 1884],
-                [6895, 1941]
-            ]
-        }
-    }
+    ]
 }

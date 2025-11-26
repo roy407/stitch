@@ -13,5 +13,5 @@ safe_queue<Frame>& launch_stitch_worker() {
     static camera_manager camera;
     camera.start();
     // 返回引用，立即返回
-    return camera.get_stitch_camera_stream();
+    return camera.getStitchCameraStream();
 }

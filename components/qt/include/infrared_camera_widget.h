@@ -38,7 +38,7 @@ private:
     std::chrono::steady_clock::time_point last_title_update;
     std::chrono::seconds update_interval;
     std::atomic<bool> running;
-    safe_queue<Frame>* q;
+    FrameChannel* q;
     std::vector<uchar> m_buffer;
     int m_width;
     int m_height;

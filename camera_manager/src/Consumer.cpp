@@ -1,19 +1,15 @@
 #include "Consumer.h"
 
-Consumer::Consumer()
-{
+Consumer::Consumer() {
     m_name += "consumer_";
 }
 
-Consumer::~Consumer()
-{
+Consumer::~Consumer() {
 }
 
-void Consumer::run()
-{
+void Consumer::run() {
 }
 
-bool Consumer::setConsumer(std::weak_ptr<TaskManager> con)
-{
+bool Consumer::setConsumer(std::weak_ptr<TaskManager> con) {
     return false;
 }

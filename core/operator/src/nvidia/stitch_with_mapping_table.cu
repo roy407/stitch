@@ -3,6 +3,34 @@
 #include <iostream>
 using namespace std;
 
+
+
+#define KERNEL_RADIUS 2           
+#define KERNEL_SIZE (2*KERNEL_RADIUS + 1)
+
+__constant__ float gauss_kernel[KERNEL_SIZE*KERNEL_SIZE] = {
+    // 1, 4, 6, 4, 1,
+    // 4,16,24,16, 4,
+    // 6,24,36,24, 6,
+    // 4,16,24,16, 4,
+    // 1, 4, 6, 4, 1
+    12, 24, 36, 24, 12,
+    24,8,9,8, 24,
+    36,9,1,9, 36,
+    24,8,9,8, 24,
+    12, 24, 36, 24, 12
+};
+
+__device__ int get_region_index(int x)
+{
+    const int region_x0[7] = {2995, 5466, 7539, 10309, 12776, 15349, 17452};
+    const int region_x1[7] = {3493, 5834, 7975, 10479, 13018, 15671, 17981};
+    for(int r=0;r<7;r++){
+        if(x >= region_x0[r] && x < region_x1[r]) return r;
+    }
+    return -1;
+}
+
 __global__ void stitch_kernel_Y_with_mapping_table(
     uint8_t** inputs_y, int* input_linesize_y,
     uint8_t* output_y, int output_linesize_y,
@@ -18,7 +46,7 @@ __global__ void stitch_kernel_Y_with_mapping_table(
     uint16_t map_x  = entry.y;
     uint16_t map_y  = entry.z;
     if (cam_id >= cam_num) {
-        output_y[y * output_linesize_y + x] = 0;
+        output_y[y * output_linesize_y + x] = 255;
         return;
     }
 
@@ -26,7 +54,9 @@ __global__ void stitch_kernel_Y_with_mapping_table(
     uint8_t* input_y = inputs_y[cam_id];
     int in_pitch_y = input_linesize_y[cam_id];
     uint8_t val_y = input_y[map_y * in_pitch_y + map_x];
+
     output_y[y * output_linesize_y + x] = val_y;
+
 }
 
 __global__ void stitch_kernel_UV_with_mapping_table(
