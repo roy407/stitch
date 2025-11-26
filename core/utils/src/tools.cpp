@@ -145,6 +145,7 @@ void init_font8x8() {
     const uint8_t FONT_0[8]     = {0x3C,0x42,0x46,0x4A,0x52,0x62,0x3C,0x00};
     const uint8_t FONT_1[8]     = {0x08,0x18,0x08,0x08,0x08,0x08,0x3E,0x00};
     const uint8_t FONT_2[8]     = {0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00};
+    const uint8_t FONT_6[8]     = {0x3C,0x40,0x40,0x7C,0x42,0x42,0x3C,0x00};
     const uint8_t FONT_DEG[8]   = {0x18,0x24,0x24,0x18,0x00,0x00,0x00,0x00}; 
     // 清零
     memset(font8x8, 0, sizeof(font8x8));
@@ -153,10 +154,11 @@ void init_font8x8() {
     memcpy(font8x8['0'], FONT_0, 8);
     memcpy(font8x8['1'], FONT_1, 8);
     memcpy(font8x8['2'], FONT_2, 8);
+    memcpy(font8x8['6'], FONT_6, 8);
     memcpy(font8x8[0xB0], FONT_DEG, 8);
 }
 
-void draw_char_nv12_y(AVFrame* frame, int x, int y, char c)
+void draw_char_nv12_y(AVFrame* frame, int x, int y, char c, int Y_Y)
 {
     uint8_t* Y = frame->data[0];
     int strideY  = frame->linesize[0];
@@ -183,7 +185,7 @@ void draw_char_nv12_y(AVFrame* frame, int x, int y, char c)
                         if (xx >= 0 && xx < frame->width &&
                             yy >= 0 && yy < frame->height)
                         {
-                            Y[yy * strideY + xx] = 255;
+                            Y[yy * strideY + xx] = Y_Y;
                         }
                     }
                 }
@@ -192,14 +194,14 @@ void draw_char_nv12_y(AVFrame* frame, int x, int y, char c)
     }
 }
 
-void draw_text_nv12(AVFrame* frame, int x, int y, const std::string& text)
+void draw_text_nv12(AVFrame* frame, int x, int y, const std::string& text, int fst, int Y)
 {
     for (size_t i = 0; i < text.size(); i++) {
-        draw_char_nv12_y(frame, x + i * (8 * thickness) - 100, y , text[i]);
+        draw_char_nv12_y(frame, x + i * (8 * thickness) - fst, y , text[i], Y);
     }
 }
 
-void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label) {
+void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label, int fst, int Y_Y) {
 
     if(!inited) {
         init_font8x8();
@@ -222,7 +224,7 @@ void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label) {
         for (int dx = -half; dx <= half; dx++) {
             int xx = x + dx;
             if (xx >= 0 && xx < W)
-                Y[y * strideY + xx] = 200;
+                Y[y * strideY + xx] = Y_Y;
         }
     }
 
@@ -236,6 +238,6 @@ void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label) {
 
     int text_y = offset - 200;   // 竖线上方
     
-    draw_text_nv12(frame, text_x, text_y, label);
+    draw_text_nv12(frame, text_x, text_y, label, fst, Y_Y);
 }
 
