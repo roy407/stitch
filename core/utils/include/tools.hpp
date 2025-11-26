@@ -48,4 +48,4 @@ void save_cost_times_to_timestamped_file(const costTimes& t, std::ofstream& ofs)
 void save_cost_table_csv(const costTimes& t, std::ofstream& ofs);
 
 // === 绘图工具 ===
-void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label);
+void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label, int fst, int Y);
