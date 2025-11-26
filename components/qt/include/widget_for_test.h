@@ -33,7 +33,7 @@ private:
     QThread* con;
     std::mutex m_mutex;
     std::atomic<bool> running;
-    safe_queue<Frame>* q;
+    FrameChannel* q;
     std::vector<uchar> m_buffer;
     int m_width;
     int m_height;

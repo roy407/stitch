@@ -9,63 +9,61 @@
 
 using json = nlohmann::json;
 
-struct StitchConfig {
-    bool enable = false;
-    std::string mode;
-};
-
-struct CamInputConfig {
-    std::string input_url;
-    int width;
-    int height;
-};
-
 struct CameraConfig {
     std::string name;
+    int cam_id = 0;
+    bool enable = true;
     std::string input_url;
-    int cam_id;
-    int width;
-    int height;
-    CamInputConfig sub;
-    CamInputConfig main;
+    int width = 0;
+    int height = 0;
     std::string output_url;
-    std::vector<float> crop;
     bool resize = false;
-    float scale_factor = 1;
+    double scale_factor = 1.0;
     bool rtsp = false;
-    StitchConfig stitch;
 };
 
-struct IRCameraConfig {
-    std::string name;
-    std::string input_url;
-    int cam_id;
-    int width;
-    int height;
-    std::string output_url;
-    std::vector<float> crop;
-    bool rtsp = false;
-    StitchConfig stitch;
+struct MappingTableConfig {
+    std::string file_path;
+    cudaTextureObject_t d_mapping_table;
+    int output_width = 0;
 };
 
-// 全局配置
-struct GlobalConfig {
-    bool use_sub_input;
-    std::string software_status;
-    std::string status;
-    int save_rtsp_data_time;
-    std::string save_rtsp_data_path;
-    std::string image_decoder;
-    std::string image_encoder;
-};
-
-// Stitch 配置
-struct GlobalStitchConfig {
-    std::string output_url;
-    int camera_stitch_output_width;
-    int IR_camera_stitch_output_width;
+struct StitchImplConfig {
+    MappingTableConfig mapping_table;
     std::vector<std::array<double, 9>> h_matrix_inv;
     std::vector<std::array<float, 8>> cam_polygons;
+};
+
+struct StitchConfig {
+    std::string stitch_mode;  
+    StitchImplConfig stitch_impl;
+    std::string output_url;
+};
+
+struct PipelineConfig {
+    std::string name;
+    int pipeline_id = 0;
+    bool enable = true;
+    bool use_substream = false;
+    uint64_t default_width{0}; // 用于存储拼接图像的最大长度，json中不配置
+    uint64_t default_height{0}; // 用于存储拼接图像的最大高度，json中不配置
+    std::string main_stream; // 主码流相机数据文件
+    std::string sub_stream; // 子码流相机数据文件
+    std::vector<CameraConfig> cameras;
+    StitchConfig stitch;
+};
+
+struct GlobalConfig {
+    std::string mode;
+    int rtsp_record_duration = 0;
+    std::string rtsp_record_path;
+    std::string decoder;
+    std::string encoder;
+};
+
+struct Config {
+    GlobalConfig global;
+    std::vector<PipelineConfig> pipelines;
 };
 
 struct MapEntry {
@@ -78,21 +76,26 @@ struct MapEntry {
 // 配置管理类
 class config {
 private:
-    GlobalConfig global;
-    std::vector<CameraConfig> cameras;
-    std::vector<IRCameraConfig> IR_cameras;
-    GlobalStitchConfig stitch;
+    Config cfg;
     static std::string resource_config;
-    cudaTextureObject_t d_mapping_table{0};
     config();
     bool loadFromFile(const std::string key);
-    bool loadMappingTable(const std::string key, uint64_t width, uint64_t height);
+    void loadGlobalConfig(const json& j, GlobalConfig& cfg);
+    void loadCamerasInfo(std::string file_path, PipelineConfig& pipe);
+    void loadStitchConfig(const json& j, StitchConfig& stitch, uint64_t default_width, uint64_t default_height);
+    void loadPipelineConfig(const json& j, PipelineConfig& pipe);
+    bool loadMappingTable(cudaTextureObject_t& tex,
+                            const std::string filename,
+                            uint64_t width,
+                            uint64_t height);
 public:
     static void SetConfigFileName(std::string key); // 一定要在初始化的时候就配置好
     static config& GetInstance();
+    const Config GetConfig() const;
     const GlobalConfig GetGlobalConfig() const;
-    const std::vector<CameraConfig> GetCameraConfig() const;
-    const std::vector<IRCameraConfig> GetIRCameraConfig() const;
-    const GlobalStitchConfig GetGlobalStitchConfig() const;
-    const cudaTextureObject_t GetMappingTable() const;
+    const PipelineConfig GetPipelineConfig(int pipeline_id) const;
+    const std::vector<CameraConfig> GetCamerasConfig(int pipeline_id) const;
+    const StitchConfig GetStitchConfig(int pipeline_id) const;
 };
+
+#define CFG_HANDLE config::GetInstance()

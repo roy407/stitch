@@ -1,4 +1,4 @@
-#include "image_encoder.h"
+#include "EncoderConsumer.h"
 
 extern "C" {
     #include <libavutil/opt.h>
@@ -6,7 +6,7 @@ extern "C" {
 #include<iostream>
 #include "cuda_handle_init.h"
 
-image_encoder::image_encoder(int width, int height, safe_queue<Frame>& frame_input ,safe_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
+EncoderConsumer::EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input ,safe_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
     int fps = 10;
     
     codec = avcodec_find_encoder_by_name(codec_name.c_str());
@@ -51,7 +51,7 @@ image_encoder::image_encoder(int width, int height, safe_queue<Frame>& frame_inp
     codec_ctx->hw_frames_ctx = av_buffer_ref(frames_ref);
 }
 
-image_encoder::~image_encoder() {
+EncoderConsumer::~EncoderConsumer() {
     close_image_encoder();
     if (pkt) {
         av_packet_free(&pkt);
@@ -64,7 +64,7 @@ image_encoder::~image_encoder() {
     }
 }
 
-void image_encoder::start_image_encoder() {
+void EncoderConsumer::start_image_encoder() {
     if(!is_created) {
         if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
             throw std::runtime_error("Failed to open encoder");
@@ -74,11 +74,11 @@ void image_encoder::start_image_encoder() {
         TaskManager::start();
     }
 }
-void image_encoder::close_image_encoder() {
+void EncoderConsumer::close_image_encoder() {
     TaskManager::stop();
 }
 
-void image_encoder::run() {
+void EncoderConsumer::run() {
     Frame frame;
     Packet packet;
     while(running) {

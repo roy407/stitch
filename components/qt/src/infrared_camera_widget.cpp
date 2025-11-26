@@ -37,7 +37,7 @@ InfraredWidget::InfraredWidget(QWidget *parent) :
     cam = camera_manager::GetInstance();
     
     // 获取红外拼接流
-    q = &(cam->get_stitch_IR_camera_stream());
+    q = cam->getStitchCameraStream(1);
     
     con = QThread::create([this](){consumerThread();});
     con->start();
@@ -88,7 +88,7 @@ void InfraredWidget::consumerThread() {
     
     while (running.load()) {
         Frame frame;
-        if(!q->wait_and_pop(frame)) break;
+        if(!q->recv(frame)) break;
 
         std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         if (!lock.owns_lock()) {

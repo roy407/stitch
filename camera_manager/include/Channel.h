@@ -2,28 +2,36 @@
 #include "safe_queue.hpp"
 #include <memory>
 
-// 二阶段需要修改的内容
-
-class TaskManager; // 提前声明，防止头文件嵌套
-
-enum ChannelType {
-    P2C,
-    C2P
+class PacketChannel {
+    safe_queue<Packet> m_data;
+public:
+    bool recv(Packet& out) {
+        return m_data.wait_and_pop(out);
+    }
+    void send(Packet& p) {
+        m_data.push(p);
+    }
+    void clear() {
+        m_data.clear();
+    }
+    void stop() {
+        m_data.stop();
+    }
 };
 
-class Channel {
+class FrameChannel {
+    safe_queue<Frame> m_data;
 public:
-    virtual bool bind(TaskManager* producer, TaskManager* consumer, ChannelType type) = 0;
+    bool recv(Frame& out) {
+        return m_data.wait_and_pop(out);
+    }
+    void send(Frame& p) {
+        m_data.push(p);
+    }
+    void clear() {
+        m_data.clear();
+    }
+    void stop() {
+        m_data.stop();
+    }
 };
-
-class FrameChannel : public Channel {
-    std::shared_ptr<safe_queue<Frame>> m_data;
-public:
-    virtual bool bind(TaskManager* producer, TaskManager* consumer, ChannelType type);
-};
-
-class PacketChannel : public Channel {
-    std::shared_ptr<safe_queue<T_Packet>> m_data;
-public:
-    virtual bool bind(TaskManager* producer, TaskManager* consumer, ChannelType type);
-}

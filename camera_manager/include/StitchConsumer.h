@@ -14,17 +14,16 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "tools.hpp"
 #include "config.h"
-#include "image_encoder.h"
+#include "EncoderConsumer.h"
 #include "safe_queue.hpp"
 #include "LogConsumer.h"
+#include "Channel.h"
 
 class StitchOps; // 提前声明
 
 class StitchConsumer : public Consumer {
-    std::vector<safe_queue<Frame>*> m_frame;
-    std::vector<std::thread> m_threads; // 多路线程，分别做拼接
-    safe_queue<Frame> frame_output;
-    int cam_num{0};
+    std::vector<FrameChannel*> m_channelsFromDecoder;
+    FrameChannel* m_channel2show;
     int single_width{0};
     int output_width{0};
     int height{0};
@@ -34,13 +33,11 @@ class StitchConsumer : public Consumer {
     AVStream* out_stream;
     AVCodecParameters* codecpar;
     StitchOps* ops;
-    std::unique_ptr<TaskManager> m_rtspConsumer; // 拼接图像的推流线程，自己创建
     friend class LogConsumer;
-    void single_stitch(int cam_id);
 public:
-    StitchConsumer(StitchOps* ops, std::vector<safe_queue<Frame>*> frame_to_stitch, int single_width, int height, int output_width);
-    void init_rtsp();
-    safe_queue<Frame>& get_stitch_frame();
+    StitchConsumer(StitchOps* ops, int single_width, int height, int output_width);
+    void setChannels(std::vector<FrameChannel*> channels);
+    FrameChannel* getChannel2Show();
     virtual ~StitchConsumer();
     virtual void start();
     virtual void stop();

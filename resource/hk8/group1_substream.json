@@ -1,0 +1,31 @@
+{
+    "cameras": [
+        {
+            "name": "cam8",
+                       "cam_id": 8,
+            "input_url": "rtsp://192.168.1.58:554/live?channel=0&subtype=1",
+            "width": 640,
+            "height": 512,
+            "output_url": "rtsp://127.0.0.1:8554/cam8",
+            "rtsp": false
+        },
+        {
+            "name": "cam9",
+            "cam_id": 9,
+            "input_url": "rtsp://192.168.1.59:554/live?channel=0&subtype=1",
+            "width": 640,
+            "height": 512,
+            "output_url": "rtsp://127.0.0.1:8554/cam9",
+            "rtsp": false
+        }
+    ],
+    "stitch":{
+        "stitch_impl": {
+            "mapping_table": {
+                "file_path":"hk2.bin",
+                "output_width":1165
+            }
+        },
+        "output_url":"rtsp://127.0.0.1:8554/stitch_group1"
+    }
+}

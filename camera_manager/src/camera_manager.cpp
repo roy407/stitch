@@ -16,18 +16,6 @@ extern "C" {
     #include "libavutil/error.h" 
     #include "libavcodec/bsf.h"
 }
-#include "safe_queue.hpp"
-#include "image_decoder.h"
-#include "image_encoder.h"
-#include "config.h"
-#include "StitchImpl.h"
-#include "ResizeConsumer.h"
-
-#define cameras_debug
-
-#if defined(cameras_debug)
-#include "AVFrameProducer_debug.h"
-#endif
 
 camera_manager* camera_manager::GetInstance() {
     static camera_manager cam;
@@ -35,120 +23,54 @@ camera_manager* camera_manager::GetInstance() {
 }
 
 camera_manager::camera_manager() {
-    camera_num = config::GetInstance().GetCameraConfig().size();
-    IR_camera_num = config::GetInstance().GetIRCameraConfig().size();
-    log = new LogConsumer();
-    create_channel_1();
-    create_channel_2();
+    m_log = new LogConsumer();
+    initPipeline();
 }
 
 camera_manager::~camera_manager() {
-    delete log;
-    for(auto i: m_consumer_task) delete i;
-    for(auto i: m_producer_task) delete i;
-    destory_channel_2();
-    destory_channel_1();
+    delete m_log;
+    for(auto& p : m_pipelines) delete p;
 }
 
 void camera_manager::start() {
-    avformat_network_init(); // 初始化网络模块
-    for(int i=0;i<m_producer_task.size();i++) {
-        m_producer_task[i]->start();
+    if(!m_running) {
+        avformat_network_init(); // 初始化网络模块
+        for(auto& p : m_pipelines) p->start();
+        m_log->start();
+        m_running = true;
+    } else {
+        LOG_WARN("camera manager already started");
     }
-    for(int i=0;i<m_consumer_task.size();i++) {
-        m_consumer_task[i]->start();
-    }
-    log->start();
 }
 
 void camera_manager::stop() {
-    log->stop();
-    for(int i=0;i<m_producer_task.size();i++) {
-        m_producer_task[i]->stop();
+    if(m_running) {
+        m_log->stop();
+        for(auto& p : m_pipelines) p->stop();
+        avformat_network_deinit();
+        m_running = false;
+    } else {
+        LOG_WARN("camera manager already stopped");
     }
-    for(int i=0;i<m_consumer_task.size();i++) {
-        LOG_DEBUG("stitch consumer exit !");
-        m_consumer_task[i]->stop();
+}
+
+void camera_manager::initPipeline() {
+    auto& cfg = CFG_HANDLE.GetConfig();
+    Pipeline::setLogConsumer(m_log);
+    for(auto& p : cfg.pipelines) {
+        auto pipeline = new Pipeline(p);
+        m_pipelines.emplace_back(pipeline);
     }
-    avformat_network_deinit();
 }
 
-void camera_manager::create_channel_1() {
-    std::vector<safe_queue<Frame>*> frames;
-    const std::vector<CameraConfig> cameras = config::GetInstance().GetCameraConfig();
-    int width = 0; // 默认都是大小相同的相机
-    int height = 0;
-    for(int i = 0;i < camera_num;i ++) {
-        #if defined(cameras_debug)
-        AVFrameProducer_debug* pro = new AVFrameProducer_debug(cameras[i]);
-        #else
-        AVFrameProducer* pro = new AVFrameProducer(cameras[i]);
-        #endif
-        width = cameras[i].width;
-        height = cameras[i].height;
-        if(cameras[i].resize == true) {
-            std::unique_ptr<ResizeConsumer> rcon = std::make_unique<ResizeConsumer>(width, height, cameras[i].scale_factor);
-            auto& x = rcon->get_resize_frame();
-            m_resize_stream[i] = &x;
-            pro->SetResizeConsumer(std::move(rcon));
-        }
-        m_producer_task.emplace_back(pro);
-        log->setProducer(pro);
-        frames.push_back(&(pro->getFrameSender()));
+FrameChannel* camera_manager::getStitchCameraStream(int pipeline_id) {
+    return m_pipelines[pipeline_id]->getStitchCameraStream();
+}
+
+FrameChannel* camera_manager::getSingleCameraSubStream(int cam_id) {
+    for(auto& p : m_pipelines) {
+        auto ptr = p->getResizeCameraStream(cam_id);
+        if(ptr != nullptr) return ptr;
     }
-    int output_width = config::GetInstance().GetGlobalStitchConfig().camera_stitch_output_width;
-    StitchOps* ops = make_stitch_ops(new StitchImpl<YUV420, MappingTableKernel>());
-    ops->init(ops->obj, frames.size(), width, output_width, height);
-    StitchConsumer * stitch = new StitchConsumer(ops, frames, width, height, output_width);
-    channel_1_output = stitch;
-    log->setConsumer(stitch);
-    opses.push_back(ops);
-    m_consumer_task.push_back(stitch);
-}
-
-void camera_manager::destory_channel_1() {
-    delete_stitch_ops<StitchImpl<YUV420, MappingTableKernel>>(opses[0]);
-}
-
-void camera_manager::create_channel_2() {
-    if(IR_camera_num == 0) return;
-    std::vector<safe_queue<Frame>*> frames;
-    const std::vector<IRCameraConfig> IR_cameras = config::GetInstance().GetIRCameraConfig();
-    int width = 0; // 默认都是大小相同的相机
-    int height = 0;
-    for(int i = 0;i < IR_camera_num;i ++) {
-        AVFrameProducer* pro = new AVFrameProducer(IR_cameras[i]);
-        width = pro->getWidth();
-        height = pro->getHeight();
-        m_producer_task.emplace_back(pro);
-        log->setProducer(pro);
-        frames.push_back(&(pro->getFrameSender()));
-    }
-    int output_width = config::GetInstance().GetGlobalStitchConfig().IR_camera_stitch_output_width;
-    StitchOps* ops = make_stitch_ops(new StitchImpl<YUV420, RawKernel>());
-    ops->init(ops->obj, frames.size(), width, output_width, height);
-    StitchConsumer * stitch = new StitchConsumer(ops, frames, width, height, output_width);
-    channel_2_output = stitch;
-    log->setConsumer(stitch);
-    opses.push_back(ops);
-    m_consumer_task.push_back(stitch);
-}
-
-void camera_manager::destory_channel_2() {
-    if(IR_camera_num == 0) return;
-    delete_stitch_ops<StitchImpl<YUV420, RawKernel>>(opses[1]);
-}
-
-safe_queue<Frame> &camera_manager::get_stitch_IR_camera_stream() {
-    auto x = dynamic_cast<StitchConsumer*>(channel_2_output);
-    return x->get_stitch_frame();
-}
-
-safe_queue<Frame> &camera_manager::get_stitch_camera_stream() {
-    auto x = dynamic_cast<StitchConsumer*>(channel_1_output);
-    return x->get_stitch_frame();
-}
-
-safe_queue<Frame> *camera_manager::get_single_camera_sub_stream(int cam_id) {
-    return m_resize_stream[cam_id];
+    return nullptr;
 }

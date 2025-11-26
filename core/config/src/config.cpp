@@ -1,6 +1,8 @@
 #include "config.h"
 #include "log.hpp"
 
+#undef CFG_HANDLE
+
 std::string config::resource_config = "";
 
 config::config() {
@@ -14,107 +16,75 @@ bool config::loadFromFile(const std::string key) {
         std::cout<<"Failed to open config file: " <<filename<< std::endl;
         return false;
     }
-
     json j;
-    try {
-        infile >> j;
-
-        // 读取 global
-        global.use_sub_input = j["global"]["use_sub_input"];
-        global.software_status = j["global"]["software_status"];
-        global.status = j["global"]["status"];
-        global.save_rtsp_data_time = j["global"]["save_rtsp_data_time"];
-        global.save_rtsp_data_path = j["global"]["save_rtsp_data_path"];
-        global.image_decoder=j["global"]["image_decoder"];
-        global.image_encoder=j["global"]["image_encoder"];
-        // 读取 cameras
-        for (const auto& cam : j["cameras"]) {
-            CameraConfig c;
-            c.name = cam["name"];
-            c.cam_id = cam["cam_id"];
-            std::string cam_status;
-            if(global.use_sub_input) {
-                cam_status = "sub";
-            } else {
-                cam_status = "main";
-            }
-            c.input_url = cam[cam_status.c_str()]["input_url"];
-            c.width = cam[cam_status.c_str()]["width"];
-            c.height = cam[cam_status.c_str()]["height"];
-
-            c.sub.input_url = cam["sub"]["input_url"];
-            c.sub.width = cam["sub"]["width"];
-            c.sub.height = cam["sub"]["height"];
-            c.main.input_url = cam["main"]["input_url"];
-            c.main.width = cam["main"]["width"];
-            c.main.height = cam["main"]["height"];
-
-            c.output_url = cam["output_url"];
-
-            stitch.camera_stitch_output_width += c.width;
-
-            // crop 是数组
-            for (const auto& val : cam["crop"]) {
-                c.crop.push_back(val);
-            }
-
-            c.resize = cam.value("resize", false);
-            c.scale_factor = cam.value("scale_factor", 1.0);
-            c.rtsp = cam.value("rtsp", false); // 如果没有该字段则默认为 false
-
-            // 解析 stitch
-            if (cam.contains("stitch")) {
-                const auto& s = cam["stitch"];
-                c.stitch.enable = s.value("enable", false);
-                c.stitch.mode = s.value("mode", "");
-            }
-
-            cameras.push_back(c);
+    infile >> j;
+    if (j.contains("global")) loadGlobalConfig(j["global"], cfg.global);
+    if (j.contains("pipeline")) {
+        for (auto& p : j["pipeline"]) {
+            PipelineConfig pipe;
+            loadPipelineConfig(p, pipe);
+            cfg.pipelines.push_back(pipe);
         }
+    }
+    return true;
+}
 
-        for(const auto& IR_cam : j["IR_cameras"]) {
-            IRCameraConfig c;
-            c.name = IR_cam["name"];
-            c.cam_id = IR_cam["cam_id"];
-            c.input_url = IR_cam["input_url"];
-            c.width = IR_cam["width"];
-            c.height = IR_cam["height"];
+void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
+    cfg.mode = j.value("mode", "debug");
+    cfg.rtsp_record_duration = j.value("record_duration", 240);
+    cfg.rtsp_record_path = j.value("record_path", "/home/eric/mp4/");
+    cfg.decoder = j.value("decoder", "h264_cuvid");
+    cfg.encoder = j.value("encoder", "h264_nvenc");
+}
 
-            c.output_url = IR_cam["output_url"];
+void config::loadCamerasInfo(std::string file_path, PipelineConfig& pipe) {
+    std::ifstream infile(file_path);
+    if (!infile.is_open()) {
+        std::cout<<"Failed to open config file: " <<file_path<< std::endl;
+        return;
+    }
+    json j;
+    infile >> j;
+    auto prase_camera = [&pipe](json& j, CameraConfig& cam) {
+        cam.name = j.value("name", "");
+        cam.cam_id = j.value("cam_id", -1);
+        cam.enable = j.value("enable", false);
+        cam.input_url = j.value("input_url", "");
+        cam.width = j.value("width", -1);
+        cam.height = j.value("height", -1);
+        cam.resize = j.value("resize", false);
+        cam.scale_factor = j.value("scale_factor", 1.0);
+        cam.rtsp = j.value("rtsp", false);
+        cam.output_url = j.value("output_url", "");
 
-            stitch.IR_camera_stitch_output_width += c.width;
-
-            // crop 是数组
-            for (const auto& val : IR_cam["crop"]) {
-                c.crop.push_back(val);
-            }
-
-            c.rtsp = IR_cam.value("rtsp", false); // 如果没有该字段则默认为 false
-
-            // 解析 stitch
-            if (IR_cam.contains("stitch")) {
-                const auto& s = IR_cam["stitch"];
-                c.stitch.enable = s.value("enable", false);
-                c.stitch.mode = s.value("mode", "");
-            }
-
-            IR_cameras.push_back(c);
+        pipe.default_width += cam.width;
+        pipe.default_height = cam.height;
+    };
+    if(j.contains("cameras")) {
+        for(auto& c : j["cameras"]) {
+            CameraConfig cam;
+            prase_camera(c, cam);
+            pipe.cameras.push_back(cam);
         }
+    }
+    if(j.contains("stitch")) {
+        loadStitchConfig(j["stitch"], pipe.stitch, pipe.default_width, pipe.default_height);
+    }
+}
 
-        // 读取 stitch
-        stitch.output_url = j["stitch"]["output_url"];
+void config::loadStitchConfig(const json& j, StitchConfig& stitch, uint64_t default_width, uint64_t default_height) {
+    if (j.contains("stitch_impl") && j["stitch_impl"].contains("mapping_table")) {
+        auto m = j["stitch_impl"]["mapping_table"];
+        stitch.stitch_impl.mapping_table.file_path = m.value("file_path", "");
+        stitch.stitch_impl.mapping_table.output_width = m.value("output_width", -1);
+        loadMappingTable(stitch.stitch_impl.mapping_table.d_mapping_table,
+            resource_config + "/" + stitch.stitch_impl.mapping_table.file_path, stitch.stitch_impl.mapping_table.output_width, default_height);
+    }
 
-        if(j["stitch"].contains("camera_stitch_output_width")) {
-            stitch.camera_stitch_output_width = j["stitch"]["camera_stitch_output_width"];
-        }
-
-        if(j["stitch"].contains("IR_camera_stitch_output_width")) {
-            stitch.IR_camera_stitch_output_width = j["stitch"]["IR_camera_stitch_output_width"];
-        }
-
-        auto H_json = j["stitch"]["H_matrix_inv"];
-        std::vector<std::array<double, 9>>& h_matrix_inv = stitch.h_matrix_inv;
-        for (auto& [key, mat] : H_json.items()) {
+    if (j.contains("stitch_impl") && j["stitch_impl"].contains("H_matrix_inv")) {
+        auto h = j["stitch_impl"]["H_matrix_inv"];
+        std::vector<std::array<double, 9>>& h_matrix_inv = stitch.stitch_impl.h_matrix_inv;
+        for (auto& [key, mat] : h.items()) {
             std::array<double, 9> arr{};
             int idx = 0;
             for (const auto& row : mat) {
@@ -124,85 +94,89 @@ bool config::loadFromFile(const std::string key) {
             }
             h_matrix_inv.push_back(arr);
         }
-
-        auto cam_polygons_json = j["stitch"]["cam_polygons"];
-        std::vector<std::array<float, 8>>& cam_polygons = stitch.cam_polygons;
-        for (auto& [key, points] : cam_polygons_json.items()) {
-            std::array<float, 8> arr{};
-            int idx = 0;
-
-            for (const auto& p : points) {
-                // 四个点，每个点两个坐标
-                float x = static_cast<float>(std::round(p[0].get<double>()));
-                float y = static_cast<float>(std::round(p[1].get<double>()));
-                arr[idx++] = x;
-                arr[idx++] = y;
-            }
-            cam_polygons.push_back(arr);
-        }
-
-    } catch (const std::exception& e) {
-        std::cout<< "parsing JSON failed, use default setting:" << e.what() << std::endl;
-        return false;
     }
-    loadMappingTable(key, stitch.camera_stitch_output_width, cameras[0].height);
-    return true;
+
+    stitch.output_url = j.value("output_url", stitch.output_url);
 }
 
-bool config::loadMappingTable(const std::string key, uint64_t width, uint64_t height) {
-    std::string filename = key + ".bin";
+void config::loadPipelineConfig(const json& j, PipelineConfig& pipe) {
+    pipe.name = j.value("name", "");
+    pipe.pipeline_id = j.value("pipeline_id", -1);
+    pipe.enable = j.value("enable", false);
+    pipe.use_substream = j.value("use_sub_input", false);
+    pipe.main_stream = j.value("main_stream", "");
+    pipe.sub_stream = j.value("sub_stream", "");
+    if(pipe.use_substream == false) {
+        loadCamerasInfo(resource_config + "/" + pipe.main_stream, pipe);
+    } else {
+        loadCamerasInfo(resource_config + "/" + pipe.sub_stream, pipe);
+    }
+    if(j.contains("stitch")) {
+        pipe.stitch.stitch_mode = j["stitch"].value("stitch_mode", "raw");
+    } else {
+        pipe.stitch.stitch_mode = "raw";
+    }
+}
+
+bool config::loadMappingTable(cudaTextureObject_t& tex,
+                              const std::string filename,
+                              uint64_t width,
+                              uint64_t height)
+{
     std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open()) {
-        std::cout<<"Failed to open config file: "<<filename<<std::endl;
+        std::cout << "Failed to open mapping table: " << filename << std::endl;
         return false;
     }
+
     infile.seekg(0, std::ios::end);
-    size_t file_bytes = (size_t)infile.tellg();
+    size_t file_bytes = infile.tellg();
     infile.seekg(0, std::ios::beg);
 
-    size_t expected_bytes = file_bytes;
-    size_t expected_count = file_bytes / sizeof(uint16_t);
-    std::vector<uint16_t> __buf(expected_count);
-    infile.read(reinterpret_cast<char*>(__buf.data()), expected_bytes);
+    size_t count = file_bytes / sizeof(uint16_t);
+    std::vector<uint16_t> raw(count);
+    infile.read((char*)raw.data(), file_bytes);
 
     size_t total = width * height;
+
     std::vector<MapEntry> buf(total);
-    size_t src_idx = 0;
-    for (uint64_t x = 0; x < width; ++x) {
-        for (uint64_t y = 0; y < height; ++y) {
-            size_t dst_idx = static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
-            buf[dst_idx].cam_id = __buf[src_idx++]; // cam
-            buf[dst_idx].map_x  = __buf[src_idx++]; // map_x
-            buf[dst_idx].map_y  = __buf[src_idx++]; // map_y
-            buf[dst_idx].pad    = 0;
+    size_t idx = 0;
+    for (uint64_t x = 0; x < width; x++) {
+        for (uint64_t y = 0; y < height; y++) {
+            size_t dst = y * width + x;
+
+            buf[dst].cam_id = raw[idx++];
+            buf[dst].map_x  = raw[idx++];
+            buf[dst].map_y  = raw[idx++];
+            buf[dst].pad    = 0;
         }
     }
 
-    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<ushort4>();
+    // 分配独立 cudaArray
+    cudaChannelFormatDesc desc = cudaCreateChannelDesc<ushort4>();
     cudaArray_t cuArray;
-    cudaMallocArray(&cuArray, &channelDesc, width, height);
-    cudaMemcpy2DToArray(
-        cuArray,
-        0, 0,
-        buf.data(),
+    CHECK_CUDA(cudaMallocArray(&cuArray, &desc, width, height));
+
+    CHECK_CUDA(cudaMemcpy2DToArray(
+        cuArray, 0, 0, buf.data(),
         width * sizeof(MapEntry),
         width * sizeof(MapEntry),
         height,
-        cudaMemcpyHostToDevice);
-    struct cudaResourceDesc resDesc = {};
+        cudaMemcpyHostToDevice));
+
+    cudaResourceDesc resDesc = {};
     resDesc.resType = cudaResourceTypeArray;
     resDesc.res.array.array = cuArray;
 
-    // 配置纹理描述符
-    struct cudaTextureDesc texDesc = {};
-    texDesc.addressMode[0] = cudaAddressModeClamp;
-    texDesc.addressMode[1] = cudaAddressModeClamp;
+    cudaTextureDesc texDesc = {};
     texDesc.filterMode = cudaFilterModePoint;
     texDesc.readMode = cudaReadModeElementType;
-    texDesc.normalizedCoords = 0;  // 不归一化坐标
+    texDesc.addressMode[0] = cudaAddressModeClamp;
+    texDesc.addressMode[1] = cudaAddressModeClamp;
+    texDesc.normalizedCoords = 0;
 
-    // 创建 texture 对象
-    cudaCreateTextureObject(&d_mapping_table, &resDesc, &texDesc, nullptr);
+    CHECK_CUDA(cudaCreateTextureObject(&tex, &resDesc, &texDesc, nullptr));
+
     return true;
 }
 
@@ -216,22 +190,34 @@ config &config::GetInstance()
     return instance;
 }
 
+const Config config::GetConfig() const {
+    return cfg;
+}
+
 const GlobalConfig config::GetGlobalConfig() const {
-    return global;
+    return cfg.global;
 }
 
-const std::vector<CameraConfig> config::GetCameraConfig() const {
-    return cameras;
+const PipelineConfig config::GetPipelineConfig(int pipeline_id) const {
+    if(pipeline_id >= cfg.pipelines.size()) {
+        // TODO: 加上判断
+        std::cout<<""<<std::endl;
+    }
+    return cfg.pipelines[pipeline_id];
 }
 
-const std::vector<IRCameraConfig> config::GetIRCameraConfig() const {
-    return IR_cameras;
+const std::vector<CameraConfig> config::GetCamerasConfig(int pipeline_id) const {
+    if(pipeline_id >= cfg.pipelines.size()) {
+        // TODO: 加上判断
+        std::cout<<""<<std::endl;
+    }
+    return cfg.pipelines[pipeline_id].cameras;
 }
 
-const GlobalStitchConfig config::GetGlobalStitchConfig() const {
-    return stitch;
-}
-
-const cudaTextureObject_t config::GetMappingTable() const {
-    return d_mapping_table;
+const StitchConfig config::GetStitchConfig(int pipeline_id) const {
+    if(pipeline_id >= cfg.pipelines.size()) {
+        // TODO: 加上判断
+        std::cout<<""<<std::endl;
+    }
+    return cfg.pipelines[pipeline_id].stitch;
 }

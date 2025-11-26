@@ -41,12 +41,12 @@ widget_for_test::widget_for_test(QWidget *parent) :
     m_y_stride(0),
     m_uv_stride(0)
 {
-    setFixedSize(1920,360);
+    setFixedSize(20803,2160);
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
     cam = camera_manager::GetInstance();
     cam->start();
-    q = &(cam->get_stitch_camera_stream());
+    q = &(cam->getStitchCameraStream());
     con = QThread::create([this](){consumerThread();});
     con->start();
 }

@@ -136,7 +136,7 @@ void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
 
 static uint8_t font8x8[256][8];
 static bool inited = false;
-static int thickness = 10;
+static int thickness = 15;
 static int half = thickness / 2;
 
 
@@ -212,21 +212,21 @@ void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label, int
     int H = frame->height;
     int offset = H * 0.1;
 
-    if (x < 0 || x >= W) return;
+    // if (x < 0 || x >= W) return;
 
-    uint8_t* Y  = frame->data[0];
-    uint8_t* UV = frame->data[1];
+    // uint8_t* Y  = frame->data[0];
+    // uint8_t* UV = frame->data[1];
 
-    int strideY  = frame->linesize[0];
-    int strideUV = frame->linesize[1];
+    // int strideY  = frame->linesize[0];
+    // int strideUV = frame->linesize[1];
 
-    for (int y = offset; y < H - offset; y++) {
-        for (int dx = -half; dx <= half; dx++) {
-            int xx = x + dx;
-            if (xx >= 0 && xx < W)
-                Y[y * strideY + xx] = Y_Y;
-        }
-    }
+    // for (int y = offset; y < H - offset; y++) {
+    //     for (int dx = -half; dx <= half; dx++) {
+    //         int xx = x + dx;
+    //         if (xx >= 0 && xx < W)
+    //             Y[y * strideY + xx] = Y_Y;
+    //     }
+    // }
 
     // --------------------
     // 写 label（放在上方）

@@ -1,6 +1,6 @@
-// visible_camera_widget.h
-#ifndef WIDGET_H
-#define WIDGET_H
+// full_stitch_widget.h
+#ifndef WIDGET_FOR_TEST_H
+#define WIDGET_FOR_TEST_H
 
 #include <QOpenGLWidget>
 #include <QThread>
@@ -10,25 +10,23 @@
 #include "nv12render.h"
 #include "camera_manager.h"
 #include "safe_queue.hpp"
-#include "tools.hpp"
+
 extern "C" {
 #include <libavutil/frame.h>
 }
 
-class visible_camera_widget : public QOpenGLWidget {
+class full_stitch_widget : public QOpenGLWidget {
     Q_OBJECT
 public:
-    explicit visible_camera_widget(QWidget *parent = nullptr);
-    ~visible_camera_widget();
-signals:
-    void VisibleTitle(const QString& title); 
+    explicit full_stitch_widget(QWidget *parent = nullptr);
+    ~full_stitch_widget();
+
 protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
     void consumerThread();
-private slots:
-    void VisibleTitleTime(double dec_to_stitch);  
+
 private:
     Nv12Render* m_render;
     camera_manager* cam;
@@ -41,12 +39,10 @@ private:
     int m_height;
     int m_y_stride;
     int m_uv_stride;
-    std::chrono::steady_clock::time_point last_title_update;
-    std::chrono::seconds update_interval;
     
     void cleanup();
     void* aligned_alloc(size_t size, size_t alignment);
     void aligned_free(void* ptr);
 };
 
-#endif // WIDGET_H
+#endif // WIDGET_FOR_TEST_H

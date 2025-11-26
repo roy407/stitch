@@ -1,0 +1,151 @@
+{
+    "cameras": [
+        {
+            "name": "cam0",
+            "cam_id": 0,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam0",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam1",
+            "cam_id": 1,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.51:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam1",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam2",
+            "cam_id": 2,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.52:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam2",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam3",
+            "cam_id": 3,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.53:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam3",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam4",
+            "cam_id": 4,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.54:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam4",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam5",
+            "cam_id": 5,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.55:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam5",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam6",
+            "cam_id": 6,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.56:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam6",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        },
+        {
+            "name": "cam7",
+            "cam_id": 7,
+            "enable": true,
+            "input_url": "rtsp://admin:ky406sys@192.168.1.57:554/h265/ch1/main/av_stream",
+            "width": 3840,
+            "height": 2160,
+            "output_url": "rtsp://127.0.0.1:8554/cam7",
+            "resize": true,
+            "scale_factor": 0.1,
+            "rtsp": false
+        }
+    ],
+    "stitch":{
+        "stitch_impl": {
+            "mapping_table": {
+                "file_path":"hk8.bin",
+                "output_width":20803
+            },
+            "H_matrix_inv": {
+                "cam0": [
+                    [1, 0, 7463],
+                    [0, 1, -31.64],
+                    [0, 0, 1]
+                ],
+                "cam1": [
+                    [1, 0, 4971],
+                    [0, 1, -63.18],
+                    [0, 0, 1]
+                ],
+                "cam2": [
+                    [1, 0, 2463],
+                    [0, 1, -18.32],
+                    [0, 0, 1]
+                ],
+                "cam3": [
+                    [1, 0, 0],
+                    [0, 1, 0],
+                    [0, 0, 1]
+                ],
+                "cam4": [
+                    [1, 0, -2507],
+                    [0, 1, -2.664],
+                    [0, 0, 1]
+                ],
+                "cam5": [
+                    [1, 0, -5023],
+                    [0, 1, 31.32],
+                    [0, 0, 1]
+                ],
+                "cam6": [
+                    [1, 0, -7595],
+                    [0, 1, 50.32],
+                    [0, 0, 1]
+                ],
+                "cam7": [
+                    [1, 0, -9963],
+                    [0, 1, -10.38],
+                    [0, 0, 1]
+                ]
+            }
+        },
+        "output_url":"rtsp://127.0.0.1:8554/stitch_group0"
+    }
+}
