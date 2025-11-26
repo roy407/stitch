@@ -50,4 +50,5 @@ target_link_libraries(qt PRIVATE
   pthread
   config
   camera_manager
+  utils
 )

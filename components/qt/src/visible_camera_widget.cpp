@@ -9,6 +9,7 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 #include "log.hpp"
+#include "tools.hpp"
 
 void* visible_camera_widget::aligned_alloc(size_t size, size_t alignment) {
     void* ptr = nullptr;
@@ -149,6 +150,7 @@ void visible_camera_widget::consumerThread() {
         m_height = process_frame->height;
         m_y_stride = process_frame->linesize[0];
         m_uv_stride = process_frame->linesize[1];
+        draw_vertical_line_nv12(process_frame, 2000, "120");
 
         // 确保行对齐是32字节的倍数
         if (m_y_stride % 32 != 0) {

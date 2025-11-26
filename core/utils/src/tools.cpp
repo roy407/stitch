@@ -133,3 +133,109 @@ void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
             << total << '\n';
     }
 }
+
+static uint8_t font8x8[256][8];
+static bool inited = false;
+static int thickness = 10;
+static int half = thickness / 2;
+
+
+void init_font8x8() {
+    const uint8_t FONT_MINUS[8] = {0x00,0x00,0x00,0x7E,0x00,0x00,0x00,0x00};
+    const uint8_t FONT_0[8]     = {0x3C,0x42,0x46,0x4A,0x52,0x62,0x3C,0x00};
+    const uint8_t FONT_1[8]     = {0x08,0x18,0x08,0x08,0x08,0x08,0x3E,0x00};
+    const uint8_t FONT_2[8]     = {0x3C,0x42,0x02,0x0C,0x30,0x40,0x7E,0x00};
+    const uint8_t FONT_DEG[8]   = {0x18,0x24,0x24,0x18,0x00,0x00,0x00,0x00}; 
+    // 清零
+    memset(font8x8, 0, sizeof(font8x8));
+
+    memcpy(font8x8['-'], FONT_MINUS, 8);
+    memcpy(font8x8['0'], FONT_0, 8);
+    memcpy(font8x8['1'], FONT_1, 8);
+    memcpy(font8x8['2'], FONT_2, 8);
+    memcpy(font8x8[0xB0], FONT_DEG, 8);
+}
+
+void draw_char_nv12_y(AVFrame* frame, int x, int y, char c)
+{
+    uint8_t* Y = frame->data[0];
+    int strideY  = frame->linesize[0];
+
+    const uint8_t* bmp = font8x8[(uint8_t)c];
+
+    for (int r = 0; r < 8; r++)
+    {
+        uint8_t row = bmp[r];
+
+        for (int col = 0; col < 8; col++)
+        {
+            // 当前 bit 是否为 1（字符像素）
+            if (row & (1 << (7 - col)))
+            {
+                // 放大 thickness × thickness
+                for (int dy = 0; dy < thickness; dy++)
+                {
+                    for (int dx = 0; dx < thickness; dx++)
+                    {
+                        int xx = x + col * thickness + dx;
+                        int yy = y + r * thickness + dy;
+
+                        if (xx >= 0 && xx < frame->width &&
+                            yy >= 0 && yy < frame->height)
+                        {
+                            Y[yy * strideY + xx] = 255;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void draw_text_nv12(AVFrame* frame, int x, int y, const std::string& text)
+{
+    for (size_t i = 0; i < text.size(); i++) {
+        draw_char_nv12_y(frame, x + i * (8 * thickness) - 100, y , text[i]);
+    }
+}
+
+void draw_vertical_line_nv12(AVFrame *frame, int x, const std::string label) {
+
+    if(!inited) {
+        init_font8x8();
+        inited = true;
+    }
+
+    int W = frame->width;
+    int H = frame->height;
+    int offset = H * 0.1;
+
+    if (x < 0 || x >= W) return;
+
+    uint8_t* Y  = frame->data[0];
+    uint8_t* UV = frame->data[1];
+
+    int strideY  = frame->linesize[0];
+    int strideUV = frame->linesize[1];
+
+    for (int y = offset; y < H - offset; y++) {
+        for (int dx = -half; dx <= half; dx++) {
+            int xx = x + dx;
+            if (xx >= 0 && xx < W)
+                Y[y * strideY + xx] = 200;
+        }
+    }
+
+    // --------------------
+    // 写 label（放在上方）
+    // --------------------
+    int text_width = label.size() * 8;
+    int text_x = x - text_width / 2;
+    if (text_x < 0) text_x = 0;
+    if (text_x + text_width >= W) text_x = W - text_width - 1;
+
+    int text_y = offset - 200;   // 竖线上方
+    
+    draw_text_nv12(frame, text_x, text_y, label);
+}
+
