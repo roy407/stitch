@@ -35,6 +35,38 @@ __device__ uint8_t median_filter(uint8_t* values, int n)
 
 
 
+
+
+#define KERNEL_RADIUS 1           
+#define KERNEL_SIZE (2*KERNEL_RADIUS + 1)
+
+__device__ int get_region_index(int x)
+{
+    const int region_x0[8] = {1200, 2000, 3000, 4000, 500, 1000, 1500, 2500};
+    const int region_x1[8] = {1500, 2300, 3300, 4300, 800, 1300, 1800, 2800};
+    for(int r=0;r<8;r++){
+        if(x >= region_x0[r] && x < region_x1[r]) return r;
+    }
+    return -1;
+}
+
+__device__ uint8_t median_filter(uint8_t* values, int n)
+{
+    for(int i=0;i<n-1;i++){
+        for(int j=i+1;j<n;j++){
+            if(values[i] > values[j]){
+                uint8_t tmp = values[i];
+                values[i] = values[j];
+                values[j] = tmp;
+            }
+        }
+    }
+    return values[n/2];
+}
+
+
+
+
 __global__ void stitch_kernel_Y_with_mapping_table(
     uint8_t** inputs_y, int* input_linesize_y,
     uint8_t* output_y, int output_linesize_y,
@@ -72,11 +104,21 @@ __global__ void stitch_kernel_Y_with_mapping_table(
         for(int dx=-KERNEL_RADIUS; dx<=KERNEL_RADIUS; dx++){
             int xx = map_x + dx;
             if(xx<0 || xx>=width) continue;
-            window[count++] = input[yy*in_pitch_y + xx];
+            window[count++] = input_y[yy*in_pitch_y + xx];
         }
     }
     uint8_t val = median_filter(window, count);
-    output_y[y*output_linesize_y + x] = val;
+    
+    for(int dy=-KERNEL_RADIUS; dy<=KERNEL_RADIUS; dy++){
+        int yy = map_y + dy;
+        if(yy<0 || yy>=height) continue;
+        for(int dx=-KERNEL_RADIUS; dx<=KERNEL_RADIUS; dx++){
+            int xx = map_x + dx;
+            if(xx<0 || xx>=width) continue;
+            else output_y[yy*output_linesize_y + xx] = val;
+        }
+    }
+    // output_y[y*output_linesize_y + x] = val;
 }
 
 __global__ void stitch_kernel_UV_with_mapping_table(
