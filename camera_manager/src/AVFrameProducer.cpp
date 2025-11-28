@@ -21,9 +21,9 @@ AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
-                stream = fmt_ctx->streams[video_stream];
+                time_base = fmt_ctx->streams[video_stream]->time_base;
                 codecpar = avcodec_parameters_alloc();
-                avcodec_parameters_copy(codecpar, stream->codecpar);
+                avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
@@ -48,9 +48,9 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
-                stream = fmt_ctx->streams[video_stream];
+                time_base = fmt_ctx->streams[video_stream]->time_base;
                 codecpar = avcodec_parameters_alloc();
-                avcodec_parameters_copy(codecpar, stream->codecpar);
+                avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
@@ -109,8 +109,8 @@ int AVFrameProducer::getHeight() const {
     return m_status.height;
 }
 
-AVStream *AVFrameProducer::getAVStream() const {
-    return stream;
+AVRational AVFrameProducer::getTimeBase() const {
+    return time_base;
 }
 
 AVCodecParameters *AVFrameProducer::getAVCodecParameters() const {

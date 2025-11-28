@@ -35,8 +35,10 @@ DecoderConsumer::~DecoderConsumer() {
     avcodec_free_context(&codec_ctx);
 }
 
-void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar) {
+void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar, AVRational time_base) {
     avcodec_parameters_to_context(codec_ctx, codecpar);
+    codec_ctx->time_base = time_base;
+    codec_ctx->pkt_timebase = time_base;
 }
 
 void DecoderConsumer::setChannel(PacketChannel *channel) {

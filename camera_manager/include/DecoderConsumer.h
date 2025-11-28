@@ -19,7 +19,7 @@ class DecoderConsumer : public TaskManager {
 public:
     DecoderConsumer(const std::string& codec_name);
     virtual ~DecoderConsumer();
-    void setAVCodecParameters(AVCodecParameters* codecpar);
+    void setAVCodecParameters(AVCodecParameters* codecpar, AVRational time_base);
     void setChannel(PacketChannel* channel);
     FrameChannel* getChannel2Resize();
     FrameChannel* getChannel2Stitch();

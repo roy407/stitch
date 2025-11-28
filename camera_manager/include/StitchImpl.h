@@ -364,7 +364,6 @@ bool StitchImpl<Format, KernelTag>::SetCamPolygons() {
 
 template <typename Format, typename KernelTag>
 bool StitchImpl<Format, KernelTag>::loadMappingTable(cudaTextureObject_t tex) {
-    LOG_DEBUG("输出结果是 {}", tex);
     d_mapping_table = tex;
     return true;
 }

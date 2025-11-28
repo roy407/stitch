@@ -29,6 +29,7 @@ StitchOps *Pipeline::getStitchOps(int pipeline_id, std::string Format, std::stri
     } else {
 
     }
+    return nullptr;
 }
 
 // TODO: 构造函数待补充
@@ -50,11 +51,11 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             if(cam.rtsp == true) {
                 RtspConsumer* rtspCon = new RtspConsumer(cam.output_url);
                 rtspCon->setChannel(pro->getChannel2Rtsp());
-                rtspCon->setParamters(pro->getAVCodecParameters(), pro->getAVStream()->time_base);
+                rtspCon->setParamters(pro->getAVCodecParameters(), pro->getTimeBase());
                 m_consumerTask.push_back(rtspCon);
             }
             DecoderConsumer* dcon = new DecoderConsumer(CFG_HANDLE.GetGlobalConfig().decoder);
-            dcon->setAVCodecParameters(pro->getAVCodecParameters());
+            dcon->setAVCodecParameters(pro->getAVCodecParameters(), pro->getTimeBase());
             dcon->setChannel(pro->getChannel2Decoder());
             m_consumerTask.push_back(dcon);
             if(cam.resize == true) {

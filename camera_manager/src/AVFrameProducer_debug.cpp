@@ -19,9 +19,9 @@ AVFrameProducer_debug::AVFrameProducer_debug(CameraConfig camera_config): AVFram
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
-                stream = fmt_ctx->streams[video_stream];
+                time_base = fmt_ctx->streams[video_stream]->time_base;
                 codecpar = avcodec_parameters_alloc();
-                avcodec_parameters_copy(codecpar, stream->codecpar);
+                avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
@@ -37,9 +37,6 @@ void AVFrameProducer_debug::run() {
         if(ret < 0) return;
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
-            if(video_stream >= 0) {
-                stream = fmt_ctx->streams[video_stream];
-            }
         }
     }
 
@@ -72,7 +69,7 @@ void AVFrameProducer_debug::run() {
             pkt_copy2.m_data = av_packet_clone(&pkt);
 
             // ---- 保证 pts -> 实时播放（对齐原视频速度）----
-            double pts_sec = pkt.pts * av_q2d(stream->time_base);
+            double pts_sec = pkt.pts * av_q2d(time_base);
             if (start_pts == AV_NOPTS_VALUE) {
                 start_pts = pts_sec;
                 start_time = std::chrono::steady_clock::now();

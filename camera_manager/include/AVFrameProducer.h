@@ -18,7 +18,7 @@ protected:
     AVFormatContext* fmt_ctx{nullptr};
     AVDictionary* options{nullptr};
     std::string cam_path;
-    AVStream* stream{nullptr};
+    AVRational time_base;
     int video_stream{-1};
     AVCodecParameters* codecpar{nullptr};
     CamStatus m_status{};
@@ -33,7 +33,7 @@ public:
     virtual void run();
     int getWidth() const;
     int getHeight() const;
-    AVStream* getAVStream() const;
+    AVRational getTimeBase() const;
     AVCodecParameters* getAVCodecParameters() const;
     PacketChannel* getChannel2Rtsp() const;
     PacketChannel* getChannel2Decoder() const;
