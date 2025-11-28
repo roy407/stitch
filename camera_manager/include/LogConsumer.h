@@ -34,7 +34,7 @@ class LogConsumer : public Consumer {
     void printCPUStatus();
 public:
     LogConsumer();
-    ~LogConsumer();
+    virtual ~LogConsumer();
     virtual void start();
     virtual void stop();
     virtual void run();

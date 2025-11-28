@@ -65,6 +65,7 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             }
             channels.push_back(dcon->getChannel2Stitch());
         }
+        // TODO: YUV420 放置在json中
         StitchConsumer* stitch = new StitchConsumer(getStitchOps(p.pipeline_id, "YUV420", p.stitch.stitch_mode),
             p.cameras[0].width, p.default_height, p.stitch.stitch_impl.mapping_table.output_width);
         stitch->setChannels(channels);

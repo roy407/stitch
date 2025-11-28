@@ -18,7 +18,7 @@ extern "C" {
 class DecoderConsumer : public TaskManager {
 public:
     DecoderConsumer(const std::string& codec_name);
-    ~DecoderConsumer();
+    virtual ~DecoderConsumer();
     void setAVCodecParameters(AVCodecParameters* codecpar);
     void setChannel(PacketChannel* channel);
     FrameChannel* getChannel2Resize();

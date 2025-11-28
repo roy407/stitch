@@ -17,7 +17,7 @@ extern "C" {
 class EncoderConsumer : public TaskManager {
 public:
     EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = CFG_HANDLE.GetGlobalConfig().encoder);
-    ~EncoderConsumer();
+    virtual ~EncoderConsumer();
     void start_image_encoder();
     void close_image_encoder();
 
