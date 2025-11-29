@@ -47,7 +47,7 @@
       └── README.md
 # 2 代码调用过程
 ## 2.1 main.cpp与lib.cpp
-    lib.cpp与main.cpp是独立的，当使用main时,编译生成的stitch_app是可执行文件，而使用lib.cpp时,stitch_app是一个动态链接库（stitch_app.dll）。
+    lib.cpp与main.cpp是独立的，当使用main时,编译生成的stitch_app是可执行文件，而使用lib.cpp时,stitch_app是一个动态链接库（stitch_app.so）。
     为什么要这样设计？因为之前qt程序是独立的，为了能够显示拼接效果，我们使用qt，通过调用stitch_app.all，创建拼接线程，获取拼接图像。后来将qt和其它程序合并了，直接
   能够获取拼接图像，所以就很少使用lib.cpp了。
     怎么确定使用lib.cpp还是main.cpp?它们的选择方式写在最外层的CMakeLists.txt。也就是：
@@ -57,7 +57,7 @@
           add_executable(stitch_app main.cpp)
       endif()
 ## 2.2 从main.cpp到components/qt
-    mian.cpp中创建widget对象时调用wiget类的构造函数。进入构造函数后，首先创建了新的Nv12Render对象，它是一个OPENGL渲染器，然后访问单例模式的cam,启动cam，再通
+    main.cpp中创建widget对象时调用wiget类的构造函数。进入构造函数后，首先创建了新的Nv12Render对象，它是一个OPENGL渲染器，然后访问单例模式的cam,启动cam，再通
     cam内部的get_stitch_stream（）函数获取图像buffer。再开启一个消费线程(consumerThread())，在消费线程内，先将图像从GPU转换到CPU上，利用行跨度进行32位对齐，将数据拷贝到m_buffer里，使用渲染器进行渲染。
 ## 2.3 config
     用于读取json文件内的参数内容，是单例模式。
