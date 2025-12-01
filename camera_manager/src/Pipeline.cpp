@@ -104,3 +104,7 @@ FrameChannel *Pipeline::getResizeCameraStream(int cam_id) const {
         return nullptr;
     }
 }
+
+size_t Pipeline::getResizeCameraStreamCount() const {
+    return m_resizeStream.size();
+}

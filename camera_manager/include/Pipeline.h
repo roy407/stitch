@@ -42,4 +42,5 @@ public:
     void stop();
     FrameChannel* getStitchCameraStream() const;
     FrameChannel* getResizeCameraStream(int cam_id) const;
+    size_t getResizeCameraStreamCount() const;
 };

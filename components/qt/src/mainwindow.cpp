@@ -191,20 +191,22 @@ void StitchMainWindow::setupUI()
  
     mainLayout->addWidget(visibleStitchWidget, 3);
     
-    // ========== 下层：8路可见光相机 ==========
-    camerasLabel = new QLabel("单路可见光相机", this);
-    camerasLabel->setAlignment(Qt::AlignCenter);
-    camerasLabel->setFont(labelFont);
-    camerasLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 8px; }");
-    mainLayout->addWidget(camerasLabel);
-    
-    // 创建相机容器
-    camerasWidget = new QWidget(this);
-    camerasLayout = new QGridLayout(camerasWidget);
-    camerasLayout->setSpacing(5);
-    camerasLayout->setContentsMargins(5, 5, 5, 5);
-    // 添加时指定拉伸比例：2（8路相机区域）
-    mainLayout->addWidget(camerasWidget, 2);
+    if(cam->getResizeCameraStreamCount() != 0) {
+        // ========== 下层：8路可见光相机 ==========
+        camerasLabel = new QLabel("单路可见光相机", this);
+        camerasLabel->setAlignment(Qt::AlignCenter);
+        camerasLabel->setFont(labelFont);
+        camerasLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 8px; }");
+        mainLayout->addWidget(camerasLabel);
+        
+        // 创建相机容器
+        camerasWidget = new QWidget(this);
+        camerasLayout = new QGridLayout(camerasWidget);
+        camerasLayout->setSpacing(5);
+        camerasLayout->setContentsMargins(5, 5, 5, 5);
+        // 添加时指定拉伸比例：2（8路相机区域）
+        mainLayout->addWidget(camerasWidget, 2);
+    }
 
     stackedLayout->addWidget(mainWidget);
 
@@ -222,6 +224,7 @@ void StitchMainWindow::setupUI()
 
 void StitchMainWindow::setupCameras()
 {
+    if(cam->getResizeCameraStreamCount() == 0) return;
     // 从配置文件读取摄像头信息
     auto& config = CFG_HANDLE;
     auto cameras = config.GetCamerasConfig(0);
