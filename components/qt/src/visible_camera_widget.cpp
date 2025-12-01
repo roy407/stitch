@@ -93,7 +93,7 @@ void visible_camera_widget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 void visible_camera_widget::VisibleTitleTime(double cost_time){
-    QString title = QString("可见光拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    QString title = QString("可见光拼接");
     emit VisibleTitle(title);
 } 
 

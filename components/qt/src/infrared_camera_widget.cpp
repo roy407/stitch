@@ -79,7 +79,7 @@ void InfraredWidget::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 void InfraredWidget::IRTitleTime(double cost_time){
-    QString title = QString("红外拼接-耗时 %1ms").arg(cost_time, 0, 'f', 2);
+    QString title = QString("红外拼接");
     emit IRTitle(title);
 }
 //红外拼接帧的处理

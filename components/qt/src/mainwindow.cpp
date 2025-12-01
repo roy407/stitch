@@ -33,7 +33,7 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
     setupCameras();
 
     stackedLayout->setCurrentIndex(0); 
-    setFixedSize(2560,1440);
+    showFullScreen();
 }
 
 StitchMainWindow::~StitchMainWindow()
