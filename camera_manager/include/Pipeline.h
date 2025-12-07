@@ -22,7 +22,7 @@ extern "C" {
 #include "tools.hpp"
 #include "DecoderConsumer.h"
 #include "EncoderConsumer.h"
-#include "AVFrameProducer.h"
+#include "AVPacketProducer.h"
 #include "LogConsumer.h"
 #include "StitchImpl.h"
 

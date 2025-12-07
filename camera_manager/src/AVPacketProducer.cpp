@@ -1,10 +1,10 @@
-#include "AVFrameProducer.h"
+#include "AVPacketProducer.h"
 
-AVFrameProducer::AVFrameProducer() {
+AVPacketProducer::AVPacketProducer() {
     
 }
 
-AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
+AVPacketProducer::AVPacketProducer(CameraConfig camera_config)
 {
     this->cam_id = camera_config.cam_id;
     m_name += camera_config.name;
@@ -32,7 +32,7 @@ AVFrameProducer::AVFrameProducer(CameraConfig camera_config)
     m_channel2decoder = new PacketChannel;
 }
 
-AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
+AVPacketProducer::AVPacketProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
     this->cam_id = cam_id;
     m_name += name;
     fmt_ctx = avformat_alloc_context();
@@ -59,20 +59,20 @@ AVFrameProducer::AVFrameProducer(int cam_id, std::string name, std::string input
     m_channel2decoder = new PacketChannel;
 }
 
-AVFrameProducer::~AVFrameProducer() {
+AVPacketProducer::~AVPacketProducer() {
     avcodec_parameters_free(&codecpar);
     delete m_channel2rtsp;
     delete m_channel2decoder;
 }
 
-void AVFrameProducer::start() {
+void AVPacketProducer::start() {
     TaskManager::start();
 }
-void AVFrameProducer::stop() {
+void AVPacketProducer::stop() {
     TaskManager::stop();
 }
 
-void AVFrameProducer::run() {
+void AVPacketProducer::run() {
     while(running) {
         int ret = 0;
         ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
@@ -101,27 +101,27 @@ void AVFrameProducer::run() {
     }
 }
 
-int AVFrameProducer::getWidth() const {
+int AVPacketProducer::getWidth() const {
     return m_status.width;
 }
 
-int AVFrameProducer::getHeight() const {
+int AVPacketProducer::getHeight() const {
     return m_status.height;
 }
 
-AVRational AVFrameProducer::getTimeBase() const {
+AVRational AVPacketProducer::getTimeBase() const {
     return time_base;
 }
 
-AVCodecParameters *AVFrameProducer::getAVCodecParameters() const {
+AVCodecParameters *AVPacketProducer::getAVCodecParameters() const {
     return codecpar;
 }
 
-PacketChannel *AVFrameProducer::getChannel2Rtsp() const {
+PacketChannel *AVPacketProducer::getChannel2Rtsp() const {
     return m_channel2rtsp;
 }
 
-PacketChannel *AVFrameProducer::getChannel2Decoder() const {
+PacketChannel *AVPacketProducer::getChannel2Decoder() const {
     return m_channel2decoder;
 }
 

@@ -10,7 +10,7 @@ extern "C" {
 #include "config.h"
 #include "Channel.h"
 
-class AVFrameProducer : public Producer {
+class AVPacketProducer : public Producer {
 protected:
     PacketChannel* m_channel2rtsp{nullptr};
     PacketChannel* m_channel2decoder{nullptr};
@@ -24,10 +24,10 @@ protected:
     CamStatus m_status{};
     friend class LogConsumer;
 public:
-    AVFrameProducer(); // for AVFrameProducer_debug, do nothing!
-    AVFrameProducer(CameraConfig camera_config);
-    AVFrameProducer(int cam_id, std::string name, std::string input_url, int width, int height);
-    virtual ~AVFrameProducer();
+    AVPacketProducer(); // for AVPacketProducer_debug, do nothing!
+    AVPacketProducer(CameraConfig camera_config);
+    AVPacketProducer(int cam_id, std::string name, std::string input_url, int width, int height);
+    virtual ~AVPacketProducer();
     virtual void start();
     virtual void stop();
     virtual void run();

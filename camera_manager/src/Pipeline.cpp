@@ -8,7 +8,7 @@
 #define cameras_debug
 
 #if defined(cameras_debug)
-#include "AVFrameProducer_debug.h"
+#include "AVPacketProducer_debug.h"
 #endif
 
 LogConsumer* Pipeline::m_log = nullptr;
@@ -42,9 +42,9 @@ Pipeline::Pipeline(const PipelineConfig &p) {
         std::vector<FrameChannel*> channels;
         for(auto& cam : p.cameras) {
             #if defined(cameras_debug)
-            AVFrameProducer_debug* pro = new AVFrameProducer_debug(cam);
+            AVPacketProducer_debug* pro = new AVPacketProducer_debug(cam);
             #else
-            AVFrameProducer* pro = new AVFrameProducer(cam);
+            AVPacketProducer* pro = new AVPacketProducer(cam);
             #endif
             m_producerTask.push_back(pro);
             if(m_log) m_log->setProducer(pro);

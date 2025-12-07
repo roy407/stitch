@@ -3,8 +3,8 @@ add_library(camera_manager STATIC
   src/TaskManager.cpp
   src/Producer.cpp
   src/Consumer.cpp
-  src/AVFrameProducer.cpp
-  src/AVFrameProducer_debug.cpp
+  src/AVPacketProducer.cpp
+  src/AVPacketProducer_debug.cpp
   src/ResizeConsumer.cpp
   src/RtspConsumer.cpp
   src/StitchConsumer.cpp

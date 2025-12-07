@@ -1,7 +1,7 @@
-#include "AVFrameProducer_debug.h"
+#include "AVPacketProducer_debug.h"
 #include "RtspConsumer.h"
 
-AVFrameProducer_debug::AVFrameProducer_debug(CameraConfig camera_config): AVFrameProducer() {
+AVPacketProducer_debug::AVPacketProducer_debug(CameraConfig camera_config): AVPacketProducer() {
     this->cam_id = camera_config.cam_id;
     m_name += camera_config.name;
     fmt_ctx = avformat_alloc_context();
@@ -30,7 +30,7 @@ AVFrameProducer_debug::AVFrameProducer_debug(CameraConfig camera_config): AVFram
     m_channel2decoder = new PacketChannel;
 }
 
-void AVFrameProducer_debug::run() {
+void AVPacketProducer_debug::run() {
     open_mp4:   // 循环打开的入口
     {
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
