@@ -53,7 +53,6 @@ stitch/
 ├── CMakeLists.txt                  # 顶层构建配置
 ├── Makefile                        # 构建与打包入口
 ├── main.cpp                        # 程序主入口
-├── inc/                            # 全局头文件
 ├── components/                     # UI 模块（Qt 实现）
 │   ├── qt/
 │   └── CMakeLists.txt
@@ -76,7 +75,7 @@ stitch/
 │   └── plot_timing.py              # 性能可视化脚本
 ├── resource/
 │   ├── hk5.json
-│   └── hk8.json
+│   └── cam10.json
 └── README.md
 ```
 
