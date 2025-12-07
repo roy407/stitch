@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
         config_name = argv[1];
     }
     config::SetConfigFileName(config_name);
-    if(config_name == "resource/hk8") {
+    if(config_name == "resource/cam10") {
         return launch_with_mainwindow(argc, argv);
     } else if(config_name == "resource/hk5") {
         // return launch_with_widget(argc, argv);

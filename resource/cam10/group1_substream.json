@@ -22,7 +22,7 @@
     "stitch":{
         "stitch_impl": {
             "mapping_table": {
-                "file_path":"hk2.bin",
+                "file_path":"cam2.bin",
                 "output_width":1165
             }
         },

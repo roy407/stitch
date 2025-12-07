@@ -29,12 +29,12 @@ case "$NUM_CAM" in
     5)
         CONFIG_FILE="resource/hk5"
         ;;
-    8)
-        CONFIG_FILE="resource/hk8"
+    10)
+        CONFIG_FILE="resource/cam10"
         ;;
     *)
         echo "错误: 不支持的相机数量: $NUM_CAM"
-        echo "仅支持 5, 8"
+        echo "仅支持 5, 10"
         exit 1
         ;;
 esac
@@ -52,5 +52,3 @@ echo "stitch_app exit"
 echo "开始绘制 timing 图..."
 
 python3 scripts/plot_timing.py
-
-echo "绘图完成"
