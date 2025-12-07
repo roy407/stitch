@@ -3,6 +3,8 @@
 # 默认相机数量
 NUM_CAM=5
 
+CAMERAS_DEBUG=OFF
+
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -10,9 +12,13 @@ while [[ $# -gt 0 ]]; do
             NUM_CAM="$2"
             shift 2
             ;;
+        --debug)
+            CAMERAS_DEBUG=ON
+            shift
+            ;;
         *)
             echo "未知参数: $1"
-            echo "用法: ./start_camera.sh -n <相机数量>"
+            echo "用法: ./start_camera.sh [-n 数量] [--debug]"
             exit 1
             ;;
     esac
@@ -33,7 +39,8 @@ case "$NUM_CAM" in
         ;;
 esac
 
-make build
+echo "调试宏 cameras_debug: $CAMERAS_DEBUG"
+make build CAMERAS_DEBUG=$CAMERAS_DEBUG
 
 echo "使用配置文件: $CONFIG_FILE"
 echo "launch stitch_app..."

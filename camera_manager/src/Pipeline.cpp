@@ -5,8 +5,6 @@
 #include "StitchImpl.h"
 #include "StitchConsumer.h"
 
-#define cameras_debug
-
 #if defined(cameras_debug)
 #include "AVPacketProducer_debug.h"
 #endif

@@ -12,6 +12,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
 
+if(CAMERAS_DEBUG)
+    add_compile_definitions(cameras_debug)
+endif()
+
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
