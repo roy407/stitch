@@ -1,10 +1,6 @@
-#include "AVPacketProducer.h"
+#include "RTSPPacketProducer.h"
 
-AVPacketProducer::AVPacketProducer() {
-    
-}
-
-AVPacketProducer::AVPacketProducer(CameraConfig camera_config)
+RTSPPacketProducer::RTSPPacketProducer(CameraConfig camera_config)
 {
     this->cam_id = camera_config.cam_id;
     m_name += camera_config.name;
@@ -22,17 +18,14 @@ AVPacketProducer::AVPacketProducer(CameraConfig camera_config)
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
                 time_base = fmt_ctx->streams[video_stream]->time_base;
-                codecpar = avcodec_parameters_alloc();
                 avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
     }
-    m_channel2rtsp = new PacketChannel;
-    m_channel2decoder = new PacketChannel;
 }
 
-AVPacketProducer::AVPacketProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
+RTSPPacketProducer::RTSPPacketProducer(int cam_id, std::string name, std::string input_url, int width, int height) {
     this->cam_id = cam_id;
     m_name += name;
     fmt_ctx = avformat_alloc_context();
@@ -49,30 +42,24 @@ AVPacketProducer::AVPacketProducer(int cam_id, std::string name, std::string inp
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
                 time_base = fmt_ctx->streams[video_stream]->time_base;
-                codecpar = avcodec_parameters_alloc();
                 avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
         avformat_close_input(&fmt_ctx);
     }
-    m_channel2rtsp = new PacketChannel;
-    m_channel2decoder = new PacketChannel;
 }
 
-AVPacketProducer::~AVPacketProducer() {
-    avcodec_parameters_free(&codecpar);
-    delete m_channel2rtsp;
-    delete m_channel2decoder;
+RTSPPacketProducer::~RTSPPacketProducer() {
 }
 
-void AVPacketProducer::start() {
+void RTSPPacketProducer::start() {
     TaskManager::start();
 }
-void AVPacketProducer::stop() {
+void RTSPPacketProducer::stop() {
     TaskManager::stop();
 }
 
-void AVPacketProducer::run() {
+void RTSPPacketProducer::run() {
     while(running) {
         int ret = 0;
         ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
@@ -99,29 +86,5 @@ void AVPacketProducer::run() {
         }
         avformat_close_input(&fmt_ctx);
     }
-}
-
-int AVPacketProducer::getWidth() const {
-    return m_status.width;
-}
-
-int AVPacketProducer::getHeight() const {
-    return m_status.height;
-}
-
-AVRational AVPacketProducer::getTimeBase() const {
-    return time_base;
-}
-
-AVCodecParameters *AVPacketProducer::getAVCodecParameters() const {
-    return codecpar;
-}
-
-PacketChannel *AVPacketProducer::getChannel2Rtsp() const {
-    return m_channel2rtsp;
-}
-
-PacketChannel *AVPacketProducer::getChannel2Decoder() const {
-    return m_channel2decoder;
 }
 

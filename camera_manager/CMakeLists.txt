@@ -3,8 +3,10 @@ add_library(camera_manager STATIC
   src/TaskManager.cpp
   src/Producer.cpp
   src/Consumer.cpp
-  src/AVPacketProducer.cpp
-  src/AVPacketProducer_debug.cpp
+  src/PacketProducer.cpp
+  src/RTSPPacketProducer.cpp
+  src/MP4PacketProducer.cpp
+  src/USBPacketProducer.cpp
   src/ResizeConsumer.cpp
   src/RtspConsumer.cpp
   src/StitchConsumer.cpp
@@ -30,6 +32,7 @@ target_link_libraries(camera_manager PRIVATE
   avcodec
   avformat
   avutil
+  avdevice
   swscale
   pthread
   config

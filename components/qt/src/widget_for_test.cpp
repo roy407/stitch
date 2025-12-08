@@ -30,7 +30,7 @@ void widget_for_test::aligned_free(void* ptr) {
 #endif
 }
 
-widget_for_test::widget_for_test(QWidget *parent) : 
+widget_for_test::widget_for_test(int pipeline_id, int width, int height, QWidget *parent) : 
     QOpenGLWidget(parent),
     m_render(nullptr),
     cam(nullptr),
@@ -41,12 +41,12 @@ widget_for_test::widget_for_test(QWidget *parent) :
     m_y_stride(0),
     m_uv_stride(0)
 {
-    setFixedSize(20803,2160);
+    setFixedSize(width, height);
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
     cam = camera_manager::GetInstance();
     cam->start();
-    q = &(cam->getStitchCameraStream());
+    q = cam->getStitchCameraStream(pipeline_id);
     con = QThread::create([this](){consumerThread();});
     con->start();
 }
@@ -104,16 +104,9 @@ void widget_for_test::consumerThread() {
 AVFrame* cpu_frame = av_frame_alloc();    
     while (running.load()) {
         Frame frame;
-        if(!q->wait_and_pop(frame)) break;
+        if(!q->recv(frame)) break;
         AVFrame* src_frame = frame.m_data;
         AVFrame* process_frame = nullptr;
-        
-        // std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
-            // if (!lock.owns_lock()) {
-            //     av_frame_free(&process_frame);
-            //     continue;
-            // }
-
         // 硬件帧转换到CPU
         if (src_frame->format == AV_PIX_FMT_CUDA) {
             if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
@@ -141,12 +134,6 @@ AVFrame* cpu_frame = av_frame_alloc();
         size_t uv_size = m_uv_stride * (m_height / 2);
         size_t total_size = y_size + uv_size;
         
-
-            // std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
-            // if (!lock.owns_lock()) {
-            //     av_frame_free(&process_frame);
-            //     continue;
-            // }
             if (m_buffer.size() < total_size) {
                 m_buffer.resize(total_size);
             }
@@ -156,7 +143,7 @@ AVFrame* cpu_frame = av_frame_alloc();
             QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
-        save_cost_table_csv(frame.m_costTimes,ofs);
+        save_cost_table_csv(frame.m_costTimes, ofs);
     }
     q->clear();
     av_frame_free(&cpu_frame);

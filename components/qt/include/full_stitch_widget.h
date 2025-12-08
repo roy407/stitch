@@ -1,6 +1,6 @@
 // full_stitch_widget.h
-#ifndef WIDGET_FOR_TEST_H
-#define WIDGET_FOR_TEST_H
+#ifndef FULL_STITCH_WIDGET_H
+#define FULL_STITCH_WIDGET_H
 
 #include <QOpenGLWidget>
 #include <QThread>
@@ -45,4 +45,4 @@ private:
     void aligned_free(void* ptr);
 };
 
-#endif // WIDGET_FOR_TEST_H
+#endif // FULL_STITCH_WIDGET_H

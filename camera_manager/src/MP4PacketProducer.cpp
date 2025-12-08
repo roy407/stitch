@@ -1,7 +1,7 @@
-#include "AVPacketProducer_debug.h"
+#include "MP4PacketProducer.h"
 #include "RtspConsumer.h"
 
-AVPacketProducer_debug::AVPacketProducer_debug(CameraConfig camera_config): AVPacketProducer() {
+MP4PacketProducer::MP4PacketProducer(CameraConfig camera_config) {
     this->cam_id = camera_config.cam_id;
     m_name += camera_config.name;
     fmt_ctx = avformat_alloc_context();
@@ -20,7 +20,6 @@ AVPacketProducer_debug::AVPacketProducer_debug(CameraConfig camera_config): AVPa
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
             if(video_stream >= 0) {
                 time_base = fmt_ctx->streams[video_stream]->time_base;
-                codecpar = avcodec_parameters_alloc();
                 avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
             }
         }
@@ -30,7 +29,18 @@ AVPacketProducer_debug::AVPacketProducer_debug(CameraConfig camera_config): AVPa
     m_channel2decoder = new PacketChannel;
 }
 
-void AVPacketProducer_debug::run() {
+MP4PacketProducer::~MP4PacketProducer() {
+}
+
+void MP4PacketProducer::start() {
+    TaskManager::start();
+}
+
+void MP4PacketProducer::stop() {
+    TaskManager::stop();
+}
+
+void MP4PacketProducer::run() {
     open_mp4:   // 循环打开的入口
     {
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);

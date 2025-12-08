@@ -15,6 +15,7 @@ extern "C" {
     #include "libavutil/log.h"
     #include "libavutil/error.h" 
     #include "libavcodec/bsf.h"
+    #include "libavdevice/avdevice.h"
 }
 
 camera_manager* camera_manager::GetInstance() {
@@ -34,7 +35,6 @@ camera_manager::~camera_manager() {
 
 void camera_manager::start() {
     if(!m_running) {
-        avformat_network_init(); // 初始化网络模块
         for(auto& p : m_pipelines) p->start();
         m_log->start();
         m_running = true;
@@ -55,6 +55,8 @@ void camera_manager::stop() {
 }
 
 void camera_manager::initPipeline() {
+    avformat_network_init(); // 初始化网络模块
+    avdevice_register_all(); // 不执行这一步，会找不到v4l2
     auto& cfg = CFG_HANDLE.GetConfig();
     Pipeline::setLogConsumer(m_log);
     for(auto& p : cfg.pipelines) {

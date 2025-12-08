@@ -4,25 +4,28 @@
 #include "DecoderConsumer.h"
 #include "StitchImpl.h"
 #include "StitchConsumer.h"
-
-#if defined(cameras_debug)
-#include "AVPacketProducer_debug.h"
-#endif
+#include "RTSPPacketProducer.h"
+#include "MP4PacketProducer.h"
+#include "USBPacketProducer.h"
 
 LogConsumer* Pipeline::m_log = nullptr;
 
 //TODO : 完全支持 json配置
-StitchOps *Pipeline::getStitchOps(int pipeline_id, std::string Format, std::string kernelTag) {
+StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string Format, std::string kernelTag) {
     auto& p = CFG_HANDLE.GetPipelineConfig(pipeline_id);
+    LOG_INFO("pipeline id : {}, Format : {}, kernelTag : {}", pipeline_id, Format, kernelTag);
     if(Format == "YUV420") {
         if(kernelTag == "mapping_table") {
-        auto stitchImpl = new StitchImpl<YUV420, MappingTableKernel>();
-        stitchImpl->loadMappingTable(p.stitch.stitch_impl.mapping_table.d_mapping_table);
-        StitchOps* ops = make_stitch_ops(stitchImpl);
-        ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.stitch.stitch_impl.mapping_table.output_width, p.default_height);
-        return ops;
-        } else {
-
+            auto stitchImpl = new StitchImpl<YUV420, MappingTableKernel>();
+            stitchImpl->loadMappingTable(p.stitch.stitch_impl.mapping_table.d_mapping_table);
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.stitch.stitch_impl.mapping_table.output_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.stitch.stitch_impl.mapping_table.output_width);
+        } else if(kernelTag == "raw") {
+            auto stitchImpl = new StitchImpl<YUV420, RawKernel>();
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);;
         }
     } else {
 
@@ -39,11 +42,15 @@ Pipeline::Pipeline(const PipelineConfig &p) {
     if(p.enable == true) {
         std::vector<FrameChannel*> channels;
         for(auto& cam : p.cameras) {
-            #if defined(cameras_debug)
-            AVPacketProducer_debug* pro = new AVPacketProducer_debug(cam);
-            #else
-            AVPacketProducer* pro = new AVPacketProducer(cam);
-            #endif
+            std::string type = CFG_HANDLE.GetGlobalConfig().type;
+            PacketProducer* pro = nullptr;
+            if(type == "mp4") {
+                pro = new MP4PacketProducer(cam);
+            } else if(type == "rtsp") {
+                pro = new RTSPPacketProducer(cam);
+            } else if(type == "usb") {
+                pro = new USBPacketProducer(cam);
+            }
             m_producerTask.push_back(pro);
             if(m_log) m_log->setProducer(pro);
             if(cam.rtsp == true) {
@@ -65,8 +72,7 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             channels.push_back(dcon->getChannel2Stitch());
         }
         // TODO: YUV420 放置在json中
-        StitchConsumer* stitch = new StitchConsumer(getStitchOps(p.pipeline_id, "YUV420", p.stitch.stitch_mode),
-            p.cameras[0].width, p.default_height, p.stitch.stitch_impl.mapping_table.output_width);
+        StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, "YUV420", p.stitch.stitch_mode);
         stitch->setChannels(channels);
         m_consumerTask.push_back(stitch);
         if(m_log) m_log->setConsumer(stitch);

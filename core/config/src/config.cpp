@@ -31,6 +31,7 @@ bool config::loadFromFile(const std::string key) {
 
 void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
     cfg.mode = j.value("mode", "debug");
+    cfg.type = j.value("type", "mp4");
     cfg.rtsp_record_duration = j.value("record_duration", 240);
     cfg.rtsp_record_path = j.value("record_path", "/home/eric/mp4/");
     cfg.decoder = j.value("decoder", "h264_cuvid");
@@ -45,25 +46,12 @@ void config::loadCamerasInfo(std::string file_path, PipelineConfig& pipe) {
     }
     json j;
     infile >> j;
-    auto prase_camera = [&pipe](json& j, CameraConfig& cam) {
-        cam.name = j.value("name", "");
-        cam.cam_id = j.value("cam_id", -1);
-        cam.enable = j.value("enable", false);
-        cam.input_url = j.value("input_url", "");
-        cam.width = j.value("width", -1);
-        cam.height = j.value("height", -1);
-        cam.resize = j.value("resize", false);
-        cam.scale_factor = j.value("scale_factor", 1.0);
-        cam.rtsp = j.value("rtsp", false);
-        cam.output_url = j.value("output_url", "");
-
-        pipe.default_width += cam.width;
-        pipe.default_height = cam.height;
-    };
     if(j.contains("cameras")) {
         for(auto& c : j["cameras"]) {
             CameraConfig cam;
-            prase_camera(c, cam);
+            praseCameraConfig(c, cam);
+            pipe.default_width += cam.width;
+            pipe.default_height = cam.height;
             pipe.cameras.push_back(cam);
         }
     }
@@ -103,18 +91,36 @@ void config::loadPipelineConfig(const json& j, PipelineConfig& pipe) {
     pipe.name = j.value("name", "");
     pipe.pipeline_id = j.value("pipeline_id", -1);
     pipe.enable = j.value("enable", false);
-    pipe.use_substream = j.value("use_sub_input", false);
-    pipe.main_stream = j.value("main_stream", "");
-    pipe.sub_stream = j.value("sub_stream", "");
-    if(pipe.use_substream == false) {
-        loadCamerasInfo(resource_config + "/" + pipe.main_stream, pipe);
+    if(j.contains("use_sub_input")) { // TODO：先暂时这么写，之后有问题继续修改
+        pipe.use_substream = j.value("use_sub_input", false);
+        pipe.main_stream = j.value("main_stream", "");
+        pipe.sub_stream = j.value("sub_stream", "");
+        if(pipe.use_substream == false) {
+            loadCamerasInfo(resource_config + "/" + pipe.main_stream, pipe);
+        } else {
+            loadCamerasInfo(resource_config + "/" + pipe.sub_stream, pipe);
+        }
+        if(j.contains("stitch")) {
+            pipe.stitch.stitch_mode = j["stitch"].value("stitch_mode", "raw");
+        } else {
+            pipe.stitch.stitch_mode = "raw";
+        }
     } else {
-        loadCamerasInfo(resource_config + "/" + pipe.sub_stream, pipe);
-    }
-    if(j.contains("stitch")) {
-        pipe.stitch.stitch_mode = j["stitch"].value("stitch_mode", "raw");
-    } else {
-        pipe.stitch.stitch_mode = "raw";
+        if(j.contains("cameras")) {
+            for(auto& c : j["cameras"]) {
+                CameraConfig cam;
+                praseCameraConfig(c, cam);
+                pipe.default_height = cam.height;
+                pipe.default_width += cam.width;
+                pipe.cameras.push_back(cam);
+            }
+        }
+        if(j.contains("stitch")) {
+            pipe.stitch.stitch_mode = j["stitch"].value("stitch_mode", "raw");
+            loadStitchConfig(j["stitch"], pipe.stitch, pipe.default_width, pipe.default_height);
+        } else {
+            pipe.stitch.stitch_mode = "raw";
+        }
     }
 }
 
@@ -178,6 +184,19 @@ bool config::loadMappingTable(cudaTextureObject_t& tex,
     CHECK_CUDA(cudaCreateTextureObject(&tex, &resDesc, &texDesc, nullptr));
 
     return true;
+}
+
+void config::praseCameraConfig(const json & j, CameraConfig &cam) {
+    cam.name = j.value("name", "");
+    cam.cam_id = j.value("cam_id", -1);
+    cam.enable = j.value("enable", false);
+    cam.input_url = j.value("input_url", "");
+    cam.width = j.value("width", -1);
+    cam.height = j.value("height", -1);
+    cam.resize = j.value("resize", false);
+    cam.scale_factor = j.value("scale_factor", 1.0);
+    cam.rtsp = j.value("rtsp", false);
+    cam.output_url = j.value("output_url", "");
 }
 
 void config::SetConfigFileName(std::string key) {

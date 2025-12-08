@@ -18,7 +18,7 @@ extern "C" {
 class widget_for_test : public QOpenGLWidget {
     Q_OBJECT
 public:
-    explicit widget_for_test(QWidget *parent = nullptr);
+    explicit widget_for_test(int pipeline_id, int width, int height, QWidget *parent = nullptr);
     ~widget_for_test();
 
 protected:

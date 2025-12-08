@@ -10,27 +10,20 @@ extern "C" {
 #include "config.h"
 #include "Channel.h"
 
-class AVPacketProducer : public Producer {
+class PacketProducer : public Producer {
 protected:
     PacketChannel* m_channel2rtsp{nullptr};
     PacketChannel* m_channel2decoder{nullptr};
-    int cam_id{-1};    // 相机ID，一般是从0开始，依次加一
-    AVFormatContext* fmt_ctx{nullptr};
-    AVDictionary* options{nullptr};
-    std::string cam_path;
-    AVRational time_base;
-    int video_stream{-1};
+    int cam_id{-1};
     AVCodecParameters* codecpar{nullptr};
+    AVRational time_base;
     CamStatus m_status{};
     friend class LogConsumer;
 public:
-    AVPacketProducer(); // for AVPacketProducer_debug, do nothing!
-    AVPacketProducer(CameraConfig camera_config);
-    AVPacketProducer(int cam_id, std::string name, std::string input_url, int width, int height);
-    virtual ~AVPacketProducer();
+    PacketProducer();
+    virtual ~PacketProducer();
     virtual void start();
     virtual void stop();
-    virtual void run();
     int getWidth() const;
     int getHeight() const;
     AVRational getTimeBase() const;

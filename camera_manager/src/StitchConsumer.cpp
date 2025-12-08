@@ -38,6 +38,7 @@ void StitchConsumer::stop() {
 void StitchConsumer::run() { 
     Frame out_image;
     AVFrame** inputs = new AVFrame*[10];
+    LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
     while (running) {
         int frame_size = 0;
         for (auto& channel : m_channelsFromDecoder) {

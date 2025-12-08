@@ -22,13 +22,12 @@ extern "C" {
 #include "tools.hpp"
 #include "DecoderConsumer.h"
 #include "EncoderConsumer.h"
-#include "AVPacketProducer.h"
 #include "LogConsumer.h"
 #include "StitchImpl.h"
 
 class Pipeline {
 private:
-    StitchOps* getStitchOps(int pipeline_id, std::string Format, std::string kernelTag);
+    StitchConsumer* getStitchConsumer(int pipeline_id, std::string Format, std::string kernelTag);
     std::unordered_map<int, FrameChannel*> m_resizeStream; // cam_id -> resize_stream
     std::vector<TaskManager*> m_producerTask;
     std::vector<TaskManager*> m_consumerTask;

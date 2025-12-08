@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <chrono>
 #include "log.hpp"
-#include "AVPacketProducer.h"
+#include "RTSPPacketProducer.h"
 #include "StitchConsumer.h"
 #include <unistd.h>
 
@@ -10,7 +10,7 @@ struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
-void LogConsumer::printProducer(AVPacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
+void LogConsumer::printProducer(PacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
     if(pro) {
         CamStatus tmp = pro->m_status;
         LOG_INFO("{} [{},{}] FPS:{:.2f}", 
@@ -133,7 +133,7 @@ void LogConsumer::run() {
     }
 }
 
-void LogConsumer::setProducer(AVPacketProducer *pro) {
+void LogConsumer::setProducer(PacketProducer *pro) {
     m_pro.push_back(pro);
 }
 

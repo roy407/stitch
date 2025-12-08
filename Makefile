@@ -2,7 +2,6 @@
 
 BUILD_DIR := build
 DEPLOY_PACKAGE := build/deploy.tar.gz
-CAMERAS_DEBUG ?= OFF
 
 # 默认目标
 all: build
@@ -19,7 +18,7 @@ stitch_env:
 # 编译目标
 build:
 	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake .. -DCAMERAS_DEBUG=$(CAMERAS_DEBUG) && make
+	cd $(BUILD_DIR) && cmake .. && make
 
 # 打包目标
 deploy: build

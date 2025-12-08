@@ -134,6 +134,37 @@ void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
     }
 }
 
+void printCostTimes(const costTimes &c) { {
+    std::cout << "========== costTimes ==========\n";
+
+    std::cout << "image_frame_cnt: ";
+    for (int i = 0; i < 10; ++i) {
+        std::cout << c.image_frame_cnt[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "when_get_packet: ";
+    for (int i = 0; i < 10; ++i) {
+        std::cout << c.when_get_packet[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "when_get_decoded_frame: ";
+    for (int i = 0; i < 10; ++i) {
+        std::cout << c.when_get_decoded_frame[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "when_get_stitched_frame: "
+              << c.when_get_stitched_frame << "\n";
+
+    std::cout << "when_show_on_the_screen: "
+              << c.when_show_on_the_screen << "\n";
+
+    std::cout << "==============================\n";
+}
+}
+
 static uint8_t font8x8[256][8];
 static bool inited = false;
 static int thickness = 15;

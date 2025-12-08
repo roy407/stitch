@@ -55,6 +55,7 @@ struct PipelineConfig {
 
 struct GlobalConfig {
     std::string mode;
+    std::string type;
     int rtsp_record_duration = 0;
     std::string rtsp_record_path;
     std::string decoder;
@@ -88,6 +89,7 @@ private:
                             const std::string filename,
                             uint64_t width,
                             uint64_t height);
+    void praseCameraConfig(const json& j, CameraConfig& cam);
 public:
     static void SetConfigFileName(std::string key); // 一定要在初始化的时候就配置好
     static config& GetInstance();
