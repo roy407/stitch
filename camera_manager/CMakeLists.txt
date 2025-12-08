@@ -14,6 +14,7 @@ add_library(camera_manager STATIC
   src/cuda_handle_init.cpp
   src/DecoderConsumer.cpp
   src/EncoderConsumer.cpp
+  src/CallbackConsumer.cpp
   src/Pipeline.cpp
 )
 
