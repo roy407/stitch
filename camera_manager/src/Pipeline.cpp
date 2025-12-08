@@ -73,11 +73,15 @@ Pipeline::Pipeline(const PipelineConfig &p) {
         }
         // TODO: YUV420 放置在json中
         StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, "YUV420", p.stitch.stitch_mode);
-        stitch->setChannels(channels);
-        m_consumerTask.push_back(stitch);
-        if(m_log) m_log->setConsumer(stitch);
+        if(stitch != nullptr) {
+            stitch->setChannels(channels);
+            m_consumerTask.push_back(stitch);
+            if(m_log) m_log->setConsumer(stitch);
 
-        m_stitchStream = stitch->getChannel2Show();
+            m_stitchStream = stitch->getChannel2Show();
+        } else {
+            LOG_INFO("stitch consumer not init");
+        }
     }
 }
 
