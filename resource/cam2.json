@@ -21,7 +21,7 @@
                     "width": 3840,
                     "height": 1080,
                     "output_url": "rtsp://127.0.0.1:8554/cam0",
-                    "resize": false,
+                    "enable_view": false,
                     "scale_factor": 0.1,
                     "rtsp": false
                 }

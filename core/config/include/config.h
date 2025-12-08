@@ -17,7 +17,7 @@ struct CameraConfig {
     int width = 0;
     int height = 0;
     std::string output_url;
-    bool resize = false;
+    bool enable_view = false;
     double scale_factor = 1.0;
     bool rtsp = false;
 };

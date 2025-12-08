@@ -193,7 +193,7 @@ void config::praseCameraConfig(const json & j, CameraConfig &cam) {
     cam.input_url = j.value("input_url", "");
     cam.width = j.value("width", -1);
     cam.height = j.value("height", -1);
-    cam.resize = j.value("resize", false);
+    cam.enable_view = j.value("enable_view", false);
     cam.scale_factor = j.value("scale_factor", 1.0);
     cam.rtsp = j.value("rtsp", false);
     cam.output_url = j.value("output_url", "");

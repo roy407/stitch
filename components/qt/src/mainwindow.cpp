@@ -250,7 +250,7 @@ void StitchMainWindow::setupCameras()
     // 遍历 cameras，按 idx 放到 2x4 的网格中
     int visibleCount = 0;
     for (size_t i = 0; i < cameras.size(); ++i) {
-        if (!cameras[i].resize) continue;
+        if (!cameras[i].enable_view) continue;
 
         int idx = visibleCount;          // 第几个可见摄像头（0..n-1）
         int col = idx % 4;               // 0..3

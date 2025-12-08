@@ -1,6 +1,6 @@
 #include "Pipeline.h"
 #include "RtspConsumer.h"
-#include "ResizeConsumer.h"
+#include "SingleViewConsumer.h"
 #include "DecoderConsumer.h"
 #include "StitchImpl.h"
 #include "StitchConsumer.h"
@@ -63,8 +63,8 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             dcon->setAVCodecParameters(pro->getAVCodecParameters(), pro->getTimeBase());
             dcon->setChannel(pro->getChannel2Decoder());
             m_consumerTask.push_back(dcon);
-            if(cam.resize == true) {
-                ResizeConsumer* resizeCon = new ResizeConsumer(cam.width, cam.height, cam.scale_factor);
+            if(cam.enable_view == true) {
+                SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
                 resizeCon->setChannel(dcon->getChannel2Resize());
                 m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
                 m_consumerTask.push_back(resizeCon);
@@ -104,7 +104,7 @@ FrameChannel *Pipeline::getResizeCameraStream(int cam_id) const {
     if(m_resizeStream.find(cam_id) != m_resizeStream.end()) {
         return m_resizeStream.at(cam_id);
     } else {
-        LOG_WARN("can't find resize camera stream, cam_id is {}", cam_id);
+        LOG_WARN("can't find enable_view camera stream, cam_id is {}", cam_id);
         return nullptr;
     }
 }

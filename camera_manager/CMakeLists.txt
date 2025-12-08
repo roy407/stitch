@@ -7,7 +7,7 @@ add_library(camera_manager STATIC
   src/RTSPPacketProducer.cpp
   src/MP4PacketProducer.cpp
   src/USBPacketProducer.cpp
-  src/ResizeConsumer.cpp
+  src/SingleViewConsumer.cpp
   src/RtspConsumer.cpp
   src/StitchConsumer.cpp
   src/LogConsumer.cpp

@@ -11,15 +11,15 @@ extern "C" {
 }
 #include "Channel.h"
 
-class ResizeConsumer : public Consumer {
+class SingleViewConsumer : public Consumer {
 public:
-    ResizeConsumer(int width, int height, float scale_factor);
-    ResizeConsumer(int width, int height, AVRational rational);
-    ResizeConsumer(int width, int height, int output_width, int output_height);
+    SingleViewConsumer(int width, int height, float scale_factor);
+    SingleViewConsumer(int width, int height, AVRational rational);
+    SingleViewConsumer(int width, int height, int output_width, int output_height);
     virtual void start();
     virtual void stop();
     virtual void run();
-    virtual ~ResizeConsumer();
+    virtual ~SingleViewConsumer();
     void setChannel(FrameChannel* channel);
     FrameChannel* getChannel2Show() const;
 private:

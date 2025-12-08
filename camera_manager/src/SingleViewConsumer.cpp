@@ -1,22 +1,22 @@
-#include "ResizeConsumer.h"
+#include "SingleViewConsumer.h"
 #include "cuda_handle_init.h"
 #include "resize.cuh"
 
 // 构造函数中不能调用其他构造函数，否则只是创建了临时对象，应该像现在这样，以委托构造的方式
-ResizeConsumer::ResizeConsumer(int width, int height, float scale_factor) : ResizeConsumer(width,
+SingleViewConsumer::SingleViewConsumer(int width, int height, float scale_factor) : SingleViewConsumer(width,
     height,
     int(width * scale_factor),
     int(height * scale_factor)) {
 }
 
-ResizeConsumer::ResizeConsumer(int width, int height, AVRational rational) : ResizeConsumer(width,
+SingleViewConsumer::SingleViewConsumer(int width, int height, AVRational rational) : SingleViewConsumer(width,
     height,
     int(width * rational.num / rational.den),
     int(height * rational.num / rational.den)) {
 
 }
 
-ResizeConsumer::ResizeConsumer(int width, int height, int output_width, int output_height) {
+SingleViewConsumer::SingleViewConsumer(int width, int height, int output_width, int output_height) {
     this->width = width;
     this->height = height;
     this->output_width = output_width;
@@ -39,16 +39,16 @@ ResizeConsumer::ResizeConsumer(int width, int height, int output_width, int outp
     m_channel2show = new FrameChannel;
 }
 
-void ResizeConsumer::start() {
+void SingleViewConsumer::start() {
     TaskManager::start();
 }
 
-void ResizeConsumer::stop() {
+void SingleViewConsumer::stop() {
     m_channelFromDecoder->stop();
     TaskManager::stop();
 }
 
-void ResizeConsumer::run() {
+void SingleViewConsumer::run() {
     while (running) {
         Frame tmp;
         Frame out_image;
@@ -88,15 +88,15 @@ cleanup:
     m_channelFromDecoder->clear();
 }
 
-ResizeConsumer::~ResizeConsumer() {
+SingleViewConsumer::~SingleViewConsumer() {
     cudaStreamDestroy(stream);
     delete m_channel2show;
 }
 
-void ResizeConsumer::setChannel(FrameChannel *channel) {
+void SingleViewConsumer::setChannel(FrameChannel *channel) {
     m_channelFromDecoder = channel;
 }
 
-FrameChannel *ResizeConsumer::getChannel2Show() const {
+FrameChannel *SingleViewConsumer::getChannel2Show() const {
     return m_channel2show;
 }
