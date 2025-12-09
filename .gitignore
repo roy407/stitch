@@ -6,6 +6,7 @@ scripts/*.json
 *.bin
 .venv
 .vscode
+!docs/**
 
 # Python cache
 __pycache__/
