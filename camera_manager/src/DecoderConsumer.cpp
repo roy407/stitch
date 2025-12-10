@@ -41,11 +41,10 @@ DecoderConsumer::~DecoderConsumer() {
 
 void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar, AVRational time_base) {
     if (codec_ctx== nullptr) {
-
-        std::cout<<("Codec context is not initialized")<<std::endl;
+        throw std::runtime_error("Codec context is not initialized");
     }
     if (codecpar== nullptr) {
-        std::cout<<("AVCodecParameters is null")<<std::endl;
+        throw std::runtime_error("AVCodecParameters is null");
     }
     avcodec_parameters_to_context(codec_ctx, codecpar);
     codec_ctx->time_base = time_base;
