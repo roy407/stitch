@@ -32,6 +32,7 @@ bool config::loadFromFile(const std::string key) {
 void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
     cfg.mode = j.value("mode", "debug");
     cfg.type = j.value("type", "mp4");
+    cfg.format =j.value("format","YUV420");
     cfg.rtsp_record_duration = j.value("record_duration", 240);
     cfg.rtsp_record_path = j.value("record_path", "/home/eric/mp4/");
     cfg.decoder = j.value("decoder", "h264_cuvid");
@@ -218,25 +219,22 @@ const GlobalConfig config::GetGlobalConfig() const {
 }
 
 const PipelineConfig config::GetPipelineConfig(int pipeline_id) const {
-    if(pipeline_id >= cfg.pipelines.size()) {
-        // TODO: 加上判断
-        std::cout<<""<<std::endl;
+    if(pipeline_id >= cfg.pipelines.size() || pipeline_id < 0) {
+        throw std::runtime_error("Failed to pipeline id: " + std::to_string(pipeline_id));
     }
     return cfg.pipelines[pipeline_id];
 }
 
 const std::vector<CameraConfig> config::GetCamerasConfig(int pipeline_id) const {
-    if(pipeline_id >= cfg.pipelines.size()) {
-        // TODO: 加上判断
-        std::cout<<""<<std::endl;
+    if(pipeline_id >= cfg.pipelines.size() || pipeline_id < 0) {
+        throw std::runtime_error("Failed to pipeline id: " + std::to_string(pipeline_id));
     }
     return cfg.pipelines[pipeline_id].cameras;
 }
 
 const StitchConfig config::GetStitchConfig(int pipeline_id) const {
-    if(pipeline_id >= cfg.pipelines.size()) {
-        // TODO: 加上判断
-        std::cout<<""<<std::endl;
+    if(pipeline_id >= cfg.pipelines.size() || pipeline_id < 0) {
+        throw std::runtime_error("Failed to pipeline id: " + std::to_string(pipeline_id));
     }
     return cfg.pipelines[pipeline_id].stitch;
 }

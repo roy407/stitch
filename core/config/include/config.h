@@ -56,6 +56,7 @@ struct PipelineConfig {
 struct GlobalConfig {
     std::string mode;
     std::string type;
+    std::string format;
     int rtsp_record_duration = 0;
     std::string rtsp_record_path;
     std::string decoder;

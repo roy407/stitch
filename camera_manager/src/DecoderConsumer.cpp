@@ -36,12 +36,21 @@ DecoderConsumer::~DecoderConsumer() {
 }
 
 void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar, AVRational time_base) {
+    if (codec_ctx== nullptr) {
+        throw std::runtime_error("Codec context is not initialized");
+    }
+    if (codecpar== nullptr) {
+        throw std::runtime_error("AVCodecParameters is null");
+    }
     avcodec_parameters_to_context(codec_ctx, codecpar);
     codec_ctx->time_base = time_base;
     codec_ctx->pkt_timebase = time_base;
 }
 
 void DecoderConsumer::setChannel(PacketChannel *channel) {
+    if (channel == nullptr) {
+        throw std::runtime_error("PacketChannel is null");
+    }
     m_channelFromAVFramePro = channel;
 }
 

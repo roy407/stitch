@@ -2,6 +2,7 @@
     "global": {
         "mode": "debug",
         "type": "usb",
+        "format":"YUV420",
         "rtsp_record_duration": 240,
         "rtsp_record_path": "/home/eric/mp4/",
         "decoder": "mjpeg",
