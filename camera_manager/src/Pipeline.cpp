@@ -11,11 +11,12 @@
 LogConsumer* Pipeline::m_log = nullptr;
 
 //TODO : 完全支持 json配置
-StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string Format, std::string kernelTag) {
+StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelTag) {
     auto& p = CFG_HANDLE.GetPipelineConfig(pipeline_id);
-    LOG_INFO("pipeline id : {}, Format : {}, kernelTag : {}", pipeline_id, Format, kernelTag);
-    if(Format == "YUV420") {
-        if(kernelTag == "mapping_table") {
+    LOG_INFO("pipeline id : {}, kernelTag : {}", pipeline_id,  kernelTag);
+    std::string format =CFG_HANDLE.GetGlobalConfig().format;
+    if(format == "YUV420") {        
+        if(kernelTag =="mapping_table" ) {
             auto stitchImpl = new StitchImpl<YUV420, MappingTableKernel>();
             stitchImpl->loadMappingTable(p.stitch.stitch_impl.mapping_table.d_mapping_table);
             StitchOps* ops = make_stitch_ops(stitchImpl);
@@ -27,16 +28,25 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string Format,
             ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
             return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);;
         }
-    } else {
+    } else if(format == "YUV420P") {
+        if(kernelTag =="mapping_table" ) {
+            auto stitchImpl = new StitchImpl<YUV420P, MappingTableKernel>();
+            stitchImpl->loadMappingTable(p.stitch.stitch_impl.mapping_table.d_mapping_table);
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.stitch.stitch_impl.mapping_table.output_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.stitch.stitch_impl.mapping_table.output_width);
+        } else if(kernelTag == "raw") {
+            auto stitchImpl = new StitchImpl<YUV420P, RawKernel>();
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);;
+        }
 
     }
     return nullptr;
 }
 
-// TODO: 构造函数待补充
-Pipeline::Pipeline(int pipeline_id) {
-
-}
+Pipeline::Pipeline(int pipeline_id):Pipeline(CFG_HANDLE.GetPipelineConfig(pipeline_id)){}
 
 Pipeline::Pipeline(const PipelineConfig &p) {
     if(p.enable == true) {
@@ -71,8 +81,8 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             }
             channels.push_back(dcon->getChannel2Stitch());
         }
-        // TODO: YUV420 放置在json中
-        StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, "YUV420", p.stitch.stitch_mode);
+       
+        StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, p.stitch.stitch_mode);
         if(stitch != nullptr) {
             stitch->setChannels(channels);
             m_consumerTask.push_back(stitch);

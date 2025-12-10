@@ -27,7 +27,7 @@ extern "C" {
 
 class Pipeline {
 private:
-    StitchConsumer* getStitchConsumer(int pipeline_id, std::string Format, std::string kernelTag);
+    StitchConsumer* getStitchConsumer(int pipeline_id, std::string kernelTag);
     std::unordered_map<int, FrameChannel*> m_resizeStream; // cam_id -> resize_stream
     std::vector<TaskManager*> m_producerTask;
     std::vector<TaskManager*> m_consumerTask;

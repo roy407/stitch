@@ -3,7 +3,7 @@
 #include <iostream>
 using namespace std;
 
-__global__ void stitch_kernel_Y_with_mapping_table(
+__global__ void stitch_kernel_Y_with_mapping_table_yuv420p(
     uint8_t** inputs_y, int* input_linesize_y,
     uint8_t* output_y, int output_linesize_y,
     int cam_num, int single_width, int width, int height,
@@ -29,7 +29,7 @@ __global__ void stitch_kernel_Y_with_mapping_table(
     output_y[y * output_linesize_y + x] = val_y;
 }
 
-__global__ void stitch_kernel_UV_with_mapping_table(
+__global__ void stitch_kernel_UV_with_mapping_table_yuv420p(
     uint8_t** inputs_u, int* input_linesize_u, uint8_t** inputs_v, int* input_linesize_v,
     uint8_t* output_uv, int output_linesize_uv,
     int cam_num, int single_width, int width, int height, const cudaTextureObject_t mapping_table)
@@ -93,12 +93,12 @@ void launch_stitch_kernel_with_mapping_table_yuv420p(
     );
 
 
-    stitch_kernel_Y_with_mapping_table<<<gridY, block, 0, stream1>>>(
+    stitch_kernel_Y_with_mapping_table_yuv420p<<<gridY, block, 0, stream1>>>(
         inputs_y, input_linesize_y,
         output_y, output_linesize_y,
         cam_num, single_width, width, height, mapping_table);
 
-    stitch_kernel_UV_with_mapping_table<<<gridUV, block, 0, stream2>>>(
+    stitch_kernel_UV_with_mapping_table_yuv420p<<<gridUV, block, 0, stream2>>>(
         inputs_u, input_linesize_u, inputs_v, input_linesize_v,
         output_uv, output_linesize_uv,
         cam_num, single_width, width, height, mapping_table);

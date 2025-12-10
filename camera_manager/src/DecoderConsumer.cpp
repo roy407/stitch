@@ -10,12 +10,12 @@ DecoderConsumer::DecoderConsumer(const std::string& codec_name) {
     m_name += codec_name + "decoder";
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
     if (!codec) {
-        throw std::runtime_error("CUDA decoder not found: " + codec_name);
+      std::cout << "Codec " << codec_name << " not found" << std::endl;
     }
 
     codec_ctx = avcodec_alloc_context3(codec);
     if (!codec_ctx) {
-        throw std::runtime_error("Could not allocate codec context");
+        std::cout<<("Could not allocate codec context")<<std::endl;
     }
 
     codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
@@ -36,12 +36,22 @@ DecoderConsumer::~DecoderConsumer() {
 }
 
 void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar, AVRational time_base) {
+    if (codec_ctx== nullptr) {
+
+        std::cout<<("Codec context is not initialized")<<std::endl;
+    }
+    if (codecpar== nullptr) {
+        std::cout<<("AVCodecParameters is null")<<std::endl;
+    }
     avcodec_parameters_to_context(codec_ctx, codecpar);
     codec_ctx->time_base = time_base;
     codec_ctx->pkt_timebase = time_base;
 }
 
 void DecoderConsumer::setChannel(PacketChannel *channel) {
+    if (channel == nullptr) {
+        throw std::runtime_error("PacketChannel is null");
+    }
     m_channelFromAVFramePro = channel;
 }
 
