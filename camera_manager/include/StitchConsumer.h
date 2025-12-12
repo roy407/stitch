@@ -42,4 +42,6 @@ public:
     virtual void start();
     virtual void stop();
     virtual void run();
+
+    AVBufferRef* hw_frames_ctx{nullptr};
 };

@@ -1,5 +1,6 @@
 #include "StitchConsumer.h"
 #include "StitchImpl.h"
+#include "resize.cuh"
 
 StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int output_width) {
     m_name += "stitch";
@@ -10,6 +11,18 @@ StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int
     m_status.width = output_width;
     m_status.height = height;
     m_channel2show = new FrameChannel;
+
+    hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
+    AVHWFramesContext* frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
+    frames_ctx->format = AV_PIX_FMT_CUDA;
+    frames_ctx->sw_format = AV_PIX_FMT_NV12;   // CUDA 支持的底层格式
+    frames_ctx->width = 8192;
+    frames_ctx->height = 2160;
+    frames_ctx->initial_pool_size = 20;
+
+    if (av_hwframe_ctx_init(hw_frames_ctx) < 0) {
+        throw std::runtime_error("Failed to initialize CUDA hwframe context");
+    }
 }
 
 void StitchConsumer::setChannels(std::vector<FrameChannel*> channels) {
@@ -37,6 +50,7 @@ void StitchConsumer::stop() {
 
 void StitchConsumer::run() { 
     Frame out_image;
+    Frame resizeout;
     AVFrame** inputs = new AVFrame*[10];
     while (running) {
         int frame_size = 0;
@@ -50,9 +64,35 @@ void StitchConsumer::run() {
             frame_size ++;
         }
         out_image.m_data = ops->stitch(ops->obj, inputs);
-        out_image.m_data->pts = inputs[0]->pts;
-        out_image.m_costTimes.when_get_stitched_frame = get_now_time();
-        m_channel2show->send(out_image);
+
+        resizeout.m_data = av_frame_alloc();
+        resizeout.m_data->format = AV_PIX_FMT_CUDA;
+        resizeout.m_data->width = 8192;
+        resizeout.m_data->height = 2160;
+        resizeout.m_data->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
+        if (av_hwframe_get_buffer(hw_frames_ctx, resizeout.m_data, 0) < 0) {
+            throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
+        }
+        uint8_t* output_y = resizeout.m_data->data[0];
+        uint8_t* output_uv = resizeout.m_data->data[1];
+        int output_linesize_y = resizeout.m_data->linesize[0];
+        int output_linesize_uv = resizeout.m_data->linesize[1];
+
+        // out_image.m_data->pts = inputs[0]->pts;
+        resizeout.m_data->pts = inputs[0]->pts;
+        resizeout.m_costTimes.when_get_stitched_frame = get_now_time();
+
+        ReSize(out_image.m_data->data[0], out_image.m_data->data[1],
+        out_image.m_data->width, out_image.m_data->height,
+        out_image.m_data->linesize[0], out_image.m_data->linesize[1],
+        output_y, output_uv,
+        8192, 2160,
+        output_linesize_y, output_linesize_uv,
+        0);
+        cudaStreamSynchronize(0);
+
+        av_frame_free(&out_image.m_data);
+        m_channel2show->send(resizeout);
         m_status.frame_cnt ++;
         m_status.timestamp = get_now_time();
         for (int i = 0; i < m_channelsFromDecoder.size(); ++i) {
