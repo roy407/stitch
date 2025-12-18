@@ -27,7 +27,6 @@ MP4PacketProducer::MP4PacketProducer(CameraConfig camera_config) {
             if(video_stream >= 0) {
                 time_base = fmt_ctx->streams[video_stream]->time_base;
                 avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
-                LOG_DEBUG("thread {} get time_base and codecpar success!", m_name);
             }
         }
         avformat_close_input(&fmt_ctx);

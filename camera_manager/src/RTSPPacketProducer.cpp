@@ -3,7 +3,7 @@
 RTSPPacketProducer::RTSPPacketProducer(CameraConfig camera_config)
 {
     this->cam_id = camera_config.cam_id;
-    m_name += camera_config.name;
+    m_name = "RTSPPacketProducer_" + camera_config.name;
     fmt_ctx = avformat_alloc_context();
     av_dict_set(&options, "buffer_size", "4096000", 0);
     av_dict_set(&options, "rtsp_transport", "tcp", 0);

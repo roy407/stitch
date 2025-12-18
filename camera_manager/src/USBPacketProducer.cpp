@@ -10,7 +10,7 @@
 USBPacketProducer::USBPacketProducer(CameraConfig camera_config)
 {
     this->cam_id = camera_config.cam_id;
-    m_name += camera_config.name;
+    m_name = "USBPacketProducer_" + camera_config.name;
     std::string video_size = std::to_string(camera_config.width) + "x" + std::to_string(camera_config.height);
     fmt_ctx = avformat_alloc_context();
     av_dict_set(&options, "pixel_format", "mjpeg", 0);

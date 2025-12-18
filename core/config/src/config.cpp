@@ -13,7 +13,7 @@ bool config::loadFromFile() {
     std::string filename = config_name;
     std::ifstream infile(filename);
     if (!infile.is_open()) {
-        std::cout<<"Failed to open config file: " <<filename<< std::endl;
+        LOG_ERROR("Failed to open config file: {}" , filename);
         return false;
     }
     json j;
@@ -42,7 +42,7 @@ void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
 void config::loadCamerasInfo(std::string file_path, PipelineConfig& pipe) {
     std::ifstream infile(file_path);
     if (!infile.is_open()) {
-        std::cout<<"Failed to open config file: " <<file_path<< std::endl;
+        LOG_ERROR("Failed to open config file: {}" , file_path);
         return;
     }
     json j;
@@ -132,7 +132,7 @@ bool config::loadMappingTable(cudaTextureObject_t& tex,
 {
     std::ifstream infile(filename, std::ios::binary);
     if (!infile.is_open()) {
-        std::cout << "Failed to open mapping table: " << filename << std::endl;
+        LOG_ERROR("Failed to open mapping table: {}", filename);
         return false;
     }
 

@@ -11,15 +11,15 @@ extern "C" {
 }
 
 DecoderConsumer::DecoderConsumer(const std::string& codec_name) {
-    m_name += codec_name + "decoder";
+    m_name += codec_name + "_decoder";
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
     if (!codec) {
-      std::cout << "Codec " << codec_name << " not found" << std::endl;
+        LOG_ERROR("Codec {} not found", codec_name);
     }
 
     codec_ctx = avcodec_alloc_context3(codec);
     if (!codec_ctx) {
-        std::cout<<("Could not allocate codec context")<<std::endl;
+        LOG_ERROR("Could not allocate codec context");
     }
 
     codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
