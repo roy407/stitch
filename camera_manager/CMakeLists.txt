@@ -12,6 +12,7 @@ add_library(camera_manager STATIC
   src/StitchConsumer.cpp
   src/LogConsumer.cpp
   src/cuda_handle_init.cpp
+  src/JetsonDecoderConsumer.cpp
   src/DecoderConsumer.cpp
   src/EncoderConsumer.cpp
   src/CallbackConsumer.cpp

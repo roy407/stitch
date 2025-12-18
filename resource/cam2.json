@@ -1,6 +1,6 @@
 {
     "global": {
-        "mode": "debug",
+        "loglevel": "debug",
         "type": "usb",
         "format":"YUV420",
         "record_duration": 240,

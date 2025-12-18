@@ -54,7 +54,7 @@ struct PipelineConfig {
 };
 
 struct GlobalConfig {
-    std::string mode;
+    std::string loglevel;
     std::string type;
     std::string format;
     int record_duration = 0;
@@ -93,6 +93,7 @@ private:
     void praseCameraConfig(const json& j, CameraConfig& cam);
 public:
     static void SetConfigFileName(std::string cfg_name); // 一定要在初始化的时候就配置好
+    static std::string GetConfigFileName();
     static config& GetInstance();
     const Config GetConfig() const;
     const GlobalConfig GetGlobalConfig() const;

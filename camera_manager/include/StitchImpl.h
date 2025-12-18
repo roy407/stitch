@@ -317,7 +317,7 @@ bool StitchImpl<Format, KernelTag>::SetCrop()
     // const std::vector<CameraConfig> cams = CFG_HANDLE.GetCamerasConfig(0);
     // for(int i=0;i<this->num;i++) {
     //     if(cams[i].stitch.enable == true) {
-    //         if(cams[i].stitch.mode == "crop") {
+    //         if(cams[i].stitch.loglevel == "crop") {
     //             std::vector<float> __crop = cams[i].crop;
     //             crop[i*4] = __crop[0] * this->single_width;
     //             crop[i*4+1] = __crop[1] * this->height;

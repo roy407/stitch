@@ -1,6 +1,7 @@
 #include "Pipeline.h"
 #include "RtspConsumer.h"
 #include "SingleViewConsumer.h"
+#include "JetsonDecoderConsumer.h"
 #include "DecoderConsumer.h"
 #include "StitchImpl.h"
 #include "StitchConsumer.h"
@@ -46,7 +47,9 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelT
     return nullptr;
 }
 
-Pipeline::Pipeline(int pipeline_id):Pipeline(CFG_HANDLE.GetPipelineConfig(pipeline_id)){}
+Pipeline::Pipeline(int pipeline_id):Pipeline(CFG_HANDLE.GetPipelineConfig(pipeline_id)){
+
+}
 
 Pipeline::Pipeline(const PipelineConfig &p) {
     if(p.enable == true) {
@@ -69,17 +72,32 @@ Pipeline::Pipeline(const PipelineConfig &p) {
                 rtspCon->setParamters(pro->getAVCodecParameters(), pro->getTimeBase());
                 m_consumerTask.push_back(rtspCon);
             }
-            DecoderConsumer* dcon = new DecoderConsumer(CFG_HANDLE.GetGlobalConfig().decoder);
-            dcon->setAVCodecParameters(pro->getAVCodecParameters(), pro->getTimeBase());
-            dcon->setChannel(pro->getChannel2Decoder());
-            m_consumerTask.push_back(dcon);
-            if(cam.enable_view == true) {
-                SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
-                resizeCon->setChannel(dcon->getChannel2Resize());
-                m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
-                m_consumerTask.push_back(resizeCon);
-            }
-            channels.push_back(dcon->getChannel2Stitch());
+            // TODO: 通过json文件，直接配置好使用的每一个producer或consumer？把初始化过程直接放在配置文件里
+            if(CFG_HANDLE.GetGlobalConfig().decoder != "jetson") {
+                DecoderConsumer* dcon = new DecoderConsumer(CFG_HANDLE.GetGlobalConfig().decoder);
+                dcon->setAVCodecParameters(pro->getAVCodecParameters(), pro->getTimeBase());
+                dcon->setChannel(pro->getChannel2Decoder());
+                m_consumerTask.push_back(dcon);
+                if(cam.enable_view == true) {
+                    SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
+                    resizeCon->setChannel(dcon->getChannel2Resize());
+                    m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
+                    m_consumerTask.push_back(resizeCon);
+                }
+                channels.push_back(dcon->getChannel2Stitch());
+            } else {
+                JetsonDecoderConsumer* dcon = new JetsonDecoderConsumer();
+                dcon->setAVCodecParameters(pro->getAVCodecParameters(), pro->getTimeBase());
+                dcon->setChannel(pro->getChannel2Decoder());
+                m_consumerTask.push_back(dcon);
+                if(cam.enable_view == true) {
+                    SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
+                    resizeCon->setChannel(dcon->getChannel2Resize());
+                    m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
+                    m_consumerTask.push_back(resizeCon);
+                }
+                channels.push_back(dcon->getChannel2Stitch());
+            } 
         }
        
         StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, p.stitch.stitch_mode);

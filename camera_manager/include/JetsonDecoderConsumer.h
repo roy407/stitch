@@ -7,7 +7,6 @@ extern "C" {
 }
 
 #include <iostream>
-#include "safe_queue.hpp"
 #include <stdexcept>
 #include <atomic>
 #include <thread>
@@ -15,10 +14,10 @@ extern "C" {
 #include "Consumer.h"
 #include "Channel.h"
 
-class DecoderConsumer : public Consumer {
+class JetsonDecoderConsumer : public Consumer {
 public:
-    DecoderConsumer(const std::string& codec_name);
-    virtual ~DecoderConsumer();
+    JetsonDecoderConsumer();
+    virtual ~JetsonDecoderConsumer();
     void setAVCodecParameters(AVCodecParameters* codecpar, AVRational time_base);
     void setChannel(PacketChannel* channel);
     FrameChannel* getChannel2Resize();

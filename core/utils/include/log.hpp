@@ -30,7 +30,18 @@ class __LOGGER__ {
 private:
     __LOGGER__() {
         console = spdlog::stdout_color_mt("console");
-        std::string str = CFG_HANDLE.GetGlobalConfig().mode;
+        std::string str = "debug";
+        std::ifstream infile(config::GetConfigFileName());
+        if (infile.is_open()) {
+            json j;
+            infile >> j;
+            if(j.contains("global") && j["global"].contains("loglevel")) {
+                str = j["global"]["loglevel"];
+                std::cout<<"Log Level : "<<str<<std::endl;
+            } else {
+                std::cout<<"Log Level not set , use default : debug"<<std::endl;
+            }
+        }
         spdlog::level::level_enum level_num = spdlog::level::info;
         if (str == "debug") {
             level_num = spdlog::level::debug;

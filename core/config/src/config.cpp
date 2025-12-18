@@ -30,7 +30,7 @@ bool config::loadFromFile() {
 }
 
 void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
-    cfg.mode = j.value("mode", "debug");
+    cfg.loglevel = j.value("loglevel", "debug");
     cfg.type = j.value("type", "mp4");
     cfg.format =j.value("format","YUV420");
     cfg.record_duration = j.value("record_duration", 240);
@@ -202,6 +202,10 @@ void config::praseCameraConfig(const json & j, CameraConfig &cam) {
 
 void config::SetConfigFileName(std::string cfg_name) {
     config_name = cfg_name;
+}
+
+std::string config::GetConfigFileName() {
+    return config_name;
 }
 
 config &config::GetInstance()

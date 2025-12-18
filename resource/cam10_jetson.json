@@ -1,6 +1,6 @@
 {
     "global": {
-        "mode": "debug",
+        "loglevel": "debug",
         "type": "mp4",
         "format":"YUV420P",
         "record_duration": 240,
