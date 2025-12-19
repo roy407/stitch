@@ -33,6 +33,8 @@ int main(int argc, char *argv[]) {
         return launch_with_mainwindow(argc, argv);
     } else if(config_name == "resource/hk5.json") {
         return launch_with_widget(0, 1920, 540, argc, argv);
+    } else if(config_name == "resource/cam5.json") {
+        return launch_with_widget(0, 1920, 540, argc, argv);
     } else if(config_name == "resource/cam2.json") {
         return launch_with_widget(0, 1920, 540, argc, argv);
     } else if(config_name == "resource/cam10_jetson.json") {

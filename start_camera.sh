@@ -26,6 +26,9 @@ case "$CAM_JSON" in
     "hk5")
         CONFIG_FILE="resource/hk5.json"
         ;;
+    "cam5")
+        CONFIG_FILE="resource/cam5.json"
+        ;;
     "cam10")
         CONFIG_FILE="resource/cam10.json"
         ;;

@@ -1,0 +1,25 @@
+{
+    "global": {
+        "loglevel": "debug",
+        "type": "mp4",
+        "format":"YUV420",
+        "record_duration": 240,
+        "record_path": "/home/ling/mp4/",
+        "decoder": "h264_cuvid",
+        "encoder": "h264_nvenc"
+    },
+    "pipeline": [
+        {
+            "name" : "group",
+            "pipeline_id":0,
+            "enable":true,
+            "use_sub_input": false,
+            "main_stream":"resource/cam5/group_mainstream.json",
+            "sub_stream":"resource/cam5/group_substream.json",
+            "stitch":{
+                "stitch_mode":"mapping_table"
+            }
+        }
+       
+    ]
+}
