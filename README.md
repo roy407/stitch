@@ -2,7 +2,7 @@
 
 本项目旨在实现一个高性能、低延迟的**多路视频实时拼接系统**。
 系统利用**CUDA GPU加速**与**多线程优化**技术，能够同时从多路相机采集视频流，进行解码、拼接、显示与性能监测。
-在未来，还会加入**华为昇腾**、**jetson orinX**等异构平台。
+在未来，还会加入 **华为昇腾** 、 **jetson orinX** 等异构平台。
 
 ---
 
@@ -24,24 +24,21 @@
 |------|-----------|
 | NVIDIA 驱动 | ≥ 535 |
 | CUDA | ≥ 11.8 |
-| FFmpeg | 需要手动编译，支持硬件编解码 |
+| FFmpeg | 需要手动编译，要支持硬件编解码 |
 | openGL | 任意版本 |
 | Qt | ≥ 5.0 |
 | spdlog | 任意版本 |
 
 ---
 
-## ⚙️ 编译及打包步骤
+## ⚙️ 编译及运行步骤
 
 ```bash
-# 1️⃣ 下载所需镜像（环境依赖）
-make stitch_env
+# 配置环境
+bash set_env.sh
 
-# 2️⃣ 编译程序
-make build
-
-# 3️⃣ 打包部署
-make deploy
+# 编译并运行程序
+bash start_camera.sh -c （相机配置）
 ```
 
 ---
@@ -50,33 +47,21 @@ make deploy
 
 ```
 stitch/
-├── CMakeLists.txt                  # 顶层构建配置
-├── Makefile                        # 构建与打包入口
-├── main.cpp                        # 程序主入口
-├── components/                     # UI 模块（Qt 实现）
-│   ├── qt/
-│   └── CMakeLists.txt
-├── core/                           # 核心逻辑模块
-│   ├── config/                     # 配置读取模块
-│   ├── operator/                   # 异构 算法实现
-│   │   ├── nvidia/
-│   │   ├── ascend/
-│   ├── utils/                      # 工具类库
-│   │   ├── include/
-│   │   │   ├── log.hpp             # 日志封装
-│   │   │   ├── tools.hpp           # 常用工具
-│   │   │   ├── safe_queue.hpp      # 线程安全队列
-│   │   │   ├── safe_list.h         # 线程安全链表
-│   │   ├── src/
-│   │   └── CMakeLists.txt
-│   └── CMakeLists.txt
-├── camera_manager/                 # 摄像头与任务管理模块
-├── scripts/
-│   └── plot_timing.py              # 性能可视化脚本
-├── resource/
-│   ├── hk5.json
-│   └── cam10.json
-└── README.md
+├─start_camera.sh           # 程序启动入口
+├─main.cpp
+├─camera_manager            # 摄像头与线程管理
+├─components                # 显示界面模块
+│  └─qt
+├─core                      # 项目核心配置
+│  ├─config                 # 读取json文件
+│  ├─operator               # 算子库
+│  └─utils                  # 可用工具
+├─docs                      # 项目文档
+├─resource                  # 内含各种相机配置文件
+└─scripts                   # 脚本仓库
+    ├─H_matrix              # 用于计算多张图片之间的h矩阵
+    ├─mapping_table         # 用于生成多张图片生成的map表
+    └─plot_timing.py        # 用于显示图像拼接过程中，各阶段耗时
 ```
 
 ---
@@ -101,31 +86,4 @@ stitch/
 
 图中是使用hk5.json文件，配置生成的五路拼接图像的效果，目前平均延时可以做到≤300ms
 
-## 🗺️ TODO项
-
-## 重点突破
-- [ ] 多平台异构加速（Jetson OrinX / Ascend）
-- [ ] 统一线程创建，不允许Qt创建线程
-- [ ] 代码中的TODO项
-- [ ] README编写
-- [ ] 环形队列替换safe_queue，减少频繁创建释放带来的性能开销
-
-## 摄像头与输入管理
-- [ ] 支持相机热插拔与重执行
-
-## 图像与拼接算法
-- [ ] 自动曝光 / 白平衡匹配
-- [ ] 自动白平衡与实时消缝
-
-## Qt 前端 UI
-- [ ] 展示 GPU 利用率、解码帧率等运行曲线
-
-## 性能监测与日志
-- [ ] kernel测试工具
-
-## 工程化与部署
-- [ ] 专用的 Docker 镜像
-- [ ] json文件适配
-- [ ] 做一个set_env.sh，可以在新的电脑上自动化部署环境
-
-## 测试体系
+![最终效果图](docs/images/Photo_2025_10_7.png)
