@@ -1,0 +1,49 @@
+{
+    "global": {
+        "loglevel": "debug",
+        "type": "rtsp",
+        "format":"YUV420",
+        "record_duration": 240,
+        "record_path": "/home/eric/mp4/",
+        "decoder": "h264_cuvid",
+        "encoder": "h264_nvenc"
+    },
+    "pipeline": [
+        {
+            "name" : "group0",
+            "pipeline_id":0,
+            "enable":true,
+            "cameras":[
+                {
+                    "name": "cam0",
+                    "cam_id": 0,
+                    "enable": true,
+                    "input_url": "rtsp://admin:ky406sys@192.168.1.111:554/h265/ch1/main/av_stream",
+                    "width": 3840,
+                    "height": 2160,
+                    "output_url": "rtsp://127.0.0.1:8554/cam0",
+                    "enable_view": false,
+                    "scale_factor": 0.1,
+                    "rtsp": false
+                },
+                {
+                    "name": "cam1",
+                    "cam_id": 1,
+                    "enable": true,
+                    "input_url": "rtsp://admin:ky406sys@192.168.1.116:554/h265/ch1/main/av_stream",
+                    "width": 3840,
+                    "height": 2160,
+                    "output_url": "rtsp://127.0.0.1:8554/cam0",
+                    "enable_view": false,
+                    "scale_factor": 0.1,
+                    "rtsp": false
+                }
+            ],
+            "stitch":{
+                "stitch_mode":"raw",
+                "stitch_impl": {
+                }
+            }
+        }
+    ]
+}

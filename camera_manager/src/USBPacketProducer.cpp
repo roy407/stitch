@@ -26,12 +26,12 @@ USBPacketProducer::USBPacketProducer(CameraConfig camera_config)
     m_status.height = camera_config.height;
     LOG_DEBUG("try to open v4l2 device: [{}]", cam_path);
     int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), iformat, &options);
-    if (ret < 0) {
-        LOG_ERROR("open usb link {} failed", cam_path);
+    while (ret < 0) {
+        LOG_ERROR("open usb link {} failed.Reconnecting......", cam_path);
+        ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
         char errbuf[256];
         av_strerror(ret, errbuf, sizeof(errbuf));
         LOG_ERROR("open_input failed: {}", errbuf);
-        return;
     }
     ret = avformat_find_stream_info(fmt_ctx, nullptr);
     if (ret < 0) {

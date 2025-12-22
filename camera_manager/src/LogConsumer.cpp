@@ -122,14 +122,40 @@ void LogConsumer::run() {
     // 上限为20个摄像头
     uint64_t prev_frame_cnt[32] = {};
     uint64_t prev_timestamp[32] = {};
+    static int first_broken=0;
     while(running) {
         std::this_thread::sleep_for(std::chrono::seconds(time_gap));
         m_time += 2;
+        static CamStatus tmp;
+        float fps;
+        int normal=1;
         LOG_INFO("============ Frame Statistics ============");
-        for(int i=0;i<m_pro.size();i++) printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
-        for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
-        printGPUStatus();
-        printCPUStatus();
+        for(int i=0;i<m_pro.size();i++)
+        {
+            // printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
+            tmp = m_pro[i]->m_status;
+            fps=(tmp.frame_cnt - prev_frame_cnt[i]) / ((tmp.timestamp - prev_timestamp[i]) * 1e-9);
+            LOG_INFO("Producer FPS is:{}",fps);
+            prev_frame_cnt[i] = tmp.frame_cnt;
+            prev_timestamp[i] = tmp.timestamp;
+            if(fps>10)
+                ;
+            else
+                normal=0;
+        }
+        if(normal)
+        {
+            for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
+            printGPUStatus();
+            printCPUStatus();
+        }
+        else
+        {
+            if(first_broken>0)
+                LOG_WARN("Link broken.Trying to reconnect......");
+            else
+                first_broken=1;
+        }
     }
 }
 

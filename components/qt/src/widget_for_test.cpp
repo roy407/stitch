@@ -41,14 +41,19 @@ widget_for_test::widget_for_test(int pipeline_id, int width, int height, QWidget
     m_y_stride(0),
     m_uv_stride(0)
 {
+    LOG_INFO("widget test start");
     setFixedSize(width, height);
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
+    LOG_DEBUG("NV12 start over");
     cam = camera_manager::GetInstance();
+    LOG_DEBUG("cam start");
     cam->start();
+    LOG_DEBUG("cam over");
     q = cam->getStitchCameraStream(pipeline_id);
     con = QThread::create([this](){consumerThread();});
     con->start();
+    LOG_DEBUG("widget test over");
 }
 
 widget_for_test::~widget_for_test() {

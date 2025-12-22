@@ -35,6 +35,9 @@ case "$CAM_JSON" in
     "cam10_jetson")
         CONFIG_FILE="resource/cam10_jetson.json"
         ;;
+    "cam_test")
+        CONFIG_FILE="resource/cam_test.json"
+        ;;
     *)
         echo "错误: 不支持的相机格式: $CAM_JSON"
         exit 1
