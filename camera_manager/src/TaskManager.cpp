@@ -3,7 +3,7 @@
 #include "log.hpp"
 
 TaskManager::TaskManager() {
-    
+    LOG_DEBUG("TaskManager::TaskManager");
 }
 
 TaskManager::~TaskManager() {

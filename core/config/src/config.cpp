@@ -10,6 +10,7 @@ config::config() {
 }
 
 bool config::loadFromFile() {
+    LOG_DEBUG("loadFile start");
     std::string filename = config_name;
     std::ifstream infile(filename);
     if (!infile.is_open()) {
@@ -26,6 +27,7 @@ bool config::loadFromFile() {
             cfg.pipelines.push_back(pipe);
         }
     }
+    LOG_DEBUG("loadFile over");
     return true;
 }
 
@@ -210,15 +212,18 @@ std::string config::GetConfigFileName() {
 
 config &config::GetInstance()
 { // 是否线程安全？
+    LOG_DEBUG("config GetInstance");
     static config instance;
     return instance;
 }
 
 const Config config::GetConfig() const {
+    LOG_DEBUG("GetConfig over");
     return cfg;
 }
 
 const GlobalConfig config::GetGlobalConfig() const {
+    LOG_DEBUG("GetGlobalConfig");
     return cfg.global;
 }
 

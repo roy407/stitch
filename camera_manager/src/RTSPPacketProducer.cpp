@@ -1,5 +1,6 @@
 #include "RTSPPacketProducer.h"
 
+//RTSPPacketProducer继承于PacketProducer继承于Producer继承于TaskManager
 RTSPPacketProducer::RTSPPacketProducer(CameraConfig camera_config)
 {
     this->cam_id = camera_config.cam_id;
@@ -12,23 +13,34 @@ RTSPPacketProducer::RTSPPacketProducer(CameraConfig camera_config)
     m_status.width = camera_config.width;
     m_status.height = camera_config.height;
     {
+        LOG_DEBUG("avformat_open_input start");
         int ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
+        LOG_DEBUG("avformat_open_input over");
         while(ret < 0) {
             LOG_ERROR("open rtsp link {} failed.Lack this camera.Reconnecting......", cam_path);
             ret = avformat_open_input(&fmt_ctx, cam_path.c_str(), nullptr, &options);
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             char errbuf[256];
             av_strerror(ret, errbuf, sizeof(errbuf));
             LOG_ERROR("open_input failed: {}", errbuf);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
+        LOG_DEBUG("avformat_find_stream_info");
+
+        //avformat_find_stream_info耗时1s多，慎用
         if(avformat_find_stream_info(fmt_ctx, nullptr) >= 0) {
+            LOG_DEBUG("av_find_best_stream start"); 
             video_stream = av_find_best_stream(fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+            LOG_DEBUG("av_find_best_stream over"); 
             if(video_stream >= 0) {
                 time_base = fmt_ctx->streams[video_stream]->time_base;
+                LOG_DEBUG("avcodec_parameters_copy start"); 
                 avcodec_parameters_copy(codecpar, fmt_ctx->streams[video_stream]->codecpar);
+                LOG_DEBUG("avcodec_parameters_copy over");
             }
         }
+        LOG_DEBUG("avformat_close_input start"); 
         avformat_close_input(&fmt_ctx);
+        LOG_DEBUG("avformat_close_input over"); 
     }
 }
 

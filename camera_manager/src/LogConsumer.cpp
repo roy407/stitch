@@ -102,8 +102,11 @@ void LogConsumer::printCPUStatus() {
     LOG_INFO("CPU Usage: {}%, Memory Usage: {}%", cpu, mem);
 }
 
+//LogConsumer继承于Consumer,Consumer又继承于TaskManager，初始化从最内层往外
 LogConsumer::LogConsumer() {
+    LOG_DEBUG("LogConsumer start");
     m_name += "log";
+    LOG_DEBUG("LogConsumer over");
 }
 
 LogConsumer::~LogConsumer() {

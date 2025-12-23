@@ -16,14 +16,15 @@ DecoderConsumer::DecoderConsumer(const std::string& codec_name) {
     if (!codec) {
         LOG_ERROR("Codec {} not found", codec_name);
     }
-
+    LOG_DEBUG("avcodec_alloc_context3 start");
     codec_ctx = avcodec_alloc_context3(codec);
+    LOG_DEBUG("avcodec_alloc_context3 over");
     if (!codec_ctx) {
         LOG_ERROR("Could not allocate codec context");
     }
-
+    LOG_DEBUG("av_buffer_ref start");
     codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
-
+    LOG_DEBUG("av_buffer_ref over");
     m_channel2resize = new FrameChannel;
     m_channel2stitch = new FrameChannel;
 }

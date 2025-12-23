@@ -24,7 +24,9 @@ camera_manager* camera_manager::GetInstance() {
 }
 
 camera_manager::camera_manager() {
+    LOG_DEBUG("new LogConsumer start");
     m_log = new LogConsumer();
+    LOG_DEBUG("new LogConsumer over");
     initPipeline();
 }
 
@@ -55,7 +57,9 @@ void camera_manager::stop() {
 }
 
 void camera_manager::initPipeline() {
+    LOG_DEBUG("AV init start");
     avformat_network_init(); // 初始化网络模块
+    LOG_DEBUG("AV init over");    
     avdevice_register_all(); // 不执行这一步，会找不到v4l2
     auto& cfg = CFG_HANDLE.GetConfig();
     Pipeline::setLogConsumer(m_log);
