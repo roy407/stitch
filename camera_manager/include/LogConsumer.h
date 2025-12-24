@@ -28,10 +28,15 @@ class LogConsumer : public Consumer {
     // 这个类对下面两个成员变量指向的两个类，只有观测权，没有修改权
     std::vector<PacketProducer*> m_pro;
     std::vector<StitchConsumer*> m_con;
-    void printProducer(PacketProducer* pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
+    void printProducer(PacketProducer* pro, float fps);
     void printConsumer(StitchConsumer* con, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
     void printGPUStatus();
     void printCPUStatus();
+    void monitorCPU_Core();
+    void monitorMainThreads();
+    void detectThreadBlocks();
+    void printNvidiaEncoderDecoderStatus();
+    float CalculateProFPS(PacketProducer* pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
 public:
     LogConsumer();
     virtual ~LogConsumer();
