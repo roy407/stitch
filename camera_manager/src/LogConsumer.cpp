@@ -6,10 +6,86 @@
 #include "StitchConsumer.h"
 #include <unistd.h>
 #include <dirent.h> 
+#include <nvml.h>
 
 struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
+
+void LogConsumer::printNvidiaEncoderDecoderStatus() {
+    static bool nvml_initialized = false;
+    static nvmlReturn_t last_result;
+    
+    // 初始化NVML
+    if (!nvml_initialized) {
+        last_result = nvmlInit();
+        if (NVML_SUCCESS != last_result) {
+            LOG_ERROR("Failed to initialize NVML: {}", nvmlErrorString(last_result));
+            return;
+        }
+        nvml_initialized = true;
+    }
+    
+    // 获取GPU句柄
+    nvmlDevice_t device;
+    last_result = nvmlDeviceGetHandleByIndex(0, &device);
+    if (NVML_SUCCESS != last_result) {
+        LOG_ERROR("Failed to get device handle: {}", nvmlErrorString(last_result));
+        return;
+    }
+    
+    // 1. 获取编码器使用率（可用）
+    unsigned int encoder_utilization = 0;
+    unsigned int encoder_sampling_period_us = 0;
+    
+    last_result = nvmlDeviceGetEncoderUtilization(device, &encoder_utilization, 
+                                                 &encoder_sampling_period_us);
+    if (NVML_SUCCESS == last_result) {
+        LOG_INFO("NVIDIA Encoder: {}% (sampling: {}us)", 
+                encoder_utilization, encoder_sampling_period_us);
+    } else {
+        LOG_DEBUG("Encoder utilization failed: {}", nvmlErrorString(last_result));
+    }
+    
+    // 2. 获取解码器使用率（可用）
+    unsigned int decoder_utilization = 0;
+    unsigned int decoder_sampling_period_us = 0;
+    
+    last_result = nvmlDeviceGetDecoderUtilization(device, &decoder_utilization, 
+                                                 &decoder_sampling_period_us);
+    if (NVML_SUCCESS == last_result) {
+        LOG_INFO("NVIDIA Decoder: {}% (sampling: {}us)", 
+                decoder_utilization, decoder_sampling_period_us);
+    } else {
+        LOG_DEBUG("Decoder utilization failed: {}", nvmlErrorString(last_result));
+    }
+    
+    // 3. 获取编码器统计信息（可用）
+    unsigned int encoder_session_count = 0;
+    unsigned int encoder_avg_fps = 0;
+    unsigned int encoder_avg_latency = 0;
+    
+    last_result = nvmlDeviceGetEncoderStats(device, &encoder_session_count, 
+                                           &encoder_avg_fps, &encoder_avg_latency);
+    if (NVML_SUCCESS == last_result) {
+        LOG_INFO("Encoder Stats: Sessions={}, Avg FPS={}, Avg Latency={}ms", 
+                encoder_session_count, encoder_avg_fps, encoder_avg_latency);
+    }
+    
+    // 4. 获取编码器容量（可用）
+    nvmlEncoderType_t encoder_query_type = NVML_ENCODER_QUERY_H264;
+    unsigned int encoder_capacity = 0;
+    
+    last_result = nvmlDeviceGetEncoderCapacity(device, encoder_query_type, &encoder_capacity);
+    if (NVML_SUCCESS == last_result) {
+        LOG_INFO("Encoder Available Capacity: {}%", encoder_capacity);
+    }
+    
+    // 注意：以下函数在你的驱动版本中不可用，已跳过
+    // - nvmlDeviceGetDecoderStats
+    // - nvmlDeviceGetEncoderSessionCount  
+    // - nvmlDeviceGetDecoderSessionCount
+}
 
 float LogConsumer::CalculateProFPS(PacketProducer* pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp)
 {
@@ -109,7 +185,6 @@ void LogConsumer::printCPUStatus() {
     double mem = get_mem_usage();
     LOG_INFO("CPU Usage: {:.2f}%, Memory Usage: {:.2f}%", cpu, mem);
 }
-
 
 void LogConsumer::monitorCPU_Core() {
     // 读取两个时间点的CPU核心数据
@@ -415,6 +490,7 @@ void LogConsumer::detectThreadBlocks() {
     last_check_time = now;
 }
 
+
 //LogConsumer继承于Consumer,Consumer又继承于TaskManager，初始化从最内层往外
 LogConsumer::LogConsumer() {
     LOG_DEBUG("LogConsumer start");
@@ -457,7 +533,9 @@ void LogConsumer::run() {
         if(normal)
         {
             for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
+            LOG_INFO("=========Hardware Usage=========");
             printGPUStatus();
+            printNvidiaEncoderDecoderStatus();
             printCPUStatus();
             // monitorCPU_Core();
             monitorMainThreads();
