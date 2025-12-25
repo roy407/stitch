@@ -33,8 +33,7 @@ class LogConsumer : public Consumer {
     void printGPUStatus();
     void printCPUStatus();
     void monitorCPU_Core();
-    void monitorMainThreads();
-    void detectThreadBlocks();
+    void monitorThreads();
     void printNvidiaEncoderDecoderStatus();
     float CalculateProFPS(PacketProducer* pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp);
 public:

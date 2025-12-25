@@ -260,236 +260,321 @@ void LogConsumer::monitorCPU_Core() {
     }
 }
 
-void LogConsumer::monitorMainThreads() {
-    // 获取所有线程ID
-    std::vector<int> thread_ids;
+void LogConsumer::monitorThreads() {
+    // 静态变量保存线程历史
+    struct ThreadHistory {
+        std::string name;
+        uint64_t last_total_ticks;
+        std::chrono::steady_clock::time_point last_time;
+        double last_cpu_percent;
+        char last_state;                     // 上一次的状态
+        int d_state_counter;                 // D状态持续次数
+        int inactive_counter;                // 不活跃计数器
+        int same_state_counter;              // 相同状态持续次数
+        std::chrono::steady_clock::time_point last_state_change; // 上次状态变化时间
+        bool reported_blocked;               // 是否已报告阻塞
+    };
     
-    // 打开线程目录
-    const char* task_dir_path = "/proc/self/task";
-    DIR* task_dir = opendir(task_dir_path);
+    static std::map<int, ThreadHistory> thread_histories;
+    static auto last_print_time = std::chrono::steady_clock::now();
+    static std::vector<std::string> blocked_threads_summary; // 阻塞线程摘要
     
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed_since_print = std::chrono::duration_cast<std::chrono::seconds>(now - last_print_time).count();
+    
+    // 每2秒打印一次
+    if (elapsed_since_print < 2) return;
+    
+    last_print_time = now;
+    
+    // 获取系统时钟滴答频率
+    static long clock_ticks_per_second = sysconf(_SC_CLK_TCK);
+    if (clock_ticks_per_second <= 0) clock_ticks_per_second = 100;
+    
+    // 收集当前所有线程
+    std::vector<std::tuple<int, std::string, double, char, bool>> current_threads; // 添加是否阻塞标志
+    std::vector<std::string> current_blocked_threads; // 当前检测到的阻塞线程
+    
+    DIR* task_dir = opendir("/proc/self/task");
     if (!task_dir) {
-        LOG_ERROR("Failed to open task directory: {}", task_dir_path);
+        LOG_WARN("Failed to open /proc/self/task");
         return;
     }
     
-    // 遍历目录项
     struct dirent* entry;
     while ((entry = readdir(task_dir)) != nullptr) {
-        // 跳过 . 和 ..
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
         }
         
-        // 转换为线程ID
-        int tid = atoi(entry->d_name);
-        if (tid > 0) {
-            thread_ids.push_back(tid);
-        }
-    }
-    
-    closedir(task_dir);
-    
-    // 为每个线程计算CPU使用率（需要两次采样）
-    static std::map<int, std::pair<long, long>> prev_cpu_times;
-    
-    // 第一次采样
-    std::map<int, std::pair<long, long>> current_cpu_times;
-    for (int tid : thread_ids) {
-        std::string stat_path = "/proc/self/task/" + std::to_string(tid) + "/stat";
-        std::ifstream stat_file(stat_path);
-        if (stat_file) {
-            std::string line;
-            std::getline(stat_file, line);
-            std::istringstream iss(line);
-            
-            std::string ignore;
-            long utime, stime;
-            iss >> ignore >> ignore >> ignore;  // pid, name, state
-            for (int i = 0; i < 11; ++i) iss >> ignore;
-            iss >> utime >> stime;
-            
-            current_cpu_times[tid] = {utime, stime};
-        }
-    }
-    
-    // 等待一小段时间
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    // 获取时钟滴答频率（静态变量，只需获取一次）
-    static long clock_ticks_per_sec = sysconf(_SC_CLK_TCK);
-    
-    // 获取当前时间（用于计算实际经过的时间）
-    static auto last_calc_time = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    double elapsed_seconds = std::chrono::duration<double>(now - last_calc_time).count();
-    last_calc_time = now;
-    
-    // 记录有活动的线程
-    std::vector<std::tuple<int, std::string, double>> active_threads;
-    
-    for (int tid : thread_ids) {
-        std::string stat_path = "/proc/self/task/" + std::to_string(tid) + "/stat";
-        std::ifstream stat_file(stat_path);
-        if (stat_file) {
-            std::string line;
-            std::getline(stat_file, line);
-            std::istringstream iss(line);
-            
-            std::string ignore, name;
-            long utime2, stime2;
-            iss >> ignore >> name >> ignore;  // pid, name, state
-            for (int i = 0; i < 11; ++i) iss >> ignore;
-            iss >> utime2 >> stime2;
-            
-            // 计算CPU使用率
-            double cpu_usage = 0;
-            if (prev_cpu_times.find(tid) != prev_cpu_times.end()) {
-                auto [utime1, stime1] = prev_cpu_times[tid];
-                long total_diff = (utime2 + stime2) - (utime1 + stime1);
-                
-                // 正确计算公式：
-                // CPU使用率 = (CPU时间差(秒) / 时间间隔(秒)) × 100%
-                // CPU时间差(秒) = total_diff / clock_ticks_per_sec
-                if (elapsed_seconds > 0 && clock_ticks_per_sec > 0) {
-                    double cpu_seconds = static_cast<double>(total_diff) / clock_ticks_per_sec;
-                    cpu_usage = (cpu_seconds / elapsed_seconds) * 100.0;
-                    
-                    // 注意：这里计算的是相对于单个CPU核心的使用率
-                    // 如果要考虑多核，可以乘以核心数
-                    static int num_cores = std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
-                    cpu_usage *= num_cores;
-                }
-            }
-            
-            // 清理线程名
-            if (name.length() > 2 && name.front() == '(' && name.back() == ')') {
-                name = name.substr(1, name.length() - 2);
-            }
-            
-            // 只记录CPU使用率大于0.1%的线程
-            if (cpu_usage > 0.1) {
-                active_threads.emplace_back(tid, name, cpu_usage);
-            }
-        }
-    }
-    
-    // 打印有活动的线程
-    if (!active_threads.empty()) {
-        LOG_INFO("=== Thread CPU Usage (averaged over {:.3f}s) ===", elapsed_seconds);
-        LOG_DEBUG("Total threads: {}", thread_ids.size());
-        // 按CPU使用率排序
-        std::sort(active_threads.begin(), active_threads.end(),
-                  [](const auto& a, const auto& b) {
-                      return std::get<2>(a) > std::get<2>(b);
-                  });
-        
-        for (const auto& [tid, name, cpu_usage] : active_threads) {
-            LOG_INFO("Thread {} [{}]: CPU {:.2f}%", tid, name, cpu_usage);
-        }
-    }
-    
-    // 更新上一次的CPU时间
-    prev_cpu_times = current_cpu_times;
-}
-
-void LogConsumer::detectThreadBlocks() {
-    struct ThreadState {
-        std::string name;
-        char state;
-        unsigned long long cpu_time;
-        std::chrono::steady_clock::time_point last_update;
-        int d_state_counter;  // D状态计数器
-        int low_cpu_counter;  // 低CPU计数器
-    };
-    
-    static std::map<int, ThreadState> thread_states;
-    static auto last_check_time = std::chrono::steady_clock::now();
-    
-    auto now = std::chrono::steady_clock::now();
-    double elapsed = std::chrono::duration<double>(now - last_check_time).count();
-    
-    if (elapsed < 1.0) return;  // 每秒检查一次
-    
-    // 获取当前线程状态
-    std::map<int, ThreadState> current_states;
-    
-    DIR* dir = opendir("/proc/self/task");
-    if (!dir) return;
-    
-    struct dirent* entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        if (entry->d_name[0] == '.') continue;
-        
         int tid = atoi(entry->d_name);
         if (tid <= 0) continue;
         
+        // 读取线程状态文件
         std::string stat_path = "/proc/self/task/" + std::to_string(tid) + "/stat";
         std::ifstream stat_file(stat_path);
-        if (!stat_file) continue;
+        if (!stat_file) {
+            continue;
+        }
         
         std::string line;
         std::getline(stat_file, line);
+        stat_file.close();
+        
+        // 使用空格分割整个行
         std::istringstream iss(line);
+        std::vector<std::string> tokens;
+        std::string token;
         
-        std::string pid_str, name;
-        char state;
-        unsigned long long utime = 0, stime = 0;
-        
-        iss >> pid_str >> name >> state;
-        for (int i = 0; i < 11; ++i) { std::string dummy; iss >> dummy; }
-        iss >> utime >> stime;
-        
-        if (name.length() > 2 && name[0] == '(' && name.back() == ')') {
-            name = name.substr(1, name.length() - 2);
+        while (iss >> token) {
+            tokens.push_back(token);
         }
         
-        ThreadState ts;
-        ts.name = name;
-        ts.state = state;
-        ts.cpu_time = utime + stime;
-        ts.last_update = now;
+        if (tokens.size() < 15) {
+            LOG_DEBUG("Stat line too short for TID {}: {} tokens", tid, tokens.size());
+            continue;
+        }
         
-        // 从历史中获取计数器
-        auto it = thread_states.find(tid);
-        if (it != thread_states.end()) {
-            const ThreadState& old = it->second;
+        // 提取线程名
+        std::string comm = tokens[1];
+        if (comm.length() > 2 && comm.front() == '(' && comm.back() == ')') {
+            comm = comm.substr(1, comm.length() - 2);
+        }
+        
+        // 提取状态
+        char state = tokens[2].empty() ? '?' : tokens[2][0];
+        
+        // 提取utime和stime
+        uint64_t utime = 0, stime = 0;
+        try {
+            utime = std::stoull(tokens[13]);
+            stime = std::stoull(tokens[14]);
+        } catch (const std::exception& e) {
+            LOG_DEBUG("Failed to parse CPU times for TID {}: {}", tid, e.what());
+            continue;
+        }
+        
+        uint64_t total_cpu_ticks = utime + stime;
+        
+        // 计算CPU使用率
+        double cpu_percent = 0.0;
+        bool is_blocked = false;
+        std::string block_reason;
+        
+        auto it = thread_histories.find(tid);
+        if (it != thread_histories.end()) {
+            ThreadHistory& history = it->second;
             
-            // 检查D状态
-            if (state == 'D') {
-                ts.d_state_counter = old.d_state_counter + 1;
+            // 计算时间差（秒）
+            double time_diff = std::chrono::duration<double>(now - history.last_time).count();
+            
+            if (time_diff > 0) {
+                // 计算CPU时间差（时钟滴答）
+                uint64_t cpu_ticks_diff = 0;
+                if (total_cpu_ticks >= history.last_total_ticks) {
+                    cpu_ticks_diff = total_cpu_ticks - history.last_total_ticks;
+                } else {
+                    // 处理可能的计数器回绕
+                    cpu_ticks_diff = (std::numeric_limits<uint64_t>::max() - history.last_total_ticks) + total_cpu_ticks;
+                }
+                
+                // 转换为秒
+                double cpu_seconds = static_cast<double>(cpu_ticks_diff) / clock_ticks_per_second;
+                
+                // CPU使用率百分比（相对于单个核心）
+                cpu_percent = (cpu_seconds / time_diff) * 100.0;
+                
+                // 平滑处理
+                cpu_percent = 0.7 * cpu_percent + 0.3 * history.last_cpu_percent;
+                
+                // 检测CPU不活跃
+                if (cpu_percent < 0.1) {
+                    history.inactive_counter++;
+                } else {
+                    history.inactive_counter = 0;
+                }
+            }
+            
+            // 检测状态变化
+            if (state != history.last_state) {
+                history.last_state = state;
+                history.same_state_counter = 1;
+                history.last_state_change = now;
+                history.d_state_counter = (state == 'D' || state == 'U') ? 1 : 0;
             } else {
-                ts.d_state_counter = 0;
+                history.same_state_counter++;
+                if (state == 'D' || state == 'U') {
+                    history.d_state_counter++;
+                }
             }
             
-            // 检查CPU使用率是否变化
-            if (ts.cpu_time == old.cpu_time) {
-                ts.low_cpu_counter = old.low_cpu_counter + 1;
-            } else {
-                ts.low_cpu_counter = 0;
+            // 阻塞检测逻辑
+            // 1. D/U状态（不可中断睡眠）持续3次检查（约6秒）
+            if (history.d_state_counter >= 3) {
+                is_blocked = true;
+                block_reason = fmt::format("D/U state for {} checks (I/O blockage)", history.d_state_counter);
+            }
+            // 2. 长时间不活跃（CPU使用率<0.1%）且不是睡眠状态
+            else if (history.inactive_counter >= 5 && state != 'S' && state != 'D') {
+                is_blocked = true;
+                block_reason = fmt::format("No CPU activity for {} checks", history.inactive_counter);
+            }
+            // 3. 长时间处于相同状态（非运行状态）且CPU使用率低
+            else if (history.same_state_counter >= 10 && state != 'R' && cpu_percent < 0.5) {
+                auto state_duration = std::chrono::duration_cast<std::chrono::seconds>(
+                    now - history.last_state_change).count();
+                if (state_duration > 10) {
+                    is_blocked = true;
+                    block_reason = fmt::format("Stuck in state '{}' for {} seconds", state, state_duration);
+                }
+            }
+            // 4. 运行状态但CPU使用率极低（可能自旋等待或饥饿）
+            else if (state == 'R' && cpu_percent < 0.1 && history.inactive_counter >= 3) {
+                is_blocked = true;
+                block_reason = fmt::format("Running but no CPU usage for {} checks (possible spin wait)", history.inactive_counter);
             }
             
-            // 检查是否可能阻塞
-            if (state == 'D' && ts.d_state_counter >= 3) {
-                LOG_WARN("Thread {} [{}] in D state for {} checks - possible I/O blockage", 
-                        tid, name, ts.d_state_counter);
-            } else if (ts.low_cpu_counter >= 5 && state != 'R') {
-                LOG_WARN("Thread {} [{}] no CPU activity for {} checks - possible blockage", 
-                        tid, name, ts.low_cpu_counter);
+            // 如果检测到阻塞且未报告过
+            if (is_blocked && !history.reported_blocked) {
+                LOG_WARN("Thread {} [{}] may be blocked: {}", tid, comm, block_reason);
+                history.reported_blocked = true;
+                current_blocked_threads.push_back(fmt::format("{} [{}]: {}", tid, comm, block_reason));
+            } else if (!is_blocked && history.reported_blocked) {
+                LOG_INFO("Thread {} [{}] is no longer blocked", tid, comm);
+                history.reported_blocked = false;
             }
+            
+            // 更新历史记录
+            history.last_total_ticks = total_cpu_ticks;
+            history.last_time = now;
+            history.last_cpu_percent = cpu_percent;
         } else {
-            ts.d_state_counter = 0;
-            ts.low_cpu_counter = 0;
+            // 第一次看到这个线程，初始化历史记录
+            ThreadHistory history;
+            history.name = comm;
+            history.last_total_ticks = total_cpu_ticks;
+            history.last_time = now;
+            history.last_cpu_percent = 0.0;
+            history.last_state = state;
+            history.d_state_counter = (state == 'D' || state == 'U') ? 1 : 0;
+            history.inactive_counter = 0;
+            history.same_state_counter = 1;
+            history.last_state_change = now;
+            history.reported_blocked = false;
+            thread_histories[tid] = history;
+            
+            // 第一次不计算CPU使用率
+            cpu_percent = 0.0;
         }
         
-        current_states[tid] = ts;
+        current_threads.emplace_back(tid, comm, cpu_percent, state, is_blocked);
     }
-    closedir(dir);
+    closedir(task_dir);
     
-    thread_states = std::move(current_states);
-    last_check_time = now;
-}
+    // 清理已经不存在的线程
+    auto it = thread_histories.begin();
+    while (it != thread_histories.end()) {
+        bool found = false;
+        for (const auto& [tid, name, cpu, state, blocked] : current_threads) {
+            if (tid == it->first) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            if (it->second.reported_blocked) {
+                LOG_INFO("Blocked thread {} [{}] has terminated", it->first, it->second.name);
+            }
+            it = thread_histories.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    // 更新阻塞线程摘要
+    if (!current_blocked_threads.empty()) {
+        blocked_threads_summary = current_blocked_threads;
+    }
+    
+    // 打印结果
+    LOG_INFO("========== Thread CPU Usage ===========");
+    LOG_INFO("Threads: {} total", current_threads.size());
+    
+    // 按CPU使用率降序排序
+    std::sort(current_threads.begin(), current_threads.end(),
+             [](const auto& a, const auto& b) {
+                 return std::get<2>(a) > std::get<2>(b);
+             });
+    
+    LOG_INFO("%CPU   TID    STATE   NAME (B=Blocked)");
+    // R (Running): 线程正在运行或可运行（在运行队列中）。
+    // S (Sleeping): 线程正在可中断的睡眠中（等待某个事件完成，如I/O操作、信号等）。
+    // D (Disk Sleep): 线程正在不可中断的睡眠中（通常是在等待I/O，如磁盘I/O）。在这种状态下，线程不会响应信号。
+    // T (Stopped): 线程被停止（通常是由于收到SIGSTOP、SIGTSTP、SIGTTIN、SIGTTOU信号）。
+    // t (Tracing stop): 线程被调试器暂停（例如，通过ptrace）。
+    // Z (Zombie): 僵尸线程，已终止但尚未被父线程回收。
+    // X (Dead): 线程已死亡（几乎从不会看到，因为死亡状态非常短暂）。
+    // I (Idle): 空闲线程（在较新的内核中，空闲线程的状态为I，但注意这个状态并不常见于普通线程）。
 
+    int count = 0;
+    static int show_count = 10;
+    double total_cpu_all_threads = 0.0;
+    int blocked_count = 0;
+    
+    for (const auto& [tid, name, cpu_percent, state, blocked] : current_threads) {
+        if (count++ >= show_count) break;
+        
+        total_cpu_all_threads += cpu_percent;
+        if (blocked) blocked_count++;
+        
+        // 格式化输出，阻塞线程用特殊标记
+        std::string blocked_marker = blocked ? " [B]" : "";
+        LOG_INFO("{:5.1f}%   {:6}   {:1}      {}{}", 
+                cpu_percent, tid, state, name, blocked_marker);
+    }
+    
+    if (current_threads.size() > show_count) {
+        LOG_INFO("... and {} more threads", current_threads.size() - show_count);
+    }
+    
+    //这个线程的总CPU使用率计算方法和硬件CPU的占用率计算方法不一样，这个甚至可以超过100%
+    LOG_INFO("Total CPU usage: {:.1f}% across all threads", total_cpu_all_threads);
+    
+    // 打印阻塞线程摘要
+    static int block_check_counter = 0;
+    if (++block_check_counter % 5 == 0) { // 每10秒（5次检查）打印一次阻塞摘要
+        if (!blocked_threads_summary.empty()) {
+            LOG_WARN("======= Thread Block Detection Summary =======");
+            LOG_WARN("Found {} potentially blocked threads:", blocked_threads_summary.size());
+            for (const auto& blocked_info : blocked_threads_summary) {
+                LOG_WARN("  {}", blocked_info);
+            }
+            
+        } else if (blocked_count > 0) {
+            LOG_INFO("Currently {} threads marked as blocked", blocked_count);
+        } else {
+            LOG_INFO("No blocked threads detected");
+        }
+    }
+    
+    // 额外统计信息
+    static int stat_counter = 0;
+    if (++stat_counter % 10 == 0) { // 每20秒打印一次详细统计
+        LOG_DEBUG("=== Thread Monitoring Statistics ===");
+        LOG_DEBUG("Tracking {} threads in history", thread_histories.size());
+        
+        // 统计各种状态的线程数
+        std::map<char, int> state_counts;
+        for (const auto& [tid, history] : thread_histories) {
+            state_counts[history.last_state]++;
+        }
+        
+        LOG_DEBUG("Thread state distribution:");
+        for (const auto& [state, count] : state_counts) {
+            LOG_DEBUG("  State '{}': {} threads", state, count);
+        }
+    }
+}
 
 //LogConsumer继承于Consumer,Consumer又继承于TaskManager，初始化从最内层往外
 LogConsumer::LogConsumer() {
@@ -530,16 +615,16 @@ void LogConsumer::run() {
             else
                 normal=0;
         }
+        for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
+        LOG_INFO("=========Hardware Usage=========");
+        printGPUStatus();
+        printNvidiaEncoderDecoderStatus();
+        printCPUStatus();
+        // monitorCPU_Core();
+        monitorThreads();
         if(normal)
         {
-            for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
-            LOG_INFO("=========Hardware Usage=========");
-            printGPUStatus();
-            printNvidiaEncoderDecoderStatus();
-            printCPUStatus();
-            // monitorCPU_Core();
-            monitorMainThreads();
-            detectThreadBlocks();
+            ;
         }
         else
         {
