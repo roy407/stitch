@@ -15,7 +15,7 @@ LogConsumer* Pipeline::m_log = nullptr;
 StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelTag) {
     auto& p = CFG_HANDLE.GetPipelineConfig(pipeline_id);
     std::string format =CFG_HANDLE.GetGlobalConfig().format;
-    LOG_INFO("pipeline id : {}, Format : {}, kernelTag : {}", pipeline_id, format, kernelTag);
+    LOG_DEBUG("pipeline id : {}, Format : {}, kernelTag : {}", pipeline_id, format, kernelTag);
     if(format == "YUV420") {        
         if(kernelTag =="mapping_table" ) {
             auto stitchImpl = new StitchImpl<YUV420, MappingTableKernel>();

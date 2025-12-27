@@ -55,7 +55,7 @@ void camera_manager::stop() {
 }
 
 void camera_manager::initPipeline() {
-    avformat_network_init(); // 初始化网络模块
+    avformat_network_init(); // 初始化网络模块 
     avdevice_register_all(); // 不执行这一步，会找不到v4l2
     auto& cfg = CFG_HANDLE.GetConfig();
     Pipeline::setLogConsumer(m_log);

@@ -1,4 +1,5 @@
 #include "Consumer.h"
+#include "log.hpp"
 
 Consumer::Consumer() {
     m_name += "consumer_";
