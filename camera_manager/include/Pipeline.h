@@ -24,6 +24,7 @@ extern "C" {
 #include "EncoderConsumer.h"
 #include "LogConsumer.h"
 #include "StitchImpl.h"
+#include "TestPacketProducer.h" 
 
 class Pipeline {
 private:
@@ -43,3 +44,5 @@ public:
     FrameChannel* getResizeCameraStream(int cam_id) const;
     size_t getResizeCameraStreamCount() const;
 };
+
+
