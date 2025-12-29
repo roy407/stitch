@@ -38,17 +38,33 @@ void StitchConsumer::stop() {
 void StitchConsumer::run() { 
     Frame out_image;
     AVFrame** inputs = new AVFrame*[10];
+    int first_run=0;
     LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
     while (running) {
         int frame_size = 0;
-        for (auto& channel : m_channelsFromDecoder) {
-            Frame tmp;
-            if(!channel->recv(tmp)) goto cleanup;
-            inputs[frame_size] = tmp.m_data;
-            out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
-            out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
-            out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
-            frame_size ++;
+        if(first_run==0)
+        {
+            first_run=1;
+            for (auto& channel : m_channelsFromDecoder) 
+            {
+                static Frame tmp;
+                LOG_DEBUG("11111");
+                if(!channel->recv(tmp)) 
+                {   
+                    LOG_DEBUG("clean");
+                    goto cleanup;
+                }
+                inputs[frame_size] = tmp.m_data;
+                out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
+                out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
+                out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
+                frame_size ++;
+                LOG_DEBUG("have channel {}",frame_size);
+            }
+        }
+        else
+        {
+            
         }
         out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
@@ -56,15 +72,19 @@ void StitchConsumer::run() {
         m_channel2show->send(out_image);
         m_status.frame_cnt ++;
         m_status.timestamp = get_now_time();
-        for (int i = 0; i < m_channelsFromDecoder.size(); ++i) {
-            if (inputs[i]) {
-                av_frame_free(&inputs[i]);
-            }
-        }
     }
+    
 cleanup:
     for(auto& channel : m_channelsFromDecoder) {
         channel->clear();
+        LOG_DEBUG("clean up");
     }
     delete[] inputs;
+    for (int i = 0; i < m_channelsFromDecoder.size(); ++i) {
+            if (inputs[i]) {
+                av_frame_free(&inputs[i]);
+                LOG_DEBUG("have inputs");
+            }
+        }
+    LOG_DEBUG("stitch over");
 }

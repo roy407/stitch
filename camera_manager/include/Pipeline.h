@@ -34,6 +34,8 @@ private:
     std::vector<TaskManager*> m_consumerTask;
     FrameChannel* m_stitchStream;
     static LogConsumer* m_log;
+    
+    
 public:
     Pipeline(int pipeline_id);
     Pipeline(const PipelineConfig& p);
@@ -43,6 +45,8 @@ public:
     FrameChannel* getStitchCameraStream() const;
     FrameChannel* getResizeCameraStream(int cam_id) const;
     size_t getResizeCameraStreamCount() const;
+    void SkipDecoder(CameraConfig cam, std::vector<FrameChannel*>& channels);
+    void NormalDecoder(CameraConfig cam, std::vector<FrameChannel*>& channels);
 };
 
 
