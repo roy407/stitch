@@ -28,6 +28,27 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelT
             StitchOps* ops = make_stitch_ops(stitchImpl);
             ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
             return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);;
+        } else if (kernelTag == "h_matrix_inv") {
+            auto stitchImpl = new StitchImpl<YUV420, HMatrixInvKernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+
+        } else if (kernelTag == "h_matrix_inv_v1_1") {
+            auto stitchImpl = new StitchImpl<YUV420, HMatrixInvV1_1Kernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+           
+        } else if (kernelTag == "h_matrix_inv_v2") {
+            auto stitchImpl = new StitchImpl<YUV420, HMatrixInvV2Kernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+            
         }
     } else if(format == "YUV420P") {
         if(kernelTag =="mapping_table" ) {
@@ -41,7 +62,29 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelT
             StitchOps* ops = make_stitch_ops(stitchImpl);
             ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
             return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);;
+        } else if (kernelTag == "h_matrix_inv") {
+            auto stitchImpl = new StitchImpl<YUV420P, HMatrixInvKernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+            
+        } else if (kernelTag == "h_matrix_inv_v1_1") {
+            auto stitchImpl = new StitchImpl<YUV420P, HMatrixInvV1_1Kernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+           
+        } else if (kernelTag == "h_matrix_inv_v2") {
+            auto stitchImpl = new StitchImpl<YUV420P, HMatrixInvV2Kernel>();
+            stitchImpl->loadConfig(p.stitch.stitch_impl, p.cameras.size());
+            StitchOps* ops = make_stitch_ops(stitchImpl);
+            ops->init(ops->obj, p.cameras.size(), p.cameras[0].width, p.default_width, p.default_height);
+            return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
+
         }
+        
 
     }
     return nullptr;
