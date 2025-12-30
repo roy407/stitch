@@ -24,7 +24,6 @@ extern "C" {
 #include "EncoderConsumer.h"
 #include "LogConsumer.h"
 #include "StitchImpl.h"
-#include "TestPacketProducer.h" 
 
 class Pipeline {
 private:
@@ -45,8 +44,4 @@ public:
     FrameChannel* getStitchCameraStream() const;
     FrameChannel* getResizeCameraStream(int cam_id) const;
     size_t getResizeCameraStreamCount() const;
-    void SkipDecoder(CameraConfig cam, std::vector<FrameChannel*>& channels);
-    void NormalDecoder(CameraConfig cam, std::vector<FrameChannel*>& channels);
 };
-
-
