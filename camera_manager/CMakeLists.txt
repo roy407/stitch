@@ -17,8 +17,6 @@ add_library(camera_manager STATIC
   src/EncoderConsumer.cpp
   src/CallbackConsumer.cpp
   src/Pipeline.cpp
-  src/TestPacketProducer.cpp
-  src/YUVFrameReader.cpp
 )
 
 target_include_directories(camera_manager PRIVATE 

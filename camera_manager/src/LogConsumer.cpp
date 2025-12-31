@@ -10,6 +10,7 @@ struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
+
 void LogConsumer::printProducer(PacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
     if(pro) {
         CamStatus tmp = pro->m_status;
@@ -130,6 +131,8 @@ void LogConsumer::run() {
         float fps;
         int normal=1;
         LOG_INFO("============ Frame Statistics ============");
+
+
         for(int i=0;i<m_pro.size();i++)
         {
             printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);

@@ -2,7 +2,7 @@
     "global": {
         "loglevel": "debug",
         "type": "yuv",
-        "format":"YUV420",
+        "format":"YUV420P",
         "record_duration": 240,
         "record_path": "/home/eric/mp4/nv12/",
         "decoder": "h264_cuvid",

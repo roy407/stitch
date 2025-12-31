@@ -96,7 +96,12 @@ void DecoderConsumer::run() {
     // frames_ctx->width = src_width;
     // frames_ctx->height = src_height;
     // av_hwframe_ctx_init(hw_frames_ctx);
-    while(running) {
+    #ifdef KERNEL_TEST
+    for(int i=0;i<250;i++)
+    #else
+    while(running)
+    #endif
+    {
         if(!m_channelFromAVFramePro->recv(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
         if (ret < 0) {
@@ -168,3 +173,4 @@ void DecoderConsumer::run() {
     }
     m_channelFromAVFramePro->clear();
 }
+
