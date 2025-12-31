@@ -1,6 +1,7 @@
 #pragma once
 #include "IStitch.h"
 #include "nvidia_kernel.h"
+#include "log.hpp"
 
 struct StitchOps {
     using StitchFunc = AVFrame* (*)(void*, AVFrame**);
@@ -36,7 +37,7 @@ void delete_stitch_ops(StitchOps* ops) {
 
 template <typename Format, typename KernelTag>
 class StitchImpl
-    : public IStitch<StitchImpl<Format, KernelTag>>
+    : public IStitch<StitchImpl<Format, KernelTag>>, public KernelTag
 {
 public:
     void init_impl() 
@@ -46,10 +47,12 @@ public:
         } else if constexpr (Format::value == 1) {
             AllocateFrameBufPtrYUV420P();
         }
-        SetCrop();
-        SetHMatrixInv();
-        SetCamPolygons();
-        // LoadMappingTable();
+
+        if (!this->initgetKernelGpuMemory(this->num)) {
+            LOG_ERROR("StitchImpl::init_impl failed: initgetKernelGpuMemory returned false (CUDA malloc/memcpy failed).");
+            return;
+        }
+
     }
 
     AVFrame* do_stitch_impl(AVFrame** inputs)
@@ -80,8 +83,8 @@ public:
         cudaFree(d_inputs_v);
         cudaFree(d_input_linesize_u);
         cudaFree(d_input_linesize_v);
-        cudaFree(d_crop);
-        cudaFree(d_h_matrix_inv);
+        
+        this->freeKernelGpuMemory();
     }
 
 private:
@@ -100,17 +103,6 @@ private:
     int* d_input_linesize_v{nullptr};
     bool AllocateFrameBufPtrYUV420P();
     bool MemoryCpyFrameBufPtrYUV420P(AVFrame** inputs);
-public:
-    int* d_crop{nullptr};
-    bool SetCrop();
-
-    float* d_h_matrix_inv{nullptr};
-    bool SetHMatrixInv();
-    float** d_cam_polygons{nullptr};
-    bool SetCamPolygons();
-
-    cudaTextureObject_t d_mapping_table{0};
-    bool loadMappingTable(cudaTextureObject_t tex);
 };
 
 template <typename Format, typename KernelTag>
@@ -141,7 +133,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                stream, d_crop
+                stream, this->d_crop
             );
             cudaStreamSynchronize(stream);
         }
@@ -154,7 +146,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                d_h_matrix_inv, d_cam_polygons, stream
+                this->d_h_matrix_inv, this->d_cam_polygons, stream
             );
             cudaStreamSynchronize(stream);
         }
@@ -167,7 +159,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                d_h_matrix_inv, stream1, stream2
+                this->d_h_matrix_inv, this->d_cam_polygons, stream1, stream2//作了修改
             );
             cudaStreamSynchronize(stream1);
             cudaStreamSynchronize(stream2);
@@ -181,7 +173,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                d_h_matrix_inv, stream1, stream2
+                this->d_h_matrix_inv, stream1, stream2
             );
             cudaStreamSynchronize(stream1);
             cudaStreamSynchronize(stream2);
@@ -195,7 +187,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                d_mapping_table, stream1, stream2
+                this->d_mapping_table, stream1, stream2
             );
             cudaStreamSynchronize(stream1);
             cudaStreamSynchronize(stream2);
@@ -214,7 +206,7 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
                 output_y, output_uv,
                 this->output->linesize[0], this->output->linesize[1],
                 this->num, this->single_width, this->output_width, this->height,
-                d_mapping_table, stream1, stream2
+                this->d_mapping_table, stream1, stream2
             );
             cudaStreamSynchronize(stream1);
             cudaStreamSynchronize(stream2);
@@ -308,62 +300,4 @@ bool StitchImpl<Format, KernelTag>::MemoryCpyFrameBufPtrYUV420P(AVFrame **inputs
     return true;
 }
 
-template <typename Format, typename KernelTag>
-bool StitchImpl<Format, KernelTag>::SetCrop()
-{
-    int* crop = new int[this->num * 4];
-    memset(crop,0,this->num * 4);
-    CHECK_CUDA(cudaMalloc(&d_crop, this->num * 4 * sizeof(int)));
-    // const std::vector<CameraConfig> cams = CFG_HANDLE.GetCamerasConfig(0);
-    // for(int i=0;i<this->num;i++) {
-    //     if(cams[i].stitch.enable == true) {
-    //         if(cams[i].stitch.loglevel == "crop") {
-    //             std::vector<float> __crop = cams[i].crop;
-    //             crop[i*4] = __crop[0] * this->single_width;
-    //             crop[i*4+1] = __crop[1] * this->height;
-    //             crop[i*4+2] = __crop[2] * this->single_width;
-    //             crop[i*4+3] = __crop[3] * this->height;
-    //         }
-    //     }
-    // }
-    CHECK_CUDA(cudaMemcpy(d_crop, crop, this->num * sizeof(int), cudaMemcpyHostToDevice));
-    delete[] crop;
-    return true;
-}
 
-template <typename Format, typename KernelTag>
-bool StitchImpl<Format, KernelTag>::SetHMatrixInv() {
-    CHECK_CUDA(cudaMalloc(&d_h_matrix_inv, sizeof(float) * 9 * this->num));
-    // const std::vector<std::array<double, 9>> __h_matrix_inv = CFG_HANDLE.GetGlobalStitchConfig().h_matrix_inv;
-    // float* h_matrix_inv = new float[this->num * 9];
-    // for(int i=0;i<this->num;i++) {
-    //     for(int j=0;j<9;j++) {
-    //         h_matrix_inv[i*9+j] = static_cast<float>(__h_matrix_inv[i][j]);
-    //     }
-    // }
-    // CHECK_CUDA(cudaMemcpy(d_h_matrix_inv, h_matrix_inv, sizeof(float) * 9 * this->num, cudaMemcpyHostToDevice));
-    // delete[] h_matrix_inv;
-    return true;
-}
-
-template <typename Format, typename KernelTag>
-bool StitchImpl<Format, KernelTag>::SetCamPolygons() {
-    // const std::vector<std::array<float, 8>> cam_polygons = CFG_HANDLE.GetGlobalStitchConfig().cam_polygons;
-    // CHECK_CUDA(cudaMalloc(&d_cam_polygons, sizeof(float*) * this->num));
-    // float** h_cam_ptrs = new float*[this->num];
-    // for (int i = 0; i < this->num; ++i) {
-    //     CHECK_CUDA(cudaMalloc(&h_cam_ptrs[i], sizeof(float) * 8));
-    //     CHECK_CUDA(cudaMemcpy(h_cam_ptrs[i], cam_polygons[i].data(), sizeof(float)*8, cudaMemcpyHostToDevice));
-    // }
-
-    // CHECK_CUDA(cudaMemcpy(d_cam_polygons, h_cam_ptrs,
-    //            sizeof(float*) * this->num, cudaMemcpyHostToDevice));
-    // delete[] h_cam_ptrs;
-    return true;
-}
-
-template <typename Format, typename KernelTag>
-bool StitchImpl<Format, KernelTag>::loadMappingTable(cudaTextureObject_t tex) {
-    d_mapping_table = tex;
-    return true;
-}

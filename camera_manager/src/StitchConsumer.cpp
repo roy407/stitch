@@ -35,7 +35,71 @@ void StitchConsumer::stop() {
     TaskManager::stop();
 }
 
+#ifdef KERNEL_TEST
 void StitchConsumer::run() { 
+    LOG_DEBUG("define KERNEL_TEST");
+    Frame out_image;
+    AVFrame** inputs = new AVFrame*[10];
+    uint64_t last_time=0,last_frame=0;
+    int log_count=0;
+    int DecoderChannelsNum=m_channelsFromDecoder.size();
+    LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
+    int frame_size = 0;
+    for (auto& channel : m_channelsFromDecoder) 
+    {
+        Frame tmp;
+        // LOG_DEBUG("111");
+        if(!channel->recv(tmp)) 
+        {   
+            goto cleanup;
+        }
+        // LOG_DEBUG("222");
+        inputs[frame_size] = tmp.m_data;
+        out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
+        out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
+        out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
+        frame_size ++;
+    }
+    while (running) {
+        // for(int i=0;i<DecoderChannelsNum;i++)
+        // {
+        //     out_image.m_costTimes.image_frame_cnt[0] ++;
+        //     out_image.m_costTimes.when_get_packet[0] = get_now_time();
+        //     out_image.m_costTimes.when_get_decoded_frame[0] = out_image.m_costTimes.when_get_packet[0] ;
+        // } 
+        out_image.m_data = ops->stitch(ops->obj, inputs);
+        out_image.m_data->pts = inputs[0]->pts;
+        out_image.m_costTimes.when_get_stitched_frame = get_now_time();
+        m_channel2show->send(out_image);
+        m_status.frame_cnt ++;
+        m_status.timestamp = get_now_time();
+        // if(log_count==100)
+        // {
+        //     LOG_DEBUG("stitch fps is:{},{},{}",(1000000000)/(m_status.timestamp-last_time),m_status.timestamp,last_time);
+        //     log_count=0;
+        // }
+        // else
+        //     log_count++;
+        // last_time=m_status.timestamp;
+        // last_frame=m_status.frame_cnt;
+    }
+    
+cleanup:
+    for(auto& channel : m_channelsFromDecoder) {
+        channel->clear();
+    }    
+    for (int i = 0; i < m_channelsFromDecoder.size(); ++i) 
+    {
+        if (inputs[i]) {
+            av_frame_free(&inputs[i]);
+        }
+    }
+    delete[] inputs;
+}
+
+#else
+void StitchConsumer::run() {
+    LOG_DEBUG("not define KERNEL_TEST"); 
     Frame out_image;
     AVFrame** inputs = new AVFrame*[10];
     LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
@@ -68,3 +132,4 @@ cleanup:
     }
     delete[] inputs;
 }
+#endif

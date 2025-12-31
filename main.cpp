@@ -39,9 +39,12 @@ int main(int argc, char *argv[]) {
         return launch_with_widget(0, 1920, 540, argc, argv);
     } else if(config_name == "resource/cam10_jetson.json") {
         return launch_with_widget(0, 1920, 540, argc, argv);
-    } else if(config_name == "resource/cam_test.json") {
+    } else if(config_name == "resource/kernel_test.json") {
         return launch_with_widget(0, 1920, 540, argc, argv);
-    } else {
+    }else if(config_name == "resource/cam_test.json") {
+        return launch_with_widget(0, 1920, 540, argc, argv);
+    }
+     else {
         launch_with_no_window();
     }
 }

@@ -10,6 +10,7 @@ struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
+
 void LogConsumer::printProducer(PacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
     if(pro) {
         CamStatus tmp = pro->m_status;
@@ -130,32 +131,34 @@ void LogConsumer::run() {
         float fps;
         int normal=1;
         LOG_INFO("============ Frame Statistics ============");
+
+
         for(int i=0;i<m_pro.size();i++)
         {
-            // printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
-            tmp = m_pro[i]->m_status;
-            fps=(tmp.frame_cnt - prev_frame_cnt[i]) / ((tmp.timestamp - prev_timestamp[i]) * 1e-9);
-            LOG_INFO("Producer FPS is:{}",fps);
-            prev_frame_cnt[i] = tmp.frame_cnt;
-            prev_timestamp[i] = tmp.timestamp;
+            printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
+            // tmp = m_pro[i]->m_status;
+            // fps=(tmp.frame_cnt - prev_frame_cnt[i]) / ((tmp.timestamp - prev_timestamp[i]) * 1e-9);
+            // LOG_INFO("Producer FPS is:{}",fps);
+            // prev_frame_cnt[i] = tmp.frame_cnt;
+            // prev_timestamp[i] = tmp.timestamp;
             if(fps>10)
                 ;
             else
                 normal=0;
         }
-        if(normal)
+        // if(normal)
         {
             for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
             printGPUStatus();
             printCPUStatus();
         }
-        else
-        {
-            if(first_broken>0)
-                LOG_WARN("Link broken.Trying to reconnect......");
-            else
-                first_broken=1;
-        }
+        // else
+        // {
+        //     if(first_broken>0)
+        //         LOG_WARN("Link broken.Trying to reconnect......");
+        //     else
+        //         first_broken=1;
+        // }
     }
 }
 

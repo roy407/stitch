@@ -74,7 +74,11 @@ void MP4PacketProducer::run() {
 
     AVPacket pkt;
 
+    #ifdef KERNEL_TEST
+    for(int i=0;i<250;i++)
+    #else
     while (running)
+    #endif
     {
         int ret = av_read_frame(fmt_ctx, &pkt);
         if (ret < 0) {

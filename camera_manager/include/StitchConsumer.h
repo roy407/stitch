@@ -21,6 +21,8 @@ extern "C" {
 
 class StitchOps; // 提前声明
 
+
+
 class StitchConsumer : public Consumer {
     std::vector<FrameChannel*> m_channelsFromDecoder;
     FrameChannel* m_channel2show;

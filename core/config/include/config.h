@@ -20,6 +20,8 @@ struct CameraConfig {
     bool enable_view = false;
     double scale_factor = 1.0;
     bool rtsp = false;
+    int test_fps=300;
+    int test_pattern=1;
 };
 
 struct MappingTableConfig {

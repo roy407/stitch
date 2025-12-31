@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(pstitch CUDA CXX)
 
+set(KERNEL_TEST OFF CACHE BOOL "Enable kernel test mode")
+
+if(KERNEL_TEST)
+    add_compile_definitions(KERNEL_TEST)
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_STANDARD 17)

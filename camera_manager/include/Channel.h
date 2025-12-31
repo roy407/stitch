@@ -17,6 +17,9 @@ public:
     void stop() {
         m_data.stop();
     }
+    int size() const {
+        return m_data.size();
+    }
 };
 
 class FrameChannel {

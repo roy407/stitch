@@ -4,7 +4,7 @@
         "type": "mp4",
         "format":"YUV420",
         "record_duration": 240,
-        "record_path": "/home/ling/mp4/",
+        "record_path": "/home/eric/mp4/",
         "decoder": "h264_cuvid",
         "encoder": "h264_nvenc"
     },

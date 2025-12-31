@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <stdint.h>
 
-__device__ bool is_point_in_quadrilateral(float x, float y,
+static __device__ bool is_point_in_quadrilateral(float x, float y,
     float x1, float y1, float x2, float y2,
     float x3, float y3, float x4, float y4)
 {
@@ -18,7 +18,7 @@ __device__ bool is_point_in_quadrilateral(float x, float y,
     return (d1 * d3 >= 0) && (d2 * d4 >= 0);
 }
 
-__device__ void applyHomography(float* H, float x, float y, float* out_x, float* out_y) {
+static __device__ void applyHomography(float* H, float x, float y, float* out_x, float* out_y) {
     float denominator = H[6]*x + H[7]*y + H[8];
     if (fabsf(denominator) < 1e-6f) {
         *out_x = -1;

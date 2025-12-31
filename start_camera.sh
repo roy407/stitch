@@ -2,6 +2,7 @@
 
 # 默认相机数量
 CAM_JSON=""
+CMAKE_ARGS=""
 
 # 解析命令行参数
 while [[ $# -gt 0 ]]; do
@@ -10,9 +11,13 @@ while [[ $# -gt 0 ]]; do
             CAM_JSON="$2"
             shift 2
             ;;
+        --kernel-test)
+            CMAKE_ARGS="$CMAKE_ARGS -DKERNEL_TEST=ON"
+            shift
+            ;;
         *)
             echo "未知参数: $1"
-            echo "用法: ./start_camera.sh [-n 数量]"
+            echo "用法: ./start_camera.sh [-c cam_format] [--kernel-test]"
             exit 1
             ;;
     esac
@@ -38,13 +43,26 @@ case "$CAM_JSON" in
     "cam_test")
         CONFIG_FILE="resource/cam_test.json"
         ;;
+    "kernel_test")
+        CONFIG_FILE="resource/kernel_test.json"
+        ;;
     *)
         echo "错误: 不支持的相机格式: $CAM_JSON"
         exit 1
         ;;
 esac
 
-make build
+# 创建构建目录
+mkdir -p build
+cd build
+
+echo "运行 CMake: cmake $CMAKE_ARGS .."
+cmake $CMAKE_ARGS ..
+
+echo "编译项目..."
+make -j$(nproc)
+
+cd ..
 
 echo "使用配置文件: $CONFIG_FILE"
 echo "launch stitch_app..."
@@ -54,5 +72,4 @@ echo "launch stitch_app..."
 echo "stitch_app exit"
 
 echo "开始绘制 timing 图..."
-
 python3 scripts/plot_timing.py

@@ -33,6 +33,8 @@ private:
     std::vector<TaskManager*> m_consumerTask;
     FrameChannel* m_stitchStream;
     static LogConsumer* m_log;
+    
+    
 public:
     Pipeline(int pipeline_id);
     Pipeline(const PipelineConfig& p);
