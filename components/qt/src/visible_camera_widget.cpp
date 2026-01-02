@@ -113,7 +113,6 @@ void visible_camera_widget::consumerThread() {
         Frame frame;
   
         if(!q->recv(frame)) break;
-        std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
         double dec_to_stitch = 0.0;
         int active_cam_count = 0;
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
@@ -127,10 +126,6 @@ void visible_camera_widget::consumerThread() {
         
         if (active_cam_count > 0) {
             dec_to_stitch = dec_to_stitch / active_cam_count;
-        }
-        if (!lock.owns_lock()) {
-            av_frame_free(&frame.m_data);
-            continue;
         }
 
         AVFrame* src_frame = frame.m_data;

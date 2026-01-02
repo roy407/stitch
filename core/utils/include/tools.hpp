@@ -46,7 +46,7 @@ AVPixelFormat transfer_string_2_AVPixelFormat(std::string format);
 void save_frame_as_nv12(AVFrame* frame, const std::string& filename);
 void transfer_and_save_cuda_nv12(AVFrame* hw_frame, const std::string& filename);
 
-// === NV12 创建 ===
+// === AVFrame 创建 ===
 AVFrame* get_frame_on_cpu_memory(std::string format, int width, int height);
 AVFrame* get_frame_on_gpu_memory(std::string format, int width, int height, AVBufferRef* av_buffer);
 

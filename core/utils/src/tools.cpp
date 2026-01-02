@@ -76,6 +76,7 @@ AVFrame *get_frame_on_gpu_memory(std::string format, int width, int height, AVBu
     hw_frame->height = height;
     hw_frame->format = AV_PIX_FMT_CUDA;
     CHECK_FFMPEG_RETURN(av_hwframe_get_buffer(hw_frame->hw_frames_ctx, hw_frame, 0));
+    av_buffer_unref(&hw_frames_ctx);
     return hw_frame;
 }
 

@@ -39,6 +39,7 @@ void StitchConsumer::run() {
     Frame out_image;
     AVFrame** inputs = new AVFrame*[MAX_CAM_SIZE];
     LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
+    uint32_t fetched_cnt_when_stop = 0;
     #if defined(KERNEL_TEST)
     int frame_index = 0;
     uint64_t frame_cnt = 0; // 用于模拟计数每帧图像
@@ -46,6 +47,7 @@ void StitchConsumer::run() {
     for (auto& channel : m_channelsFromDecoder) {
         Frame tmp;
         if(!channel->recv(tmp)) goto cleanup;
+        fetched_cnt_when_stop ++;    // 当运行了goto cleanup时，记录已经获取的帧数，这些帧数需要释放，否则会造成内存泄漏
         inputs[frame_index] = tmp.m_data;
         cam_ids.push_back(tmp.cam_id);
         frame_index ++;
@@ -54,9 +56,11 @@ void StitchConsumer::run() {
     while (running) {
         #if !defined(KERNEL_TEST)
         int frame_index = 0;
+        fetched_cnt_when_stop = 0;
         for (auto& channel : m_channelsFromDecoder) {
             Frame tmp;
             if(!channel->recv(tmp)) goto cleanup;
+            fetched_cnt_when_stop ++;    // 当运行了goto cleanup时，记录已经获取的帧数，这些帧数需要释放，否则会造成内存泄漏
             inputs[frame_index] = tmp.m_data;
             out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
             out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
@@ -85,6 +89,11 @@ void StitchConsumer::run() {
         #endif
     }
 cleanup:
+    for(int i = 0; i < fetched_cnt_when_stop; ++i) {
+        if (inputs[i]) {
+            av_frame_free(&inputs[i]);
+        }
+    }
     for(auto& channel : m_channelsFromDecoder) {
         channel->clear();
         #if defined(KERNEL_TEST)
