@@ -10,7 +10,7 @@ import glob
 import os
 
 # 找到 build 目录下所有 csv 文件
-csv_files = glob.glob("build/*.csv")
+csv_files = glob.glob("*.csv")
 if not csv_files:
     raise FileNotFoundError("build 目录下没有找到任何 CSV 文件")
 latest_csv = max(csv_files, key=os.path.getmtime)

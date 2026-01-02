@@ -98,7 +98,7 @@ void widget_for_test::resizeGL(int w, int h) {
 }
 
 void widget_for_test::consumerThread() {
-    static std::string filename = std::string("build/") + get_current_time_filename(".csv");
+    static std::string filename = get_current_time_filename(".csv");
 
     std::ofstream ofs(filename, std::ios::app);  // 追加写入
     if (!ofs.is_open()) {

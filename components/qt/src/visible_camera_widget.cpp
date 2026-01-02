@@ -100,7 +100,7 @@ void visible_camera_widget::VisibleTitleTime(double cost_time){
         
 //可见光拼接帧的处理
 void visible_camera_widget::consumerThread() {
-    static std::string filename = std::string("build/") + get_current_time_filename(".csv");
+    static std::string filename = get_current_time_filename(".csv");
 
     std::ofstream ofs(filename, std::ios::app);  // 追加写入
     if (!ofs.is_open()) {
@@ -117,7 +117,7 @@ void visible_camera_widget::consumerThread() {
         double dec_to_stitch = 0.0;
         int active_cam_count = 0;
         frame.m_costTimes.when_show_on_the_screen = get_now_time();
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 0; i < MAX_CAM_SIZE; ++i) {
             if (frame.m_costTimes.when_get_packet[i] != 0) {
                 double cam_dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - frame.m_costTimes.when_get_packet[i]) * 1e-6;
                 dec_to_stitch += cam_dec_to_stitch;
