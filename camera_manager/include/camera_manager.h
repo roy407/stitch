@@ -10,9 +10,9 @@ public:
     void start();
     void stop();
     void initPipeline();
-    FrameChannel* getStitchCameraStream(int pipeline_id) const; // 相机拼接图
-    FrameChannel* getSingleCameraSubStream(int cam_id) const; // 单相机子码流，非拼接图
-    size_t getResizeCameraStreamCount() const;
+    bool setStitchStreamCallback(int pipeline_id, Callback_Handle handle); // 相机拼接图
+    bool setCameraStreamCallback(int cam_id, Callback_Handle handle); // 单相机子码流，非拼接图
+    size_t getCameraStreamCount() const;
 private:
     camera_manager();
     ~camera_manager();

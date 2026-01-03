@@ -172,8 +172,11 @@ FrameChannel* Pipeline::initCameraProcessingFlows(const CameraConfig &cam) {
         if(cam.enable_view == true) {
             SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
             resizeCon->setChannel(dcon->getChannel2Resize());
-            m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
+            CallbackConsumer* callback = new CallbackConsumer();
+            callback->setChannel(resizeCon->getChannel2Show());
+            m_setCameraCallback[cam.cam_id] = std::bind(&CallbackConsumer::setCallback, callback, std::placeholders::_1);
             m_consumerTask.push_back(resizeCon);
+            m_consumerTask.push_back(callback);
         }
         return dcon->getChannel2Stitch();
     } else {
@@ -184,8 +187,11 @@ FrameChannel* Pipeline::initCameraProcessingFlows(const CameraConfig &cam) {
         if(cam.enable_view == true) {
             SingleViewConsumer* resizeCon = new SingleViewConsumer(cam.width, cam.height, cam.scale_factor);
             resizeCon->setChannel(dcon->getChannel2Resize());
-            m_resizeStream[cam.cam_id] = resizeCon->getChannel2Show();
+            CallbackConsumer* callback = new CallbackConsumer();
+            callback->setChannel(resizeCon->getChannel2Show());
+            m_setCameraCallback[cam.cam_id] = std::bind(&CallbackConsumer::setCallback, callback, std::placeholders::_1);
             m_consumerTask.push_back(resizeCon);
+            m_consumerTask.push_back(callback);
         }
         return dcon->getChannel2Stitch();
     }
@@ -219,12 +225,21 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             stitch->setChannels(channels);
             m_consumerTask.push_back(stitch);
             if(m_log) m_log->setConsumer(stitch);
-
-            m_stitchStream = stitch->getChannel2Show();
+            CallbackConsumer* callback = new CallbackConsumer();
+            callback->setPipelineName(p.name);
+            callback->setTimingWatcher(true); // TODO： 改到json文件中
+            callback->setChannel(stitch->getChannel2Show());
+            m_setStitchCallback = std::bind(&CallbackConsumer::setCallback, callback, std::placeholders::_1);
+            m_consumerTask.push_back(callback);
         } else {
-            LOG_INFO("stitch consumer not init");
+            LOG_WARN("stitch consumer not init");
         }
     }
+}
+
+Pipeline::~Pipeline() {
+    for(auto& con : m_consumerTask) delete con;
+    for(auto& pro : m_producerTask) delete pro;
 }
 
 void Pipeline::setLogConsumer(LogConsumer *log) {
@@ -237,24 +252,34 @@ void Pipeline::start() {
 }
 
 void Pipeline::stop() {
-    m_resizeStream.clear();
+    m_setCameraCallback.clear();
+    m_setStitchCallback = nullptr;
     for(auto& con : m_consumerTask) con->stop();
     for(auto& pro : m_producerTask) pro->stop();
 }
 
-FrameChannel* Pipeline::getStitchCameraStream() const {
-    return m_stitchStream;
-}
-
-FrameChannel *Pipeline::getResizeCameraStream(int cam_id) const {
-    if(m_resizeStream.find(cam_id) != m_resizeStream.end()) {
-        return m_resizeStream.at(cam_id);
+bool Pipeline::setStitchStreamCallBack(Callback_Handle handle) {
+    if(m_setStitchCallback != nullptr) {
+        m_setStitchCallback(handle);
+        return true;
     } else {
-        LOG_WARN("can't find enable_view camera stream, cam_id is {}", cam_id);
-        return nullptr;
+        LOG_WARN("can't set stitchStreamCallback");
+        return false;
     }
 }
 
-size_t Pipeline::getResizeCameraStreamCount() const {
-    return m_resizeStream.size();
+void Pipeline::setCameraStreamCallBack(int cam_id, Callback_Handle handle) {
+    if(m_setCameraCallback.find(cam_id) != m_setCameraCallback.end()) {
+        m_setCameraCallback[cam_id](handle);
+    } else {
+        LOG_WARN("can't set cameraStreamCallback, cam_id : {}", cam_id);
+    }
+}
+
+bool Pipeline::findCameraById(int cam_id) {
+    return m_setCameraCallback.find(cam_id) != m_setCameraCallback.end();
+}
+
+size_t Pipeline::getCameraStreamCount() const {
+    return m_setCameraCallback.size();
 }

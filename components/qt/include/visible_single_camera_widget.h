@@ -30,16 +30,13 @@ protected:
     void initializeGL() override;
     void paintGL() override;
     void resizeGL(int w, int h) override;
-    void consumerThread();
+    void consumerThread(Frame frame);
 
 private:
     Nv12Render* m_render;
-    
+    AVFrame* cpu_frame;
     camera_manager* cam;
-    QThread* con;
     std::mutex m_mutex;
-    std::atomic<bool> running;
-    FrameChannel* q;
     std::vector<uchar> m_buffer;
     int m_width;
     int m_height;
