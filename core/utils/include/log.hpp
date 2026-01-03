@@ -102,6 +102,13 @@ inline void AVFrame_log(const char* cam_name, const AVFrame* frame) {
     } \
 } while(0)
 
+#define CHECK_NULL_RETURN(ptr) do { \
+    if ((ptr) == nullptr) { \
+        LOG_ERROR("Null pointer detected: {}, return nullptr", #ptr); \
+        return; \
+    } \
+} while(0)
+
 #define CHECK_NULL_RETURN_NULL(ptr) do { \
     if ((ptr) == nullptr) { \
         LOG_ERROR("Null pointer detected: {}, return nullptr", #ptr); \
@@ -116,5 +123,15 @@ inline void AVFrame_log(const char* cam_name, const AVFrame* frame) {
         av_make_error_string(error_buf, AV_ERROR_MAX_STRING_SIZE, __ret); \
         LOG_ERROR("FFmpeg function failed with error: {} (code: {})", \
                  error_buf, #ret); \
+    } \
+} while(0)
+
+#define CHECK_FFMPEG_RETURN_FUNC(ret,func) do { \
+    int __ret = (ret); \
+    if (__ret < 0) { \
+        char error_buf[AV_ERROR_MAX_STRING_SIZE] = {0}; \
+        av_make_error_string(error_buf, AV_ERROR_MAX_STRING_SIZE, __ret); \
+        LOG_ERROR("{} failed with error: {} (code: {})", \
+                 #func, error_buf, #ret); \
     } \
 } while(0)
