@@ -22,7 +22,7 @@ find_package(spdlog REQUIRED)
 set(FFMPEG_INCLUDE_DIRS "/usr/local/include")
 
 if(BUILD_SHARED_LIB)
-    add_library(stitch_app SHARED lib.cpp)
+    add_library(stitch_app SHARED stitch_shared.cpp)
 else()
     add_executable(stitch_app main.cpp)
 endif()
