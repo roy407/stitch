@@ -6,33 +6,40 @@
 #include "StitchConsumer.h"
 #include <unistd.h>
 
+constexpr int LOG_PRINT_SPEED = 2; // 单位：s
+constexpr int MAX_CAM_SIZE_FOR_LOG = 20; // 最大可打印相机数量
+
 struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
-void LogConsumer::printProducer(PacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
+void LogConsumer::printProducer(int index, PacketProducer *pro) {
+    static uint64_t prev_frame_cnt[MAX_CAM_SIZE_FOR_LOG] = {};
+    static uint64_t prev_timestamp[MAX_CAM_SIZE_FOR_LOG] = {};
     if(pro) {
         CamStatus tmp = pro->m_status;
         LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             pro->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
-        prev_frame_cnt = tmp.frame_cnt;
-        prev_timestamp = tmp.timestamp;
+            (tmp.frame_cnt - prev_frame_cnt[index]) / ((tmp.timestamp - prev_timestamp[index]) * 1e-9));
+        prev_frame_cnt[index] = tmp.frame_cnt;
+        prev_timestamp[index] = tmp.timestamp;
     }
 }
 
-void LogConsumer::printConsumer(StitchConsumer *con, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
+void LogConsumer::printConsumer(int index, StitchConsumer *con) {
+    static uint64_t prev_frame_cnt[MAX_CAM_SIZE_FOR_LOG] = {};
+    static uint64_t prev_timestamp[MAX_CAM_SIZE_FOR_LOG] = {};
     if(con) {
         StitchStatus tmp = con->m_status;
         LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             con->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
-        prev_frame_cnt = tmp.frame_cnt;
-        prev_timestamp = tmp.timestamp;
+            (tmp.frame_cnt - prev_frame_cnt[index]) / ((tmp.timestamp - prev_timestamp[index]) * 1e-9));
+        prev_frame_cnt[index] = tmp.frame_cnt;
+        prev_timestamp[index] = tmp.timestamp;
     }
 }
 
@@ -119,44 +126,16 @@ void LogConsumer::stop() {
 }
 
 void LogConsumer::run() {
-    // 上限为20个摄像头
-    uint64_t prev_frame_cnt[32] = {};
-    uint64_t prev_timestamp[32] = {};
-    static int first_broken=0;
     while(running) {
         std::this_thread::sleep_for(std::chrono::seconds(time_gap));
-        m_time += 2;
-        static CamStatus tmp;
-        float fps;
-        int normal=1;
+        m_time += LOG_PRINT_SPEED;
         LOG_INFO("============ Frame Statistics ============");
-        for(int i=0;i<m_pro.size();i++)
-        {
-            // printProducer(m_pro[i], prev_frame_cnt[i], prev_timestamp[i]);
-            tmp = m_pro[i]->m_status;
-            fps=(tmp.frame_cnt - prev_frame_cnt[i]) / ((tmp.timestamp - prev_timestamp[i]) * 1e-9);
-            LOG_INFO("Producer FPS is:{}",fps);
-            prev_frame_cnt[i] = tmp.frame_cnt;
-            prev_timestamp[i] = tmp.timestamp;
-            if(fps>10)
-                ;
-            else
-                normal=0;
-        }
-        if(normal)
-        {
-            for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
-            printGPUStatus();
-            printCPUStatus();
-        }
-        else
-        {
-            if(first_broken>0)
-                LOG_WARN("Link broken.Trying to reconnect......");
-            else
-                first_broken=1;
-        }
+        for(int i=0;i<m_pro.size();i++) printProducer(i, m_pro[i]);
+        for(int i=0;i<m_con.size();i++) printConsumer(i, m_con[i]);
+        printGPUStatus();
+        printCPUStatus();
     }
+
 }
 
 void LogConsumer::setProducer(PacketProducer *pro) {

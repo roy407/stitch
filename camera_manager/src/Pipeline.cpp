@@ -129,9 +129,8 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelT
             return new StitchConsumer(ops, p.cameras[0].width, p.default_height, p.default_width);
 
         }
-        
-
     }
+    LOG_ERROR("Unsupported format : {} and KernelTag : {}", format, kernelTag);
     return nullptr;
 }
 
@@ -154,6 +153,9 @@ FrameChannel* Pipeline::initCameraProcessingFlows(const CameraConfig &cam) {
         pro = new RTSPPacketProducer(cam);
     } else if(type == "usb") {
         pro = new USBPacketProducer(cam);
+    } else {
+        LOG_ERROR("Unsupported type : {}", type);
+        return nullptr;
     }
     m_producerTask.push_back(pro);
     if(m_log) m_log->setProducer(pro);
