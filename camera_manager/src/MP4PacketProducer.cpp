@@ -39,6 +39,7 @@ MP4PacketProducer::MP4PacketProducer(CameraConfig camera_config) {
     }
     m_channel2rtsp = new PacketChannel;
     m_channel2decoder = new PacketChannel;
+    LOG_DEBUG("MP4 init over");
 }
 
 MP4PacketProducer::~MP4PacketProducer() {
@@ -114,6 +115,7 @@ void MP4PacketProducer::run() {
             pkt_copy2.m_timestamp = get_now_time();
             m_channel2rtsp->send(pkt_copy1);
             m_channel2decoder->send(pkt_copy2);
+            // LOG_DEBUG("MP4 channel send over");
         }
         av_packet_unref(&pkt);
     }

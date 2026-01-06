@@ -1,12 +1,14 @@
 #pragma once
 
 #include <stdint.h>
+#include <cstddef> 
+#include "tools.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define MAX_CAM_SIZE 10
+// #define MAX_CAM_SIZE 10
 
 /* ================== costTimes ================== */
 

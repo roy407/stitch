@@ -147,8 +147,10 @@ StitchConsumer *Pipeline::getStitchConsumer(int pipeline_id, std::string kernelT
 FrameChannel* Pipeline::initCameraProcessingFlows(const CameraConfig &cam) {
     std::string type = CFG_HANDLE.GetGlobalConfig().type;
     PacketProducer* pro = nullptr;
+    LOG_DEBUG("type is {}",type);
     if(type == "mp4") {
         pro = new MP4PacketProducer(cam);
+        LOG_DEBUG("Mp4 new");
     } else if(type == "rtsp") {
         pro = new RTSPPacketProducer(cam);
     } else if(type == "usb") {
@@ -205,6 +207,7 @@ Pipeline::Pipeline(int pipeline_id):Pipeline(CFG_HANDLE.GetPipelineConfig(pipeli
 }
 
 Pipeline::Pipeline(const PipelineConfig &p) {
+    LOG_DEBUG("pipe::pipe");
     if(p.enable == true) {
         std::vector<FrameChannel*> channels;
         #if !defined(KERNEL_TEST)
@@ -218,8 +221,13 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             f.cam_id = cam.cam_id;
             f.m_data = get_frame_on_gpu_memory(format, cam.width, cam.height, cuda_handle_init::GetGPUDeviceHandle());
             FrameChannel* fc = new FrameChannel;
+            fc->show_size();
+            LOG_DEBUG("fc send1");
             fc->send(f);
+            fc->show_size();
             channels.push_back(fc);
+            LOG_DEBUG("fc push");
+            fc->show_size();
         }
         #endif
         StitchConsumer* stitch = getStitchConsumer(p.pipeline_id, p.stitch.stitch_mode);
