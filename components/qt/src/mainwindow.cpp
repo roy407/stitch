@@ -23,7 +23,6 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
     // 统一启动摄像头管理器（只启动一次）
     cam = camera_manager::GetInstance();
     cam->start();
-
     central = new QWidget(this);
     setCentralWidget(central);
 
@@ -45,7 +44,6 @@ StitchMainWindow::~StitchMainWindow()
 
 void StitchMainWindow::closeEvent(QCloseEvent *event)
 {
-    // 停止摄像头管理器（这会停止所有流，导致Widget线程自然退出）
     if (cam) {
         cam->stop();
     }
@@ -191,7 +189,7 @@ void StitchMainWindow::setupUI()
  
     mainLayout->addWidget(visibleStitchWidget, 3);
     
-    if(cam->getResizeCameraStreamCount() != 0) {
+    if(cam->getCameraStreamCount() != 0) {
         // ========== 下层：8路可见光相机 ==========
         camerasLabel = new QLabel("单路可见光相机", this);
         camerasLabel->setAlignment(Qt::AlignCenter);
@@ -224,7 +222,7 @@ void StitchMainWindow::setupUI()
 
 void StitchMainWindow::setupCameras()
 {
-    if(cam->getResizeCameraStreamCount() == 0) return;
+    if(cam->getCameraStreamCount() == 0) return;
     // 从配置文件读取摄像头信息
     auto& config = CFG_HANDLE;
     auto cameras = config.GetCamerasConfig(0);

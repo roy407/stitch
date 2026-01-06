@@ -37,34 +37,68 @@ void StitchConsumer::stop() {
 
 void StitchConsumer::run() { 
     Frame out_image;
-    AVFrame** inputs = new AVFrame*[10];
+    AVFrame** inputs = new AVFrame*[MAX_CAM_SIZE];
     LOG_DEBUG("total count {} channels", m_channelsFromDecoder.size());
+    uint32_t fetched_cnt_when_stop = 0;
+    #if defined(KERNEL_TEST)
+    int frame_index = 0;
+    uint64_t frame_cnt = 0; // 用于模拟计数每帧图像
+    std::vector<int> cam_ids;
+    for (auto& channel : m_channelsFromDecoder) {
+        Frame tmp;
+        if(!channel->recv(tmp)) goto cleanup;
+        fetched_cnt_when_stop ++;    // 当运行了goto cleanup时，记录已经获取的帧数，这些帧数需要释放，否则会造成内存泄漏
+        inputs[frame_index] = tmp.m_data;
+        cam_ids.push_back(tmp.cam_id);
+        frame_index ++;
+    }
+    #endif
     while (running) {
-        int frame_size = 0;
+        #if !defined(KERNEL_TEST)
+        int frame_index = 0;
+        fetched_cnt_when_stop = 0;
         for (auto& channel : m_channelsFromDecoder) {
             Frame tmp;
             if(!channel->recv(tmp)) goto cleanup;
-            inputs[frame_size] = tmp.m_data;
+            fetched_cnt_when_stop ++;    // 当运行了goto cleanup时，记录已经获取的帧数，这些帧数需要释放，否则会造成内存泄漏
+            inputs[frame_index] = tmp.m_data;
             out_image.m_costTimes.image_frame_cnt[tmp.cam_id] = tmp.m_costTimes.image_frame_cnt[tmp.cam_id];
             out_image.m_costTimes.when_get_packet[tmp.cam_id] = tmp.m_costTimes.when_get_packet[tmp.cam_id];
             out_image.m_costTimes.when_get_decoded_frame[tmp.cam_id] = tmp.m_costTimes.when_get_decoded_frame[tmp.cam_id];
-            frame_size ++;
+            frame_index ++;
         }
+        #else
+        for (int i=0; i < frame_index; i++) {
+            out_image.m_costTimes.image_frame_cnt[cam_ids[i]] = frame_cnt ++;
+            out_image.m_costTimes.when_get_packet[cam_ids[i]] = get_now_time(); // 模拟获取packet过程
+            out_image.m_costTimes.when_get_decoded_frame[cam_ids[i]] = out_image.m_costTimes.when_get_packet[cam_ids[i]]; // 模拟packet解码过程
+        }
+        #endif
         out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         m_channel2show->send(out_image);
         m_status.frame_cnt ++;
         m_status.timestamp = get_now_time();
+        #if !defined(KERNEL_TEST)
         for (int i = 0; i < m_channelsFromDecoder.size(); ++i) {
             if (inputs[i]) {
                 av_frame_free(&inputs[i]);
             }
         }
+        #endif
     }
 cleanup:
+    for(int i = 0; i < fetched_cnt_when_stop; ++i) {
+        if (inputs[i]) {
+            av_frame_free(&inputs[i]);
+        }
+    }
     for(auto& channel : m_channelsFromDecoder) {
         channel->clear();
+        #if defined(KERNEL_TEST)
+        delete channel;
+        #endif
     }
     delete[] inputs;
 }

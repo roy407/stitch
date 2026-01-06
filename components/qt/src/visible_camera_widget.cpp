@@ -35,8 +35,6 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     QOpenGLWidget(parent),
     m_render(nullptr),
     cam(nullptr),
-    con(nullptr),
-    running(true),
     m_width(0),
     m_height(0),
     m_y_stride(0),
@@ -50,11 +48,11 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
+    cpu_frame = av_frame_alloc();  
     // 只获取实例，不启动（由主窗口统一管理）
     cam = camera_manager::GetInstance();
-   q = cam->getStitchCameraStream(0);
-    con = QThread::create([this](){consumerThread();});
-    con->start();
+    auto callback_handle = std::bind(&visible_camera_widget::consumerThread, this, std::placeholders::_1);
+    cam->setStitchStreamCallback(0, callback_handle);
 }
 //这边都是原来可见光拼接的
 visible_camera_widget::~visible_camera_widget() {
@@ -62,14 +60,7 @@ visible_camera_widget::~visible_camera_widget() {
 }
 
 void visible_camera_widget::cleanup() {
-    running.store(false);
-    if (con) {
-        q->stop();
-        con->wait();
-        delete con;
-        con = nullptr;
-        LOG_DEBUG("visible_camera_widget consumer thread destroyed!");
-    }
+    av_frame_free(&cpu_frame);
     if (m_render) {
         delete m_render;
         m_render = nullptr;
@@ -99,97 +90,79 @@ void visible_camera_widget::VisibleTitleTime(double cost_time){
 
         
 //可见光拼接帧的处理
-void visible_camera_widget::consumerThread() {
-    static std::string filename = std::string("build/") + get_current_time_filename(".csv");
-
-    std::ofstream ofs(filename, std::ios::app);  // 追加写入
-    if (!ofs.is_open()) {
-        LOG_ERROR("Failed to open file: {}", filename);
+void visible_camera_widget::consumerThread(Frame frame) {  
+    std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
+    double dec_to_stitch = 0.0;
+    int active_cam_count = 0;
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
+        if (frame.m_costTimes.when_get_packet[i] != 0) {
+            double cam_dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - frame.m_costTimes.when_get_packet[i]) * 1e-6;
+            dec_to_stitch += cam_dec_to_stitch;
+            active_cam_count++;
+        }
+    }
+    
+    if (active_cam_count > 0) {
+        dec_to_stitch = dec_to_stitch / active_cam_count;
+    }
+    if (!lock.owns_lock()) {
+        av_frame_free(&frame.m_data);
         return;
     }
 
-    AVFrame* cpu_frame = av_frame_alloc();    
-    while (running.load()) {
-        Frame frame;
-  
-        if(!q->recv(frame)) break;
-        std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
-        double dec_to_stitch = 0.0;
-        int active_cam_count = 0;
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
-        for (int i = 0; i < 10; ++i) {
-            if (frame.m_costTimes.when_get_packet[i] != 0) {
-                double cam_dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - frame.m_costTimes.when_get_packet[i]) * 1e-6;
-                dec_to_stitch += cam_dec_to_stitch;
-                active_cam_count++;
-            }
-        }
-        
-        if (active_cam_count > 0) {
-            dec_to_stitch = dec_to_stitch / active_cam_count;
-        }
-        if (!lock.owns_lock()) {
+    AVFrame* src_frame = frame.m_data;
+    AVFrame* process_frame = src_frame;
+    
+    // 硬件帧转换到CPU
+    if (src_frame->format == AV_PIX_FMT_CUDA) {
+        if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
+            qWarning() << "Failed to transfer frame to CPU";
             av_frame_free(&frame.m_data);
-            continue;
+            return;
         }
-
-        AVFrame* src_frame = frame.m_data;
-        AVFrame* process_frame = src_frame;
-        
-        // 硬件帧转换到CPU
-        if (src_frame->format == AV_PIX_FMT_CUDA) {
-            if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
-                qWarning() << "Failed to transfer frame to CPU";
-                av_frame_free(&frame.m_data);
-                continue;
-            }
-            process_frame = cpu_frame;
-        }
-
-        m_width = process_frame->width;
-        m_height = process_frame->height;
-        m_y_stride = process_frame->linesize[0];
-        m_uv_stride = process_frame->linesize[1];
-        draw_vertical_line_nv12(process_frame, 200, "-120°", 150, 0);
-        draw_vertical_line_nv12(process_frame, 5350, "-60°", 150, 0);
-        draw_vertical_line_nv12(process_frame, 10500, "0°", 150, 0);
-        draw_vertical_line_nv12(process_frame, 15550, "60°", 150, 0);
-        draw_vertical_line_nv12(process_frame, 20600, "120°", 360, 0);
-
-        // 确保行对齐是32字节的倍数
-        if (m_y_stride % 32 != 0) {
-            m_y_stride = ((m_y_stride + 31) / 32) * 32;
-        }
-        if (m_uv_stride % 32 != 0) {
-            m_uv_stride = ((m_uv_stride + 31) / 32) * 32;
-        }
-        
-        size_t y_size = m_y_stride * m_height;
-        size_t uv_size = m_uv_stride * (m_height / 2);
-        size_t total_size = y_size + uv_size;
-        
-        // 调整缓冲区大小
-        if (m_buffer.size() < total_size) {
-            m_buffer.resize(total_size);
-        }
-        
-        
-        // 复制Y和UV数据
-        memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
-        memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
-        
-        av_frame_free(&frame.m_data);
-        
-        auto now = std::chrono::steady_clock::now();
-        if (now - last_title_update >= update_interval) {
-       
-        QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
-                                Q_ARG(double, dec_to_stitch));
-              last_title_update = now;  // 更新时间戳
-        }
-        QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-        save_cost_table_csv(frame.m_costTimes,ofs);
+        process_frame = cpu_frame;
     }
-    q->clear();
-    av_frame_free(&cpu_frame);
+
+    m_width = process_frame->width;
+    m_height = process_frame->height;
+    m_y_stride = process_frame->linesize[0];
+    m_uv_stride = process_frame->linesize[1];
+    draw_vertical_line_nv12(process_frame, 200, "-120°", 150, 0);
+    draw_vertical_line_nv12(process_frame, 5350, "-60°", 150, 0);
+    draw_vertical_line_nv12(process_frame, 10500, "0°", 150, 0);
+    draw_vertical_line_nv12(process_frame, 15550, "60°", 150, 0);
+    draw_vertical_line_nv12(process_frame, 20600, "120°", 360, 0);
+
+    // 确保行对齐是32字节的倍数
+    if (m_y_stride % 32 != 0) {
+        m_y_stride = ((m_y_stride + 31) / 32) * 32;
+    }
+    if (m_uv_stride % 32 != 0) {
+        m_uv_stride = ((m_uv_stride + 31) / 32) * 32;
+    }
+    
+    size_t y_size = m_y_stride * m_height;
+    size_t uv_size = m_uv_stride * (m_height / 2);
+    size_t total_size = y_size + uv_size;
+    
+    // 调整缓冲区大小
+    if (m_buffer.size() < total_size) {
+        m_buffer.resize(total_size);
+    }
+    
+    
+    // 复制Y和UV数据
+    memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
+    memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
+    
+    av_frame_free(&frame.m_data);
+    
+    auto now = std::chrono::steady_clock::now();
+    if (now - last_title_update >= update_interval) {
+    
+    QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
+                            Q_ARG(double, dec_to_stitch));
+            last_title_update = now;  // 更新时间戳
+    }
+    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 }

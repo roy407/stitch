@@ -13,14 +13,10 @@ extern "C" {
 DecoderConsumer::DecoderConsumer(const std::string& codec_name) {
     m_name += codec_name + "_decoder";
     codec = avcodec_find_decoder_by_name(codec_name.c_str());
-    if (!codec) {
-        LOG_ERROR("Codec {} not found", codec_name);
-    }
+    CHECK_NULL(codec);
 
     codec_ctx = avcodec_alloc_context3(codec);
-    if (!codec_ctx) {
-        LOG_ERROR("Could not allocate codec context");
-    }
+    CHECK_NULL(codec_ctx);
 
     codec_ctx->hw_device_ctx = av_buffer_ref(cuda_handle_init::GetGPUDeviceHandle());
 
@@ -40,21 +36,14 @@ DecoderConsumer::~DecoderConsumer() {
 }
 
 void DecoderConsumer::setAVCodecParameters(AVCodecParameters *codecpar, AVRational time_base) {
-    if (codec_ctx== nullptr) {
-        throw std::runtime_error("Codec context is not initialized");
-    }
-    if (codecpar== nullptr) {
-        throw std::runtime_error("AVCodecParameters is null");
-    }
+    CHECK_NULL(codecpar);
     avcodec_parameters_to_context(codec_ctx, codecpar);
     codec_ctx->time_base = time_base;
     codec_ctx->pkt_timebase = time_base;
 }
 
 void DecoderConsumer::setChannel(PacketChannel *channel) {
-    if (channel == nullptr) {
-        throw std::runtime_error("PacketChannel is null");
-    }
+    CHECK_NULL(channel);
     m_channelFromAVFramePro = channel;
 }
 
@@ -71,10 +60,7 @@ void DecoderConsumer::start() {
         LOG_ERROR("m_channelFromAVFramePro has not inited");
         return;
     }
-    
-    if (avcodec_open2(codec_ctx, codec, nullptr) < 0) {
-        throw std::runtime_error("Failed to open codec");
-    }
+    CHECK_FFMPEG_RETURN(avcodec_open2(codec_ctx, codec, nullptr));
     TaskManager::start();
 }
 
@@ -84,11 +70,11 @@ void DecoderConsumer::stop() {
 }
 
 void DecoderConsumer::run() {
+    CHECK_NULL_RETURN(m_channelFromAVFramePro);
+    CHECK_NULL_RETURN(m_channel2stitch);
     Packet pkt;
     // int src_width = 3840;
     // int src_height = 2160;
-    if(!m_channelFromAVFramePro) throw std::runtime_error("null pointer");
-    if(!m_channel2stitch) throw std::runtime_error("null pointer");
     // AVBufferRef *hw_frames_ctx = av_hwframe_ctx_alloc(cuda_handle_init::GetGPUDeviceHandle());
     // AVHWFramesContext *frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
     // frames_ctx->format = AV_PIX_FMT_CUDA;
@@ -99,19 +85,12 @@ void DecoderConsumer::run() {
     while(running) {
         if(!m_channelFromAVFramePro->recv(pkt)) break;
         int ret = avcodec_send_packet(codec_ctx, pkt.m_data);
-        if (ret < 0) {
-            char errbuf[256];
-            av_strerror(ret, errbuf, sizeof(errbuf));
-            LOG_ERROR("avcodec_send_packet error: {}",errbuf);
-            return;
-        }
+        CHECK_FFMPEG_RETURN(ret);
 
         while (ret >= 0) {
             Frame frame;
             frame.m_data = av_frame_alloc();
-            if (!frame.m_data) {
-                throw std::runtime_error("Could not allocate AVFrame");
-            }
+            CHECK_NULL_RETURN(frame.m_data);
             ret = avcodec_receive_frame(codec_ctx, frame.m_data);
             if (ret == 0) {
                 if (frame.m_data->format == AV_PIX_FMT_CUDA) {
@@ -158,10 +137,7 @@ void DecoderConsumer::run() {
             } else if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
                 break;
             } else {
-                char errbuf[256];
-                av_strerror(ret, errbuf, sizeof(errbuf));
-                LOG_ERROR("avcodec_receive_frame error: {}", errbuf);
-                break;
+                CHECK_FFMPEG_RETURN_FUNC(ret, avcodec_receive_frame);
             }
         }
         av_packet_free(&pkt.m_data);

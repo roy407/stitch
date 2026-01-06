@@ -49,6 +49,37 @@ void transfer_and_save_cuda_nv12(AVFrame* hw_frame, const std::string& filename)
     av_frame_free(&cpu_frame);
 }
 
+AVFrame *get_frame_on_cpu_memory(std::string format, int width, int height) {
+    AVFrame* frame = av_frame_alloc();
+    CHECK_NULL_RETURN_NULL(frame);
+    frame->format = transfer_string_2_AVPixelFormat(format);
+    frame->width = width;
+    frame->height = height;
+    CHECK_FFMPEG_RETURN(av_frame_get_buffer(frame, 32));  // 32位对齐
+    return frame;
+}
+
+AVFrame *get_frame_on_gpu_memory(std::string format, int width, int height, AVBufferRef* av_buffer) {
+    AVFrame *hw_frame = av_frame_alloc();
+    CHECK_NULL_RETURN_NULL(hw_frame);
+    AVBufferRef *hw_frames_ctx = av_hwframe_ctx_alloc(av_buffer);
+    CHECK_NULL(hw_frames_ctx);
+    AVHWFramesContext *frames_ctx = (AVHWFramesContext*)hw_frames_ctx->data;
+    CHECK_NULL(frames_ctx);
+    frames_ctx->format = AV_PIX_FMT_CUDA;
+    frames_ctx->sw_format = transfer_string_2_AVPixelFormat(format);
+    frames_ctx->width = width;
+    frames_ctx->height = height;
+    CHECK_FFMPEG_RETURN(av_hwframe_ctx_init(hw_frames_ctx));
+    hw_frame->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
+    hw_frame->width = width;
+    hw_frame->height = height;
+    hw_frame->format = AV_PIX_FMT_CUDA;
+    CHECK_FFMPEG_RETURN(av_hwframe_get_buffer(hw_frame->hw_frames_ctx, hw_frame, 0));
+    av_buffer_unref(&hw_frames_ctx);
+    return hw_frame;
+}
+
 // ------------------------
 // 生成带时间戳的文件名
 // ------------------------
@@ -66,6 +97,12 @@ std::string get_current_time_filename(const std::string& suffix) {
     std::ostringstream oss;
     oss << std::put_time(&now_tm, "%Y-%m-%d_%H-%M-%S") << suffix;
     return oss.str();
+}
+
+AVPixelFormat transfer_string_2_AVPixelFormat(std::string format) {
+    if(format == "YUV420") return AV_PIX_FMT_NV12;
+    else if(format == "YUV420P") return AV_PIX_FMT_YUV420P;
+    else return AV_PIX_FMT_NONE;
 }
 
 // ------------------------
@@ -86,7 +123,7 @@ void save_cost_times_to_timestamped_file(const costTimes& t, std::ofstream& ofs)
 
     ofs << "--------------------------------------------------------\n";
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         if (t.when_get_packet[i] == 0 || t.when_get_decoded_frame[i] == 0)
             continue;
 
@@ -108,14 +145,18 @@ void save_cost_times_to_timestamped_file(const costTimes& t, std::ofstream& ofs)
 
 void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
     constexpr double scale = 1e-6; // 纳秒→毫秒；若你原始时间戳是毫秒，请改成 1.0
-    static bool isWriteHeader = false;
+    // static bool isWriteHeader = false;
 
-    if(!isWriteHeader) {
+    // if(!isWriteHeader) {
+    //     ofs << "Camera,FrameCount,Pkt->Dec(ms),Dec->Stitch(ms),Stitch->Show(ms),Total(ms)\n";
+    //     isWriteHeader = true;
+    // }
+    // 如果文件指针在开头（0），说明是新文件（或空文件），写入表头
+    if (ofs.tellp() == 0) {
         ofs << "Camera,FrameCount,Pkt->Dec(ms),Dec->Stitch(ms),Stitch->Show(ms),Total(ms)\n";
-        isWriteHeader = true;
     }
-
-    for (int i = 0; i < 10; ++i) {
+    
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         if (t.when_get_packet[i] == 0 || t.when_get_decoded_frame[i] == 0)
             continue;
 
@@ -138,19 +179,19 @@ void printCostTimes(const costTimes &c) { {
     std::cout << "========== costTimes ==========\n";
 
     std::cout << "image_frame_cnt: ";
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         std::cout << c.image_frame_cnt[i] << " ";
     }
     std::cout << "\n";
 
     std::cout << "when_get_packet: ";
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         std::cout << c.when_get_packet[i] << " ";
     }
     std::cout << "\n";
 
     std::cout << "when_get_decoded_frame: ";
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         std::cout << c.when_get_decoded_frame[i] << " ";
     }
     std::cout << "\n";

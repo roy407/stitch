@@ -34,8 +34,6 @@ widget_for_test::widget_for_test(int pipeline_id, int width, int height, QWidget
     QOpenGLWidget(parent),
     m_render(nullptr),
     cam(nullptr),
-    con(nullptr),
-    running(true),
     m_width(0),
     m_height(0),
     m_y_stride(0),
@@ -49,11 +47,9 @@ widget_for_test::widget_for_test(int pipeline_id, int width, int height, QWidget
     cam = camera_manager::GetInstance();
     LOG_DEBUG("cam start");
     cam->start();
-    LOG_DEBUG("cam over");
-    q = cam->getStitchCameraStream(pipeline_id);
-    con = QThread::create([this](){consumerThread();});
-    con->start();
-    LOG_DEBUG("widget test over");
+    cpu_frame = av_frame_alloc();  
+    auto callback_handle = std::bind(&widget_for_test::consumerThread, this, std::placeholders::_1);
+    cam->setStitchStreamCallback(0, callback_handle);
 }
 
 widget_for_test::~widget_for_test() {
@@ -61,20 +57,11 @@ widget_for_test::~widget_for_test() {
 }
 
 void widget_for_test::cleanup() {
-    running.store(false);
-    if (con) {
-        q->stop();
-        con->wait();
-        delete con;
-        con = nullptr;
-        LOG_DEBUG("widget consumer thread destroyed!");
-    }
-    
     if (cam) {
         cam->stop();
         LOG_DEBUG("camera_service stopped!");
     }
-    
+    av_frame_free(&cpu_frame);
     if (m_render) {
         delete m_render;
         m_render = nullptr;
@@ -97,59 +84,41 @@ void widget_for_test::resizeGL(int w, int h) {
     glViewport(0, 0, w, h);
 }
 
-void widget_for_test::consumerThread() {
-    static std::string filename = std::string("build/") + get_current_time_filename(".csv");
-
-    std::ofstream ofs(filename, std::ios::app);  // 追加写入
-    if (!ofs.is_open()) {
-        LOG_ERROR("Failed to open file: {}", filename);
-        return;
-    }
-
-AVFrame* cpu_frame = av_frame_alloc();    
-    while (running.load()) {
-        Frame frame;
-        if(!q->recv(frame)) break;
-        AVFrame* src_frame = frame.m_data;
-        AVFrame* process_frame = nullptr;
-        // 硬件帧转换到CPU
-        if (src_frame->format == AV_PIX_FMT_CUDA) {
-            if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
-                qWarning() << "Failed to transfer frame to CPU";
-                av_frame_free(&frame.m_data);
-                continue;
-            }
-            process_frame = cpu_frame;
-        }
-
-        m_width = process_frame->width;
-        m_height = process_frame->height;
-        m_y_stride = process_frame->linesize[0];
-        m_uv_stride = process_frame->linesize[1];
-        
-        // 确保行对齐是32字节的倍数
-        if (m_y_stride % 32 != 0) {
-            m_y_stride = ((m_y_stride + 31) / 32) * 32;
-        }
-        if (m_uv_stride % 32 != 0) {
-            m_uv_stride = ((m_uv_stride + 31) / 32) * 32;
-        }
-        
-        size_t y_size = m_y_stride * m_height;
-        size_t uv_size = m_uv_stride * (m_height / 2);
-        size_t total_size = y_size + uv_size;
-        
-            if (m_buffer.size() < total_size) {
-                m_buffer.resize(total_size);
-            }
-            memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
-            memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
+void widget_for_test::consumerThread(Frame frame) {
+    AVFrame* src_frame = frame.m_data;
+    AVFrame* process_frame = nullptr;
+    // 硬件帧转换到CPU
+    if (src_frame->format == AV_PIX_FMT_CUDA) {
+        if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
+            qWarning() << "Failed to transfer frame to CPU";
             av_frame_free(&frame.m_data);
-            QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
-
-        frame.m_costTimes.when_show_on_the_screen = get_now_time();
-        save_cost_table_csv(frame.m_costTimes, ofs);
+            return;
+        }
+        process_frame = cpu_frame;
     }
-    q->clear();
-    av_frame_free(&cpu_frame);
+
+    m_width = process_frame->width;
+    m_height = process_frame->height;
+    m_y_stride = process_frame->linesize[0];
+    m_uv_stride = process_frame->linesize[1];
+    
+    // 确保行对齐是32字节的倍数
+    if (m_y_stride % 32 != 0) {
+        m_y_stride = ((m_y_stride + 31) / 32) * 32;
+    }
+    if (m_uv_stride % 32 != 0) {
+        m_uv_stride = ((m_uv_stride + 31) / 32) * 32;
+    }
+    
+    size_t y_size = m_y_stride * m_height;
+    size_t uv_size = m_uv_stride * (m_height / 2);
+    size_t total_size = y_size + uv_size;
+    
+    if (m_buffer.size() < total_size) {
+        m_buffer.resize(total_size);
+    }
+    memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
+    memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
+    av_frame_free(&frame.m_data);
+    QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
 }

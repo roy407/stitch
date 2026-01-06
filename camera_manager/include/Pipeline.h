@@ -24,22 +24,26 @@ extern "C" {
 #include "EncoderConsumer.h"
 #include "LogConsumer.h"
 #include "StitchImpl.h"
+#include "CallbackConsumer.h"
 
 class Pipeline {
 private:
     StitchConsumer* getStitchConsumer(int pipeline_id, std::string kernelTag);
-    std::unordered_map<int, FrameChannel*> m_resizeStream; // cam_id -> resize_stream
+    FrameChannel* initCameraProcessingFlows(const CameraConfig &cam);
+    std::unordered_map<int, std::function<void(Callback_Handle)>> m_setCameraCallback; // cam_id -> CameraCallback;
+    std::function<void(Callback_Handle)> m_setStitchCallback = nullptr;
     std::vector<TaskManager*> m_producerTask;
     std::vector<TaskManager*> m_consumerTask;
-    FrameChannel* m_stitchStream;
     static LogConsumer* m_log;
 public:
     Pipeline(int pipeline_id);
     Pipeline(const PipelineConfig& p);
+    ~Pipeline();
     static void setLogConsumer(LogConsumer* log);
     void start();
     void stop();
-    FrameChannel* getStitchCameraStream() const;
-    FrameChannel* getResizeCameraStream(int cam_id) const;
-    size_t getResizeCameraStreamCount() const;
+    bool setStitchStreamCallBack(Callback_Handle handle);
+    void setCameraStreamCallBack(int cam_id, Callback_Handle handle);
+    bool findCameraById(int cam_id);
+    size_t getCameraStreamCount() const ;
 };

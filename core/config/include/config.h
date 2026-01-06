@@ -45,6 +45,7 @@ struct PipelineConfig {
     int pipeline_id = 0;
     bool enable = true;
     bool use_substream = false;
+    bool openTimingWatcher = false;
     uint64_t default_width{0}; // 用于存储拼接图像的最大长度，json中不配置
     uint64_t default_height{0}; // 用于存储拼接图像的最大高度，json中不配置
     std::string main_stream; // 主码流相机数据文件

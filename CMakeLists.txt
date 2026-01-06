@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # libcuda.so, libnvidia-fatbinaryloader.so, libnpp*, libnvrtc 等） 在运行时存在冲突。
 
 option(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
+option(ENABLE_KERNEL_TEST "Enable kernel test features" OFF)
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
@@ -30,6 +31,10 @@ add_subdirectory(core)
 add_subdirectory(components)
 add_subdirectory(camera_manager)
 
+if(ENABLE_KERNEL_TEST)
+    target_compile_definitions(camera_manager PRIVATE KERNEL_TEST)
+endif()
+
 target_link_directories(stitch_app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/components/qt/include
 )
@@ -47,13 +52,9 @@ if(BUILD_SHARED_LIB)
     set_target_properties(camera_manager PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-set(RESOURCE_DIR ${CMAKE_SOURCE_DIR}/resource)
-set(DEST_DIR ${CMAKE_BINARY_DIR}/resource)
-
-add_custom_command(
-    OUTPUT ${DEST_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCE_DIR} ${DEST_DIR}
-    COMMENT "Copying resource directory..."
-)
-
-add_custom_target(copy_resources ALL DEPENDS ${DEST_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/resource
+     DESTINATION ${CMAKE_BINARY_DIR}
+     FILES_MATCHING PATTERN "*")
+file(COPY ${CMAKE_SOURCE_DIR}/scripts
+     DESTINATION ${CMAKE_BINARY_DIR}
+     FILES_MATCHING PATTERN "*")

@@ -2,7 +2,7 @@
     "cameras": [
         {
             "name": "cam8",
-                       "cam_id": 8,
+            "cam_id": 8,
             "input_url": "rtsp://192.168.1.58:554/live?channel=0&subtype=1",
             "width": 640,
             "height": 512,

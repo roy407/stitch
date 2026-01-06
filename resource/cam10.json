@@ -18,10 +18,11 @@
             "sub_stream":"resource/cam10/group0_substream.json",
             "stitch":{
                 "stitch_mode":"mapping_table"
-            }
+            },
+            "openTimingWatcher": true
         },
         {
-            "name" : "group1",
+            "name" : "group1",   
             "pipeline_id":1,
             "enable":true,
             "use_sub_input": true,
@@ -29,7 +30,8 @@
             "sub_stream":"resource/cam10/group1_substream.json",
             "stitch":{
                 "stitch_mode":"mapping_table"
-            }
+            },
+            "openTimingWatcher": false
         }
     ]
 }

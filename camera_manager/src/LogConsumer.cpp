@@ -6,33 +6,40 @@
 #include "StitchConsumer.h"
 #include <unistd.h>
 
+constexpr int LOG_PRINT_SPEED = 2; // 单位：s
+constexpr int MAX_CAM_SIZE_FOR_LOG = 20; // 最大可打印相机数量
+
 struct CpuStats {
     unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
 };
 
-void LogConsumer::printProducer(PacketProducer *pro, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
+void LogConsumer::printProducer(int index, PacketProducer *pro) {
+    static uint64_t prev_frame_cnt[MAX_CAM_SIZE_FOR_LOG] = {};
+    static uint64_t prev_timestamp[MAX_CAM_SIZE_FOR_LOG] = {};
     if(pro) {
         CamStatus tmp = pro->m_status;
         LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             pro->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
-        prev_frame_cnt = tmp.frame_cnt;
-        prev_timestamp = tmp.timestamp;
+            (tmp.frame_cnt - prev_frame_cnt[index]) / ((tmp.timestamp - prev_timestamp[index]) * 1e-9));
+        prev_frame_cnt[index] = tmp.frame_cnt;
+        prev_timestamp[index] = tmp.timestamp;
     }
 }
 
-void LogConsumer::printConsumer(StitchConsumer *con, uint64_t& prev_frame_cnt, uint64_t& prev_timestamp) {
+void LogConsumer::printConsumer(int index, StitchConsumer *con) {
+    static uint64_t prev_frame_cnt[MAX_CAM_SIZE_FOR_LOG] = {};
+    static uint64_t prev_timestamp[MAX_CAM_SIZE_FOR_LOG] = {};
     if(con) {
         StitchStatus tmp = con->m_status;
         LOG_INFO("{} [{},{}] FPS:{:.2f}", 
             con->m_name, 
             tmp.width, 
             tmp.height, 
-            (tmp.frame_cnt - prev_frame_cnt) / ((tmp.timestamp - prev_timestamp) * 1e-9));
-        prev_frame_cnt = tmp.frame_cnt;
-        prev_timestamp = tmp.timestamp;
+            (tmp.frame_cnt - prev_frame_cnt[index]) / ((tmp.timestamp - prev_timestamp[index]) * 1e-9));
+        prev_frame_cnt[index] = tmp.frame_cnt;
+        prev_timestamp[index] = tmp.timestamp;
     }
 }
 
@@ -145,7 +152,7 @@ void LogConsumer::run() {
         }
         if(normal)
         {
-            for(int i=0;i<m_con.size();i++) printConsumer(m_con[i], prev_frame_cnt[21 + i], prev_timestamp[21 + i]);
+            for(int i=0;i<m_con.size();i++) printConsumer(i, m_con[i]);
             printGPUStatus();
             printCPUStatus();
         }
@@ -157,6 +164,7 @@ void LogConsumer::run() {
                 first_broken=1;
         }
     }
+
 }
 
 void LogConsumer::setProducer(PacketProducer *pro) {

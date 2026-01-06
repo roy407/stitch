@@ -28,6 +28,11 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         config_name = argv[1];
     }
+    
+    // 清空 timingwatcher.txt，确保只记录本次运行的文件
+    std::ofstream watcher("timingwatcher.txt", std::ios::trunc);
+    watcher.close();
+
     config::SetConfigFileName(config_name);
     if(config_name == "resource/cam10.json") {
         return launch_with_mainwindow(argc, argv);

@@ -65,22 +65,28 @@ void camera_manager::initPipeline() {
     }
 }
 
-FrameChannel* camera_manager::getStitchCameraStream(int pipeline_id) const {
-    return m_pipelines[pipeline_id]->getStitchCameraStream();
-}
-
-FrameChannel* camera_manager::getSingleCameraSubStream(int cam_id) const {
-    for(auto& p : m_pipelines) {
-        auto ptr = p->getResizeCameraStream(cam_id);
-        if(ptr != nullptr) return ptr;
+bool camera_manager::setStitchStreamCallback(int pipeline_id, Callback_Handle handle) {
+    if(pipeline_id < m_pipelines.size()) {
+        return m_pipelines[pipeline_id]->setStitchStreamCallBack(handle);
+    } else {
+        return false;
     }
-    return nullptr;
 }
 
-size_t camera_manager::getResizeCameraStreamCount() const {
+bool camera_manager::setCameraStreamCallback(int cam_id, Callback_Handle handle) {
+    for(auto& p : m_pipelines) {
+        if(p->findCameraById(cam_id)) {
+            p->setCameraStreamCallBack(cam_id, handle);
+            return true;
+        }
+    }
+    return false;
+}
+
+size_t camera_manager::getCameraStreamCount() const {
     size_t count = 0;
     for(auto& p : m_pipelines) {
-        count += p->getResizeCameraStreamCount();
+        count += p->getCameraStreamCount();
     }
     return count;
 }

@@ -198,7 +198,18 @@ void StitchImpl<Format, KernelTag>::launch_kernel() {
             if(__cnt__ % 20 == 0) LOG_WARN("No kernel is running now");
         }
     } else if constexpr (Format::value == 1) {
-        if constexpr (std::is_same_v<KernelTag, MappingTableKernel>) {
+        if constexpr (std::is_same_v<KernelTag, RawKernel>) {
+            cudaStream_t stream = 0;
+            launch_stitch_kernel_raw_yuv420p(
+                d_inputs_y, d_inputs_u, d_inputs_v,
+                d_input_linesize_y, d_input_linesize_u, d_input_linesize_v,
+                output_y, output_uv,
+                this->output->linesize[0], this->output->linesize[1],
+                this->num, this->single_width, this->output_width, this->height,
+                stream
+            );
+            cudaStreamSynchronize(stream);
+        } else if constexpr (std::is_same_v<KernelTag, MappingTableKernel>) {
             cudaStream_t stream1 = 0, stream2 = 0;
             launch_stitch_kernel_with_mapping_table_yuv420p(
                 d_inputs_y, d_inputs_u, d_inputs_v,

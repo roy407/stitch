@@ -96,6 +96,7 @@ void config::loadPipelineConfig(const json& j, PipelineConfig& pipe) {
         pipe.use_substream = j.value("use_sub_input", false);
         pipe.main_stream = j.value("main_stream", "");
         pipe.sub_stream = j.value("sub_stream", "");
+        pipe.openTimingWatcher = j.value("openTimingWatcher", false);
         if(pipe.use_substream == false) {
             loadCamerasInfo(pipe.main_stream, pipe);
         } else {
