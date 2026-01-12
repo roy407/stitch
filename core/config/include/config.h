@@ -51,6 +51,7 @@ struct PipelineConfig {
     std::string sub_stream; // 子码流相机数据文件
     std::vector<CameraConfig> cameras;
     StitchConfig stitch;
+    bool openTimingWatcher = false;
 };
 
 struct GlobalConfig {

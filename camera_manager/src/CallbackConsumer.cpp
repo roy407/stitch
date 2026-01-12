@@ -3,9 +3,22 @@ extern "C" {
     #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
 }
-
+static std::atomic<bool> s_isFirstWrite{true};
+static std::mutex s_watcher_mutex;;
 std::ofstream CallbackConsumer::createFile() {
     std::string filename = pipelineName + std::string("_") + get_current_time_filename(".csv");
+    {
+        std::lock_guard<std::mutex> lock(s_watcher_mutex);
+        std::ios_base::openmode mode = std::ios::app;
+        if (s_isFirstWrite) {
+            mode = std::ios::trunc;
+            s_isFirstWrite = false;
+        }
+        std::ofstream watcher("timingwatcher.txt",mode);
+        if (watcher.is_open()) {
+        watcher << filename << std::endl;
+        }   
+    }
     std::ofstream ofs(filename, std::ios::app);  // 追加写入
     if (!ofs.is_open()) {
         LOG_ERROR("Failed to open file: {}", filename);

@@ -229,7 +229,7 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             if(m_log) m_log->setConsumer(stitch);
             CallbackConsumer* callback = new CallbackConsumer();
             callback->setPipelineName(p.name);
-            callback->setTimingWatcher(true); // TODO： 改到json文件中
+            callback->setTimingWatcher(p.openTimingWatcher);
             callback->setChannel(stitch->getChannel2Show());
             m_setStitchCallback = std::bind(&CallbackConsumer::setCallback, callback, std::placeholders::_1);
             m_consumerTask.push_back(callback);
