@@ -57,8 +57,8 @@ int main(int argc, char* argv[]) {
     }
     
     // 6. 等待一段时间（如果需要）
-    printf("Running for 5 seconds...\n");
-    sleep(5);  // 等待5秒，或者使用其他逻辑
+    printf("Running for 15 seconds...\n");
+    sleep(15);  // 等待5秒，或者使用其他逻辑
     
     // 7. 停止
     printf("Stopping camera manager...\n");

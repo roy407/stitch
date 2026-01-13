@@ -1,3 +1,4 @@
+# /home/eric/stitch/core/CMakeLists.txt
 set(CORE_TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(config)
 add_subdirectory(operator)

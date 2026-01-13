@@ -1,4 +1,9 @@
-# src/CMakeLists.txt
+# /home/eric/stitch/src/CMakeLists.txt
+
+#隐藏所有接口，只能用API暴露
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 # 添加头文件搜索路径
 include_directories(

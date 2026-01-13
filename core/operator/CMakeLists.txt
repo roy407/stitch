@@ -1,3 +1,4 @@
+# /home/eric/stitch/core/operator/CMakeLists.txt
 enable_language(CUDA)
 
 add_library(operator_nvidia STATIC

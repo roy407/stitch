@@ -1,3 +1,4 @@
+# /home/eric/stitch/core/config/CMakeLists.txt
 add_library(config STATIC
     src/config.cpp
 )
