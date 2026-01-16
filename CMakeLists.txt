@@ -1,126 +1,117 @@
 # /home/eric/stitch/CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
-project(pstitch CUDA CXX C)
+project(pstitch CUDA CXX)
 
-# 设置输出目录
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-#隐藏所有接口，只能用API暴露
-# set(CMAKE_C_VISIBILITY_PRESET hidden)
-# set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-# set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+# 在 project() 后添加
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-#设置与位置无关才能链接动态库与静态库
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 11)
 
+# 用于检测野指针问题，但是打开后会导致cuInit创建失败，显示OUT_OF_MEMORY
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer -g")
+# 这个问题是 已知现象，原因不是你真的"内存不够"，而是 ASan 与 CUDA（尤其是 NVIDIA 驱动的 
+# libcuda.so, libnvidia-fatbinaryloader.so, libnpp*, libnvrtc 等） 在运行时存在冲突。
+
+option(BUILD_SHARED_LIB "Build as shared library instead of executable" OFF)
 option(ENABLE_KERNEL_TEST "Enable kernel test features" OFF)
-option(BUILD_C_VERSION "Build C version executable" OFF)  # 新增：选择构建C版本
 
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(spdlog REQUIRED)
 
+# 设置ffmpeg的配置
 set(FFMPEG_INCLUDE_DIRS "/usr/local/include")
+
+# 定义公共包含目录
+set(COMMON_INCLUDE_DIRS
+    ${CMAKE_SOURCE_DIR}/inc
+    ${CMAKE_SOURCE_DIR}/camera_manager/include
+    ${CMAKE_SOURCE_DIR}/components/qt/include
+    ${CUDA_INCLUDE_DIRS}
+)
+
+if(BUILD_SHARED_LIB)
+    add_library(stitch_app SHARED src/cpp_exposure_to_c.cpp)
+else()
+    add_executable(stitch_app main.cpp)
+endif()
 
 add_subdirectory(core)
 add_subdirectory(components)
 add_subdirectory(camera_manager)
 
-# ========== 创建C接口库（仅当构建C版本时） ==========
-if(BUILD_C_VERSION)
-    message(STATUS "Building C version executable")
-    
-    # 创建C接口库
-    add_library(stitch_c_interface STATIC
-        src/cpp_exposure_to_c.cpp
-    )
-    
-    # C接口库配置
-    target_include_directories(stitch_c_interface PRIVATE
-        ${CMAKE_SOURCE_DIR}/inc
-        ${CMAKE_SOURCE_DIR}/camera_manager/include
-        ${FFMPEG_INCLUDE_DIRS}
-    )
-    
-    target_compile_definitions(stitch_c_interface PRIVATE
-        CAMERA_MANAGER_EXPORTS
-    )
-    
-    # 创建C可执行文件
-    add_executable(stitch_app stitch_shared.c)
-    set_source_files_properties(stitch_shared.c PROPERTIES LANGUAGE C)
-    
-    target_include_directories(stitch_app PRIVATE
-        ${CMAKE_SOURCE_DIR}/inc
-    )
-    
-    target_link_libraries(stitch_c_interface PRIVATE
-        camera_manager
-        Qt5::Widgets
-        qt
-        spdlog::spdlog
-        ${CUDA_LIBRARIES}
-    )
-    
-    # C程序链接
-    target_link_libraries(stitch_app PRIVATE
-        stitch_c_interface
-        camera_manager
-        Qt5::Widgets
-        qt
-        spdlog::spdlog
-        ${CUDA_LIBRARIES}
-        stdc++fs
-        -Wl,--start-group
-        -lstdc++
-        -lm
-        -Wl,--end-group
-    )
-    
-else()
-    message(STATUS "Building C++ version executable")
-    
-    # 创建C++可执行文件
-    add_executable(stitch_app main.cpp)
-    
-    target_include_directories(stitch_app PRIVATE
-        ${CMAKE_SOURCE_DIR}/inc
-    )
-    
-    # C++程序链接
-    target_link_libraries(stitch_app PRIVATE
-        camera_manager
-        Qt5::Widgets
-        qt
-        spdlog::spdlog
-        ${CUDA_LIBRARIES}
-    )
-endif()
-
-# ========== 通用配置 ==========
 if(ENABLE_KERNEL_TEST)
     target_compile_definitions(camera_manager PRIVATE KERNEL_TEST)
 endif()
+
+# 为 stitch_app 添加包含目录
+target_include_directories(stitch_app PRIVATE ${COMMON_INCLUDE_DIRS})
 
 target_link_directories(stitch_app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/components/qt/include
 )
 
-# 设置输出到bin目录
-set_target_properties(stitch_app PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+target_link_libraries(stitch_app PRIVATE 
+    camera_manager
+    Qt5::Widgets
+    qt
+    spdlog::spdlog
 )
 
-# 资源复制
+if(BUILD_SHARED_LIB)
+    set_target_properties(stitch_app PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    
+    message(STATUS "Building C interface shared library: libstitch.so")
+    
+    # 构建为共享库
+    add_library(stitch_c_interface SHARED src/cpp_exposure_to_c.cpp)
+    
+    # 确保所有依赖符号正确导出
+    target_compile_definitions(stitch_c_interface PRIVATE
+        STITCH_EXPORTS
+        QT_CORE_LIB
+        QT_GUI_LIB
+        QT_WIDGETS_LIB
+    )
+    
+    
+    target_compile_options(stitch_c_interface PRIVATE
+        -fvisibility=hidden
+        -fvisibility-inlines-hidden
+    )
+    
+    # 设置库属性
+    set_target_properties(stitch_c_interface PROPERTIES
+        VERSION 1.0.0
+        SOVERSION 1
+        OUTPUT_NAME "VisionEngine"
+        POSITION_INDEPENDENT_CODE ON
+        # 设置 RPATH 以便在其他位置也能找到依赖
+        INSTALL_RPATH "$ORIGIN:$ORIGIN/../lib"
+        BUILD_WITH_INSTALL_RPATH TRUE
+        MACOSX_RPATH ON
+    )
+    
+    # 包含目录
+    target_include_directories(stitch_c_interface PRIVATE ${COMMON_INCLUDE_DIRS})
+    
+    # 链接库 - 添加所有必要的依赖
+    target_link_libraries(stitch_c_interface PRIVATE 
+        camera_manager
+        Qt5::Widgets
+        Qt5::Core
+        Qt5::Gui
+        qt
+        spdlog::spdlog
+    )
+endif()
+
 file(COPY ${CMAKE_SOURCE_DIR}/resource
      DESTINATION ${CMAKE_BINARY_DIR}
      FILES_MATCHING PATTERN "*")

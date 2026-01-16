@@ -8,7 +8,7 @@ set -e  # 出错时退出
 BUILD_DIR="build"
 JOBS=$(nproc)
 CONFIG_FILE=""
-BUILD_C_VERSION=0
+BUILD_SHARED_LIB=0
 ENABLE_KERNEL_TEST=0
 CLEAN_BUILD=0
 
@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --c-version)
-            BUILD_C_VERSION=1
+            BUILD_SHARED_LIB=1
             shift
             ;;
         -k|--kernel-test)
@@ -130,10 +130,10 @@ cd "$BUILD_DIR"
 NEED_RECONFIGURE=1
 if [[ -f "CMakeCache.txt" ]]; then
     # 检查当前配置是否与上次相同
-    OLD_C_VERSION=$(grep "BUILD_C_VERSION" CMakeCache.txt | cut -d= -f2)
+    OLD_C_VERSION=$(grep "BUILD_SHARED_LIB" CMakeCache.txt | cut -d= -f2)
     OLD_KERNEL_TEST=$(grep "ENABLE_KERNEL_TEST" CMakeCache.txt | cut -d= -f2)
     
-    if [[ "$OLD_C_VERSION" == "$BUILD_C_VERSION" ]] && [[ "$OLD_KERNEL_TEST" == "$ENABLE_KERNEL_TEST" ]]; then
+    if [[ "$OLD_C_VERSION" == "$BUILD_SHARED_LIB" ]] && [[ "$OLD_KERNEL_TEST" == "$ENABLE_KERNEL_TEST" ]]; then
         info "使用现有CMake配置"
         NEED_RECONFIGURE=0
     else
@@ -146,7 +146,7 @@ if [[ $NEED_RECONFIGURE -eq 1 ]]; then
     info "运行CMake配置..."
     cmake .. \
         -DENABLE_KERNEL_TEST=$ENABLE_KERNEL_TEST \
-        -DBUILD_C_VERSION=$BUILD_C_VERSION
+        -DBUILD_SHARED_LIB=$BUILD_SHARED_LIB
     
     if [[ $? -ne 0 ]]; then
         error "CMake配置失败"

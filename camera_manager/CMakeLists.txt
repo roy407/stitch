@@ -1,5 +1,5 @@
 # /home/eric/stitch/camera_manager/CMakeLists.txt
-add_library(camera_manager SHARED
+add_library(camera_manager STATIC
   src/camera_manager.cpp
   src/TaskManager.cpp
   src/Producer.cpp
@@ -18,17 +18,6 @@ add_library(camera_manager SHARED
   src/EncoderConsumer.cpp
   src/CallbackConsumer.cpp
   src/Pipeline.cpp
-)
-
-#隐藏所有接口，只能用API暴露
-# set(CMAKE_C_VISIBILITY_PRESET hidden)
-# set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-# set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-
-# 确保库输出到lib目录
-set_target_properties(camera_manager PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
 target_include_directories(camera_manager PRIVATE 
