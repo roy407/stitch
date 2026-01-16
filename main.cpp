@@ -28,6 +28,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         config_name = argv[1];
     }
+
     config::SetConfigFileName(config_name);
     if(config_name == "resource/cam10.json") {
         return launch_with_mainwindow(argc, argv);

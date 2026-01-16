@@ -23,7 +23,9 @@ class StitchOps; // 提前声明
 
 class StitchConsumer : public Consumer {
     std::vector<FrameChannel*> m_channelsFromDecoder;
-    FrameChannel* m_channel2show;
+    FrameChannel* m_channel2show = nullptr;
+    FrameChannel* m_channel2rtsp = nullptr;
+    
     int single_width{0};
     int output_width{0};
     int height{0};
@@ -37,7 +39,10 @@ class StitchConsumer : public Consumer {
 public:
     StitchConsumer(StitchOps* ops, int single_width, int height, int output_width);
     void setChannels(std::vector<FrameChannel*> channels);
+    
     FrameChannel* getChannel2Show();
+    FrameChannel* getChannel2Rtsp();
+
     virtual ~StitchConsumer();
     virtual void start();
     virtual void stop();

@@ -1,7 +1,7 @@
 {
     "global": {
         "loglevel": "debug",
-        "type": "rtsp",
+        "type": "mp4",
         "format":"YUV420",
         "record_duration": 240,
         "record_path": "/home/eric/mp4/",
@@ -24,7 +24,7 @@
                     "output_url": "rtsp://127.0.0.1:8554/cam0",
                     "enable_view": false,
                     "scale_factor": 0.1,
-                    "rtsp": false
+                    "rtsp": true
                 },
                 {
                     "name": "cam1",
@@ -33,16 +33,20 @@
                     "input_url": "rtsp://admin:ky406sys@192.168.1.116:554/h265/ch1/main/av_stream",
                     "width": 3840,
                     "height": 2160,
-                    "output_url": "rtsp://127.0.0.1:8554/cam0",
+                    "output_url": "rtsp://127.0.0.1:8554/cam1",
                     "enable_view": false,
                     "scale_factor": 0.1,
                     "rtsp": false
                 }
+
             ],
             "stitch":{
                 "stitch_mode":"raw",
                 "stitch_impl": {
-                }
+                },
+                "output_url":"rtsp://127.0.0.1:8554/stitch",
+                "scale_factor": 0.1,
+                "rtsp": true
             }
         }
     ]

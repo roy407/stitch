@@ -8,6 +8,7 @@
 #include "RTSPPacketProducer.h"
 #include "MP4PacketProducer.h"
 #include "USBPacketProducer.h"
+#include "EncoderConsumer.h"
 
 LogConsumer* Pipeline::m_log = nullptr;
 
@@ -160,9 +161,10 @@ FrameChannel* Pipeline::initCameraProcessingFlows(const CameraConfig &cam) {
     m_producerTask.push_back(pro);
     if(m_log) m_log->setProducer(pro);
     if(cam.rtsp == true) {
+        LOG_INFO("Enable individual camera RTSP stream: {}", cam.output_url);
         RtspConsumer* rtspCon = new RtspConsumer(cam.output_url);
         rtspCon->setChannel(pro->getChannel2Rtsp());
-        rtspCon->setParamters(pro->getAVCodecParameters(), pro->getTimeBase());
+        rtspCon->setParameters(pro->getAVCodecParameters(), pro->getTimeBase());
         m_consumerTask.push_back(rtspCon);
     }
     // TODO: 通过json文件，直接配置好使用的每一个producer或consumer？把初始化过程直接放在配置文件里
@@ -229,10 +231,36 @@ Pipeline::Pipeline(const PipelineConfig &p) {
             if(m_log) m_log->setConsumer(stitch);
             CallbackConsumer* callback = new CallbackConsumer();
             callback->setPipelineName(p.name);
-            callback->setTimingWatcher(p.openTimingWatcher);
-            callback->setChannel(stitch->getChannel2Show());
+            callback->setTimingWatcher(p.openTimingWatcher);            
+            callback->setChannel(stitch->getChannel2Show());          
             m_setStitchCallback = std::bind(&CallbackConsumer::setCallback, callback, std::placeholders::_1);
             m_consumerTask.push_back(callback);
+            if (p.stitch.rtsp) {
+                LOG_INFO("Pipeline Mode: RTSP Streaming Enabled");
+                int raw_w = p.default_width;
+                if (p.stitch.stitch_mode == "mapping_table" && p.stitch.stitch_impl.mapping_table.output_width > 0) {
+                    raw_w = p.stitch.stitch_impl.mapping_table.output_width;
+                }
+                int raw_h = p.default_height;
+                LOG_INFO("Resizing Stitched Image for RTSP with scale factor: {}", p.stitch.scale_factor);
+                SingleViewConsumer* resizer = new SingleViewConsumer(raw_w, raw_h, p.stitch.scale_factor);               
+                resizer->setChannel(stitch->getChannel2Rtsp());
+                int target_w = (static_cast<int>(raw_w * p.stitch.scale_factor)&~1);
+                int target_h = (static_cast<int>(raw_h * p.stitch.scale_factor)&~1);
+                std::string encoder_name = CFG_HANDLE.GetGlobalConfig().encoder;
+                if(encoder_name.empty()) encoder_name = "h264_nvenc"; // Fallback
+                EncoderConsumer* encoder = new EncoderConsumer(encoder_name, target_w, target_h, 20);                
+                encoder->setInputChannel(resizer->getChannel2Show()); 
+                PacketChannel* pktChannel = new PacketChannel();
+                encoder->setOutputChannel(pktChannel);
+                std::string url = p.stitch.output_url;                
+                RtspConsumer* rtsp = new RtspConsumer(url);
+                rtsp->setChannel(pktChannel);
+                rtsp->setParameters(encoder->GetCodecContext());
+                m_consumerTask.push_back(resizer);
+                m_consumerTask.push_back(encoder);
+                m_consumerTask.push_back(rtsp);
+            }
         } else {
             LOG_WARN("stitch consumer not init");
         }

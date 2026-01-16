@@ -38,6 +38,8 @@ struct StitchConfig {
     std::string stitch_mode;  
     StitchImplConfig stitch_impl;
     std::string output_url;
+    double scale_factor = 1.0;
+    bool rtsp = false;
 };
 
 struct PipelineConfig {

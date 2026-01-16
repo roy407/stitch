@@ -85,7 +85,9 @@ void config::loadStitchConfig(const json& j, StitchConfig& stitch, uint64_t defa
         }
     }
 
-    stitch.output_url = j.value("output_url", stitch.output_url);
+    stitch.output_url = j.value("output_url","rtsp://127.0.0.1:8554/stitch");
+    stitch.scale_factor = j.value("scale_factor", 1.0);
+    stitch.rtsp = j.value("rtsp", false);
 }
 
 void config::loadPipelineConfig(const json& j, PipelineConfig& pipe) {

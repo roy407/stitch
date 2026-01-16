@@ -26,6 +26,8 @@
                 "output_width":1165
             }
         },
-        "output_url":"rtsp://127.0.0.1:8554/stitch_group1"
+        "output_url":"rtsp://127.0.0.1:8554/stitch_group1",
+        "scale_factor": 0.1,
+        "rtsp": true
     }
 }

@@ -39,7 +39,8 @@
 | `main_stream`  | 主码流配置文件路径 | `"resource/cam10/group0_mainstream.json"` |
 | `sub_stream`  | 子码流配置文件路径 | `"resource/cam10/group0_substream.json"` |
 | `stitch` | 拼接配置 | `{"stitch_mode": "mapping_table"}` |
-| └ `stitch_mode` | 拼接模式选择 (`mapping_table`, `crop`, `h_maxter_inv_v2`.) | `"mapping_table"` |
+| └ `stitch_mode` | 拼接模式选择 (`mapping_table`, `crop`, `h_matrix_inv_v2`.) | `"mapping_table"` |
+| `openTimingWatcher` | 是否记录本次日志输出 | `true` |
 
 ## 3. 流配置文件 (Stream Config)
 
@@ -70,6 +71,8 @@
 | :--- | :--- | :--- |
 | `output_url` | 拼接后输出的 RTSP 地址 | `"rtsp://127.0.0.1:8554/stitch_group0"` |
 | `stitch_impl` | 拼接实现参数容器 | - |
+| `scale_factor` | 缩放因子 | 0.1 |
+| `rtsp` | 是否为RTSP流 (标志位) | `false` |
 
 #### 3.2.1 Stitch Implementation (`stitch_impl`)
 

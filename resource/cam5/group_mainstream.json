@@ -10,7 +10,7 @@
             "output_url": "rtsp://127.0.0.1:8554/cam0",
             "enable_view": false,
             "scale_factor": 0.1,
-            "rtsp": false
+            "rtsp": true
         },
         {
             "name": "cam1",
@@ -102,6 +102,8 @@
               
             }
         },
-        "output_url":"rtsp://127.0.0.1:8554/stitch_group"
+        "output_url":"rtsp://127.0.0.1:8554/stitch",
+        "scale_factor": 0.23,
+        "rtsp": true
     }
 }

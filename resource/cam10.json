@@ -8,7 +8,7 @@
         "decoder": "h264_cuvid",
         "encoder": "h264_nvenc"
     },
-    "pipeline": [
+    "pipeline": [ 
         {
             "name" : "group0",
             "pipeline_id":0,
