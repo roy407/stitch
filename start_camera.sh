@@ -32,7 +32,7 @@ show_help() {
     echo ""
     echo "选项:"
     echo "  -c, --config <name>     指定相机配置 (cam2, cam5, cam10 等)"
-    echo "  --c-version             构建 C 版本 (默认构建 C++ 版本)"
+    echo "  -s             生成动态链接库 (默认构建 C++ 版本)"
     echo "  -k, --kernel-test       启用 kernel 测试"
     echo "  -j, --jobs <num>        指定并行构建任务数 (默认: CPU核心数)"
     echo "  --clean                 清理构建目录后重新构建"
@@ -42,9 +42,8 @@ show_help() {
     echo ""
     echo "示例:"
     echo "  ./stitch_build.sh -c cam5                    # 构建并运行C++版本"
-    echo "  ./stitch_build.sh -c cam5 --c-version        # 构建并运行C版本"
+    echo "  ./stitch_build.sh -c cam5 -s        # 构建动态链接库"
     echo "  ./stitch_build.sh -c cam5 --clean -j 8       # 清理后并行构建"
-    echo "  ./stitch_build.sh --c-version --build-only   # 仅构建C版本"
     exit 0
 }
 
@@ -55,7 +54,7 @@ while [[ $# -gt 0 ]]; do
             CONFIG_FILE="$2"
             shift 2
             ;;
-        --c-version)
+        -s)
             BUILD_SHARED_LIB=1
             shift
             ;;

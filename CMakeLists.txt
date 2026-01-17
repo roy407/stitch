@@ -36,11 +36,7 @@ set(COMMON_INCLUDE_DIRS
     ${CUDA_INCLUDE_DIRS}
 )
 
-if(BUILD_SHARED_LIB)
-    add_library(stitch_app SHARED src/cpp_exposure_to_c.cpp)
-else()
-    add_executable(stitch_app main.cpp)
-endif()
+add_executable(stitch_app main.cpp)
 
 add_subdirectory(core)
 add_subdirectory(components)
@@ -70,10 +66,10 @@ if(BUILD_SHARED_LIB)
     message(STATUS "Building C interface shared library: libstitch.so")
     
     # 构建为共享库
-    add_library(stitch_c_interface SHARED src/cpp_exposure_to_c.cpp)
+    add_library(stitch_shared SHARED cpp_exposure_to_c.cpp)
     
     # 确保所有依赖符号正确导出
-    target_compile_definitions(stitch_c_interface PRIVATE
+    target_compile_definitions(stitch_shared PRIVATE
         STITCH_EXPORTS
         QT_CORE_LIB
         QT_GUI_LIB
@@ -81,13 +77,13 @@ if(BUILD_SHARED_LIB)
     )
     
     
-    target_compile_options(stitch_c_interface PRIVATE
+    target_compile_options(stitch_shared PRIVATE
         -fvisibility=hidden
         -fvisibility-inlines-hidden
     )
     
     # 设置库属性
-    set_target_properties(stitch_c_interface PROPERTIES
+    set_target_properties(stitch_shared PROPERTIES
         VERSION 1.0.0
         SOVERSION 1
         OUTPUT_NAME "VisionEngine"
@@ -99,10 +95,10 @@ if(BUILD_SHARED_LIB)
     )
     
     # 包含目录
-    target_include_directories(stitch_c_interface PRIVATE ${COMMON_INCLUDE_DIRS})
+    target_include_directories(stitch_shared PRIVATE ${COMMON_INCLUDE_DIRS})
     
     # 链接库 - 添加所有必要的依赖
-    target_link_libraries(stitch_c_interface PRIVATE 
+    target_link_libraries(stitch_shared PRIVATE 
         camera_manager
         Qt5::Widgets
         Qt5::Core
@@ -110,6 +106,11 @@ if(BUILD_SHARED_LIB)
         qt
         spdlog::spdlog
     )
+
+    # 安装动态库
+    install(TARGETS stitch_shared LIBRARY DESTINATION lib)
+    # 安装头文件（如果有的话）
+    install(DIRECTORY inc/ DESTINATION include)
 endif()
 
 file(COPY ${CMAKE_SOURCE_DIR}/resource

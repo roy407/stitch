@@ -3,6 +3,7 @@
 #include <string>
 #include "manage_api.h"
 #include "camera_manager.h"
+#include "CallbackConsumer.h"
 #include "tools.hpp"
 #include "log.hpp"
 
@@ -16,6 +17,7 @@ struct camera_manger_handle
     camera_manager* cam_handle;
     // 注意：不需要存储config对象，因为它是单例
 };
+
 
 extern "C" {
 
@@ -162,24 +164,23 @@ CAMERA_MANAGER_API int camera_manager_stop(camera_manger_handle* handle) {
 }
 
 CAMERA_MANAGER_API int camera_manager_set_stitch_callback(camera_manger_handle* handle, 
-                                                         stitch_callback_t callback) {
+                                                         int pipe_id,stitch_callback_t callback) {
     if (!handle || !handle->initialized) {
         return -1;
     }
     
-    // handle->cam_handle->setStitchStreamCallback()
+    // handle->cam_handle->setStitchStreamCallback(pipe_id,callback);
     LOG_INFO("camera_manager_set_stitch_callback: callback set");
     return 0;
 }
 
 CAMERA_MANAGER_API int camera_manager_set_camera_callback(camera_manger_handle* handle, 
-                                                         int cam_id, 
-                                                         camera_callback_t callback) {
+                                                         int cam_id,stitch_callback_t callback) {
     if (!handle || !handle->initialized) {
         return -1;
     }
     
-    // handle->cam_handle->setCameraStreamCallback()
+    // handle->cam_handle->setCameraStreamCallback(cam_id,callback);
     LOG_INFO("camera_manager_set_camera_callback: callback set for camera ",cam_id);
     return 0;
 }
