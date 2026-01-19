@@ -7,28 +7,25 @@
 extern "C" {
 #endif
 
-const int MAX_CAM_SIZE=10;
+const int TYPES_MAX_CAM_SIZE=10;
 
 /* ================== costTimes ================== */
 
-typedef struct costTimes {
-    uint64_t image_frame_cnt[MAX_CAM_SIZE];
-    uint64_t when_get_packet[MAX_CAM_SIZE];
-    uint64_t when_get_decoded_frame[MAX_CAM_SIZE];
-    uint64_t when_get_stitched_frame;
-    uint64_t when_show_on_the_screen;
-} stitch_cost_times_t;
-
-struct AVFrame;
+// 使用不透明指针模式
+typedef struct types_costTimes types_costTimes_t;
 
 /* ================== Frame ================== */
 
-typedef struct Frame {
-    int cam_id;
-    AVFrame* m_data;
-    stitch_cost_times_t cost_times;
-    uint64_t timestamp;
-} stitch_frame_t;
+typedef struct types_Frame types_Frame_t;
+
+/* ================== Frame ================== */
+
+// typedef struct types_Frame {
+//     int cam_id;
+//     types_AVFrame_t* m_data;
+//     types_costTimes_t cost_times;
+//     uint64_t timestamp;
+// } types_Frame_t;
 
 #ifdef __cplusplus
 }

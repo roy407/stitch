@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include "manage_api.h"
+#include "stitch_types.h"
 #include "camera_manager.h"
 #include "CallbackConsumer.h"
 #include "tools.hpp"
@@ -9,6 +10,7 @@
 
 // 包含config头文件
 #include "config.h"
+
 
 // 结构体定义
 struct camera_manger_handle
@@ -18,6 +20,22 @@ struct camera_manger_handle
     // 注意：不需要存储config对象，因为它是单例
 };
 
+// 在 C++ 中实现这些结构体
+struct types_costTimes {
+    uint64_t image_frame_cnt[TYPES_MAX_CAM_SIZE] = {};
+    uint64_t when_get_packet[TYPES_MAX_CAM_SIZE] = {};
+    uint64_t when_get_decoded_frame[TYPES_MAX_CAM_SIZE] = {};
+    uint64_t when_get_stitched_frame = 0;
+    uint64_t when_show_on_the_screen = 0;
+};
+
+struct types_Frame {
+    // 这里可以封装 AVFrame，或者直接使用 AVFrame
+    int cam_id = 0;
+    AVFrame* m_data = nullptr;
+    struct costTimes m_costTimes;
+    uint64_t m_timestamp = 0;
+};
 
 extern "C" {
 
@@ -163,14 +181,41 @@ CAMERA_MANAGER_API int camera_manager_stop(camera_manger_handle* handle) {
     return -1;
 }
 
+// 修改回调设置函数
 CAMERA_MANAGER_API int camera_manager_set_stitch_callback(camera_manger_handle* handle, 
-                                                         int pipe_id,stitch_callback_t callback) {
+                                                         int pipe_id, stitch_callback_t callback) {
     if (!handle || !handle->initialized) {
         return -1;
     }
     
-    // handle->cam_handle->setStitchStreamCallback(pipe_id,callback);
-    LOG_INFO("camera_manager_set_stitch_callback: callback set");
+    // 创建一个lambda函数作为包装器
+    auto wrapper = [callback](Frame internal_frame) {
+        // 将 Frame 转换为 types_Frame_t
+        types_Frame_t external_frame;
+        
+        // 复制基本成员
+        external_frame.cam_id = internal_frame.cam_id;
+        external_frame.m_data = internal_frame.m_data;
+        external_frame.m_timestamp = internal_frame.m_timestamp;
+        
+        // 复制 costTimes 成员
+        for (int i = 0; i < TYPES_MAX_CAM_SIZE; ++i) {
+            external_frame.m_costTimes.image_frame_cnt[i] = internal_frame.m_costTimes.image_frame_cnt[i];
+            external_frame.m_costTimes.when_get_packet[i] = internal_frame.m_costTimes.when_get_packet[i];
+            external_frame.m_costTimes.when_get_decoded_frame[i] = internal_frame.m_costTimes.when_get_decoded_frame[i];
+        }
+        external_frame.m_costTimes.when_get_stitched_frame = internal_frame.m_costTimes.when_get_stitched_frame;
+        external_frame.m_costTimes.when_show_on_the_screen = internal_frame.m_costTimes.when_show_on_the_screen;
+        
+        // 调用用户提供的回调函数
+        if (callback) {
+            callback(external_frame);
+        }
+    };
+    
+    // 设置回调
+    handle->cam_handle->setStitchStreamCallback(pipe_id, wrapper);
+    LOG_INFO("camera_manager_set_stitch_callback: callback set for pipe ", pipe_id);
     return 0;
 }
 
@@ -179,8 +224,31 @@ CAMERA_MANAGER_API int camera_manager_set_camera_callback(camera_manger_handle* 
     if (!handle || !handle->initialized) {
         return -1;
     }
-    
-    // handle->cam_handle->setCameraStreamCallback(cam_id,callback);
+    // 创建一个lambda函数作为包装器
+    auto wrapper = [callback](Frame internal_frame) {
+        // 将 Frame 转换为 types_Frame_t
+        types_Frame_t external_frame;
+        
+        // 复制基本成员
+        external_frame.cam_id = internal_frame.cam_id;
+        external_frame.m_data = internal_frame.m_data;
+        external_frame.m_timestamp = internal_frame.m_timestamp;
+        
+        // 复制 costTimes 成员
+        for (int i = 0; i < TYPES_MAX_CAM_SIZE; ++i) {
+            external_frame.m_costTimes.image_frame_cnt[i] = internal_frame.m_costTimes.image_frame_cnt[i];
+            external_frame.m_costTimes.when_get_packet[i] = internal_frame.m_costTimes.when_get_packet[i];
+            external_frame.m_costTimes.when_get_decoded_frame[i] = internal_frame.m_costTimes.when_get_decoded_frame[i];
+        }
+        external_frame.m_costTimes.when_get_stitched_frame = internal_frame.m_costTimes.when_get_stitched_frame;
+        external_frame.m_costTimes.when_show_on_the_screen = internal_frame.m_costTimes.when_show_on_the_screen;
+        
+        // 调用用户提供的回调函数
+        if (callback) {
+            callback(external_frame);
+        }
+    };
+    handle->cam_handle->setCameraStreamCallback(cam_id,wrapper);
     LOG_INFO("camera_manager_set_camera_callback: callback set for camera ",cam_id);
     return 0;
 }
