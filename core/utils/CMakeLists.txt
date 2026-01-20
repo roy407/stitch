@@ -5,6 +5,7 @@ add_library(utils STATIC
 target_include_directories(utils PRIVATE
     ${CORE_TOP_DIR}/utils/include
     ${CORE_TOP_DIR}/config/include
+    ${TOP_DIR}/inc
 )
 
 # 链接库文件

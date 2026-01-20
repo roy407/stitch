@@ -27,6 +27,7 @@ target_include_directories(camera_manager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/operator/include/nvidia
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/config/include
     ${FFMPEG_INCLUDE_DIRS}
+    ${TOP_DIR}/inc
 )
 
 # 链接库文件
