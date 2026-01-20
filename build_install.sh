@@ -21,6 +21,7 @@ BUILD_TYPE="Release"
 BUILD_DIR="build"
 INSTALL_DIR="install"
 ENABLE_TESTS="OFF"
+BUILD_SHARED_LIB=1
 CLEAN=false
 JOBS=$(nproc)  # 使用CPU核心数
 
@@ -120,7 +121,8 @@ print_green "配置CMake..."
 cmake .. \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="../$INSTALL_DIR" \
-    -DBUILD_TESTING="$ENABLE_TESTS"
+    -DBUILD_TESTING="$ENABLE_TESTS" \
+    -DBUILD_SHARED_LIB=$BUILD_SHARED_LIB
 
 # 构建项目
 print_green "构建项目..."
