@@ -7,6 +7,12 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
+extern "C" {
+    #include "libavformat/avformat.h"
+    #include <libavutil/frame.h>
+    #include <libavutil/hwcontext.h>
+    #include <libswscale/swscale.h>
+}
 #include "tools.hpp"
 template<typename T>
 class safe_queue {
