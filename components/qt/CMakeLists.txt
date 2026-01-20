@@ -40,6 +40,7 @@ target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/operator/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/operator/include/nvidia
   ${FFMPEG_INCLUDE_DIRS}
+  ${TOP_DIR}/inc
 )
 target_link_libraries(qt PRIVATE Qt5::Widgets)
 target_link_options(qt PRIVATE -Wl,-rpath-link=/usr/local/lib)

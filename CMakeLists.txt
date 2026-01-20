@@ -38,6 +38,8 @@ set(COMMON_INCLUDE_DIRS
 
 add_executable(stitch_app main.cpp)
 
+set(TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(core)
 add_subdirectory(components)
 add_subdirectory(camera_manager)

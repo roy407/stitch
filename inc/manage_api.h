@@ -18,7 +18,7 @@ struct camera_manger_handle;
 typedef struct camera_manger_handle api_handle;
 
 // 回调函数类型
-typedef void (*stitch_callback_t)(types_Frame_t);
+typedef void (*stitch_callback_t)(stitch_frame_t);
 // typedef void (*camera_callback_t)(int cam_id, void* data);
 
 /**
