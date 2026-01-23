@@ -84,13 +84,15 @@ TaskManager (基类)
 ### 2. 数据流架构
 
 ```
-[输入源] → [PacketProducer] → [PacketChannel]
-                                  ↓
-                            [DecoderConsumer] → [FrameChannel]
-                                                        ↓
-                                                [StitchConsumer] → [FrameChannel] (拼接图)
-                                                                        ↓
-                                                                [CallbackConsumer] (回调处理)
+[输入源] → [PacketProducer] → [PacketChannel] → [DecoderConsumer] → [FrameChannel]
+                                                      ↓
+                                              [SingleViewConsumer] → [FrameChannel] (单视图)
+                                                      ↓
+                                              [StitchConsumer] → [FrameChannel] (拼接图)
+                                                      ↓
+                                              [CallbackConsumer] (回调处理)
+                                                      ↓
+                                              [RtspConsumer] (RTSP 推流)
 ```
 
 ### 3. 管道（Pipeline）结构
