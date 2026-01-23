@@ -9,7 +9,7 @@
 #include <vector>
 #include "nv12render.h"
 #include "camera_manager.h"
-#include "safe_queue.hpp"
+#include "list_queue.hpp"
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -41,8 +41,6 @@ private:
     int m_uv_stride;
     
     void cleanup();
-    void* aligned_alloc(size_t size, size_t alignment);
-    void aligned_free(void* ptr);
 };
 
 #endif // FULL_STITCH_WIDGET_H

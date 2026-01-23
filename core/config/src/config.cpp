@@ -37,6 +37,8 @@ void config::loadGlobalConfig(const json& j, GlobalConfig& cfg) {
     cfg.record_path = j.value("record_path", "");
     cfg.decoder = j.value("decoder", "h264_cuvid");
     cfg.encoder = j.value("encoder", "h264_nvenc");
+    cfg.model_path = j.value("model_path", "/home/eric/文档/stitch/models/best.onnx");
+    cfg.labels_path = j.value("labels_path", "/home/eric/文档/stitch/models/classes.txt");
 }
 
 void config::loadCamerasInfo(std::string file_path, PipelineConfig& pipe) {
@@ -217,7 +219,12 @@ config &config::GetInstance()
 const Config config::GetConfig() const {
     return cfg;
 }
-
+const std::string config::GetDetectionModelPath() const {
+    return cfg.global.model_path;
+}
+const std::string config:: GetDetectionLabelsPath() const {
+    return cfg.global.labels_path;
+}
 const GlobalConfig config::GetGlobalConfig() const {
     return cfg.global;
 }

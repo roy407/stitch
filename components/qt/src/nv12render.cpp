@@ -3,6 +3,8 @@
 #include <QOpenGLTexture>
 #include <QDebug>
 
+
+
 Nv12Render::Nv12Render() {}
 Nv12Render::~Nv12Render() {
     if (idY) glDeleteTextures(1, &idY);

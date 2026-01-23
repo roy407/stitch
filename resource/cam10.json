@@ -6,7 +6,9 @@
         "record_duration": 240,
         "record_path": "/home/eric/mp4/",
         "decoder": "h264_cuvid",
-        "encoder": "h264_nvenc"
+        "encoder": "h264_nvenc",
+        "model_path": "/home/eric/文档/stitch/models/best.onnx",
+        "labels_path": "/home/eric/文档/stitch/models/classes.txt"
     },
     "pipeline": [
         {

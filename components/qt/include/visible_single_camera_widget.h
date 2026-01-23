@@ -11,7 +11,7 @@
 #include <atomic>
 #include <mutex>
 #include "camera_manager.h"
-#include "safe_queue.hpp"
+#include "list_queue.hpp"
 #include "config.h"
 #include "nv12render.h"
 

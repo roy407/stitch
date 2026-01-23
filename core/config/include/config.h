@@ -61,6 +61,8 @@ struct GlobalConfig {
     std::string record_path;
     std::string decoder;
     std::string encoder;
+    std::string model_path;
+    std::string labels_path;
 };
 
 struct Config {
@@ -96,6 +98,8 @@ public:
     static std::string GetConfigFileName();
     static config& GetInstance();
     const Config GetConfig() const;
+    const std::string GetDetectionModelPath() const;
+    const std::string GetDetectionLabelsPath() const;
     const GlobalConfig GetGlobalConfig() const;
     const PipelineConfig GetPipelineConfig(int pipeline_id) const;
     const std::vector<CameraConfig> GetCamerasConfig(int pipeline_id) const;

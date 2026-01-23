@@ -11,25 +11,7 @@ extern "C" {
 #include "log.hpp"
 #include "tools.hpp"
 
-void* full_stitch_widget::aligned_alloc(size_t size, size_t alignment) {
-    void* ptr = nullptr;
-#ifdef _WIN32
-    ptr = _aligned_malloc(size, alignment);
-#else
-    if (posix_memalign(&ptr, alignment, size) != 0) {
-        ptr = nullptr;
-    }
-#endif
-    return ptr;
-}
 
-void full_stitch_widget::aligned_free(void* ptr) {
-#ifdef _WIN32
-    _aligned_free(ptr);
-#else
-    free(ptr);
-#endif
-}
 
 full_stitch_widget::full_stitch_widget(QWidget *parent) : 
     QOpenGLWidget(parent),

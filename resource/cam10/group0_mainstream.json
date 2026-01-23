@@ -104,7 +104,6 @@
                 "output_width":20803
             },
             "H_matrix_inv": {
-                "output_width":20803,
                 "cam0": [
                     [1, 0, 7463],
                     [0, 1, -31.64],

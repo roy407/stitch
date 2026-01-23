@@ -12,7 +12,7 @@
 #include "visible_single_camera_widget.h"
 #include "full_stitch_widget.h"
 #include "camera_manager.h"
-
+#include "detection_widget.h"
 class StitchMainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -27,7 +27,8 @@ public:
 protected:
     void closeEvent(QCloseEvent *event) override;
     void mousePressEvent(QMouseEvent* event) override;
-
+    bool eventFilter(QObject* obj, QEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 private:
     void setupUI();  // 设置UI界面
     void setupCameras();  // 设置8路可见光相机（子码流）
@@ -57,6 +58,8 @@ private:
     std::vector<CameraDisplayWidget*> cameraDisplayWidgets;  // 8个相机显示组件
 
     full_stitch_widget* full_size_stitch_widget{nullptr};
+    detection_widget* detectionWidget{nullptr};
+    void initDetectionWidget();
 };
 
 #endif // MAIN_WINDOW_H

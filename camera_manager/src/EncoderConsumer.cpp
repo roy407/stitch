@@ -6,7 +6,8 @@ extern "C" {
 #include<iostream>
 #include "cuda_handle_init.h"
 
-EncoderConsumer::EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input ,safe_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
+//EncoderConsumer::EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input ,safe_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
+EncoderConsumer::EncoderConsumer(int width, int height, list_queue<Frame>& frame_input ,list_queue<Packet>& packet_output, const std::string& codec_name):  width(width),height(height),frame_input(frame_input),packet_output(packet_output) {
     int fps = 10;
     
     codec = avcodec_find_encoder_by_name(codec_name.c_str());

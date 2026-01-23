@@ -1,6 +1,8 @@
 # pragma once
 #include "Consumer.h"
 #include <vector>
+#include <memory>
+#include <string>
 extern "C" {
     #include "libavformat/avformat.h"
     #include "libavcodec/avcodec.h"
@@ -11,13 +13,15 @@ extern "C" {
     #include "libavcodec/bsf.h"
 }
 
-#include "safe_queue.hpp"
+//#include "safe_queue.hpp"
 #include "tools.hpp"
 #include "config.h"
 #include "EncoderConsumer.h"
-#include "safe_queue.hpp"
+//#include "safe_queue.hpp"
+#include "list_queue.hpp"
 #include "LogConsumer.h"
 #include "Channel.h"
+#include "shm.h"
 
 class StitchOps; // 提前声明
 
@@ -33,6 +37,7 @@ class StitchConsumer : public Consumer {
     AVStream* out_stream;
     AVCodecParameters* codecpar;
     StitchOps* ops;
+    std::unique_ptr<StitchCircularBuffer> shm_buffer_;
     friend class LogConsumer;
 public:
     StitchConsumer(StitchOps* ops, int single_width, int height, int output_width);

@@ -17,6 +17,7 @@ add_library(camera_manager STATIC
   src/EncoderConsumer.cpp
   src/CallbackConsumer.cpp
   src/Pipeline.cpp
+  src/detector.cpp
 )
 
 target_include_directories(camera_manager PRIVATE 
@@ -26,11 +27,22 @@ target_include_directories(camera_manager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/operator/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/operator/include/nvidia
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/config/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core/shm/include
     ${FFMPEG_INCLUDE_DIRS}
+    /home/eric/onnxruntime/onnxruntime-linux-x64-gpu-1.16.3/include
+    /usr/local/include/opencv4
+    /usr/local/include
 )
 
+# ONNX Runtime（用于detector）
+set(ONNXRUNTIME_DIR "/home/eric/onnxruntime/onnxruntime-linux-x64-gpu-1.16.3")
+set(ONNXRUNTIME_LIB "${ONNXRUNTIME_DIR}/lib/libonnxruntime.so")
+
+
+
 # 链接库文件
-target_link_libraries(camera_manager PRIVATE 
+target_link_libraries(camera_manager PRIVATE
+  shm
   avcodec
   avformat
   avutil
@@ -41,4 +53,8 @@ target_link_libraries(camera_manager PRIVATE
   cuda 
   operator_nvidia
   utils
+  ${ONNXRUNTIME_LIB}
+  opencv_core
+  opencv_imgproc
+  opencv_dnn
 )

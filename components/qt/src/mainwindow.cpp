@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QCloseEvent>
 #include <QScrollArea>
+#include <QMouseEvent>
 #include "config.h"
 #include "infrared_camera_widget.h"
 StitchMainWindow::StitchMainWindow(QWidget *parent)
@@ -18,7 +19,8 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
       visibleStitchWidget(nullptr),
       camerasLabel(nullptr),
       camerasWidget(nullptr),
-      camerasLayout(nullptr)
+      camerasLayout(nullptr),
+      detectionWidget(nullptr)
 {
     // 统一启动摄像头管理器（只启动一次）
     cam = camera_manager::GetInstance();
@@ -31,7 +33,7 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
     
     setupUI();
     setupCameras();
-
+    initDetectionWidget();
     stackedLayout->setCurrentIndex(0); 
     showFullScreen();
 }
@@ -69,6 +71,45 @@ void StitchMainWindow::mousePressEvent(QMouseEvent* event)
         QMainWindow::mousePressEvent(event);
     }
 }
+void StitchMainWindow::initDetectionWidget()
+{
+    detectionWidget = new detection_widget(0,this);
+    detectionWidget->setFixedSize(20803,2160);
+    
+        detectionWidget->initializeDetector(CFG_HANDLE.GetDetectionModelPath(),
+                                             CFG_HANDLE.GetDetectionLabelsPath());
+    QScrollArea* detectionArea = new QScrollArea(this);
+    detectionArea->setWidgetResizable(false);
+    detectionArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    detectionArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    detectionArea->setWidget(detectionWidget);
+    stackedLayout->addWidget(detectionArea);
+        connect(detectionWidget, &detection_widget::DetectionTitle,
+                this, [this](const QString& title) {
+            // 更新窗口标题
+            this->setWindowTitle(title);
+        });
+    
+  
+}
+
+bool StitchMainWindow::eventFilter(QObject* obj, QEvent* event)
+{
+    // 如果点击的是可见光拼接标签或可见光拼接widget，切换到全屏画面
+    if ((obj == visibleStitchLabel || obj == visibleStitchWidget) && 
+        event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::LeftButton) {
+            if (stackedLayout) {
+                stackedLayout->setCurrentIndex(1);  // 切换到full_stitch_widget
+                return true;  // 事件已处理
+            }
+        }
+    }
+    
+    // 其他事件继续传递
+    return QMainWindow::eventFilter(obj, event);
+}
 
 void StitchMainWindow::setInfraredStitchWidget(QWidget* widget)
 {
@@ -105,6 +146,23 @@ void StitchMainWindow::setInfraredStitchWidget(QWidget* widget)
     // infraredStitchLabel->setText("红外拼接");
     
     qDebug() << "红外拼接显示组件已设置";
+}
+void StitchMainWindow::keyPressEvent(QKeyEvent* event)
+{
+    if(!stackedLayout)return;
+    int count =stackedLayout->count();
+    if (event->key() ==Qt::Key_F2 &&detectionWidget) {
+        stackedLayout->setCurrentIndex(2);
+    }
+    else if (event->key() ==Qt::Key_Right) {
+        stackedLayout->setCurrentIndex(1);
+    }
+    else if (event->key() ==Qt::Key_Left) {
+        stackedLayout->setCurrentIndex(0);
+    }
+    else {
+        QMainWindow::keyPressEvent(event);
+    }
 }
 
 void StitchMainWindow::setupUI()
@@ -172,6 +230,7 @@ void StitchMainWindow::setupUI()
     visibleStitchLabel->setAlignment(Qt::AlignCenter);
     visibleStitchLabel->setFont(labelFont);
     visibleStitchLabel->setStyleSheet("QLabel { background-color: #34495e; color: white; padding: 8px; }");
+    visibleStitchLabel->installEventFilter(this);  // 安装事件过滤器以便点击
     mainLayout->addWidget(visibleStitchLabel);
     
     // 创建可见光拼接显示组件
@@ -179,12 +238,13 @@ void StitchMainWindow::setupUI()
     visibleStitchWidget->setMinimumHeight(360);  // 设置最小高度
     // 设置大小策略：允许水平和垂直拉伸（这是主要显示区域，应该占据更多空间）
     visibleStitchWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    visibleStitchWidget->installEventFilter(this);  // 安装事件过滤器以便点击
     // 添加时指定拉伸比例：3（可见光拼接区域，占据更多空间）
     visible_camera_widget* visibleWidget = qobject_cast<visible_camera_widget*>(visibleStitchWidget);
    
     connect(visibleWidget, &visible_camera_widget::VisibleTitle, 
             this, [this](const QString& title) {
-            visibleStitchLabel->setText(title);
+            visibleStitchLabel->setText(title  );
         });
    
 

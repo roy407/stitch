@@ -18,7 +18,8 @@ extern "C" {
     #include "libavcodec/bsf.h"
 }
 
-#include "safe_queue.hpp"
+//#include "safe_queue.hpp"
+#include "list_queue.hpp"
 #include "tools.hpp"
 #include "DecoderConsumer.h"
 #include "EncoderConsumer.h"

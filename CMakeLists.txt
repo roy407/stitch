@@ -34,6 +34,24 @@ target_link_directories(stitch_app PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/components/qt/include
 )
 
+# 查找 OpenCV（用于检测功能）
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(OpenCV opencv4)
+    if(NOT OpenCV_FOUND)
+        pkg_check_modules(OpenCV opencv)
+    endif()
+endif()
+if(NOT OpenCV_FOUND)
+    find_package(OpenCV QUIET)
+endif()
+
+if(OpenCV_FOUND OR OpenCV_INCLUDE_DIRS)
+    if(OpenCV_INCLUDE_DIRS)
+        target_include_directories(stitch_app PRIVATE ${OpenCV_INCLUDE_DIRS})
+    endif()
+endif()
+
 target_link_libraries(stitch_app PRIVATE 
     camera_manager
     Qt5::Widgets

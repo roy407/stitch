@@ -1,9 +1,10 @@
 #pragma once
-#include "safe_queue.hpp"
+//#include "safe_queue.hpp"
 #include <memory>
-
+#include "list_queue.hpp"
 class PacketChannel {
-    safe_queue<Packet> m_data;
+    //safe_queue<Packet> m_data;
+    list_queue<Packet> m_data;
 public:
     bool recv(Packet& out) {
         return m_data.wait_and_pop(out);
@@ -20,7 +21,8 @@ public:
 };
 
 class FrameChannel {
-    safe_queue<Frame> m_data;
+    //safe_queue<Frame> m_data;
+    list_queue<Frame> m_data;
 public:
     bool recv(Frame& out) {
         return m_data.wait_and_pop(out);

@@ -9,7 +9,7 @@
 #include <vector>
 #include "nv12render.h"
 #include "camera_manager.h"
-#include "safe_queue.hpp"
+#include "list_queue.hpp"
 #include "tools.hpp"
 extern "C" {
 #include <libavutil/frame.h>
