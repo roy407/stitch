@@ -18,6 +18,7 @@ extern "C" {
 #include "safe_queue.hpp"
 #include "LogConsumer.h"
 #include "Channel.h"
+#include "ShmSender.h"
 
 class StitchOps; // 提前声明
 
@@ -25,6 +26,7 @@ class StitchConsumer : public Consumer {
     std::vector<FrameChannel*> m_channelsFromDecoder;
     FrameChannel* m_channel2show = nullptr;
     FrameChannel* m_channel2rtsp = nullptr;
+    ShmSender* m_shm_sender = nullptr;
     
     int single_width{0};
     int output_width{0};

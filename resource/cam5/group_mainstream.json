@@ -3,7 +3,7 @@
         {
             "name": "cam0",
             "cam_id": 0,
-            "enable": true,
+            "enable": false,
             "input_url": "rtsp://admin:ky406sys@192.168.1.50:554/h265/ch1/main/av_stream",
             "width": 3840,
             "height": 2160,
@@ -104,6 +104,6 @@
         },
         "output_url":"rtsp://127.0.0.1:8554/stitch",
         "scale_factor": 0.23,
-        "rtsp": true
+        "rtsp": false
     }
 }

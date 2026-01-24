@@ -91,7 +91,6 @@ void visible_camera_widget::VisibleTitleTime(double cost_time){
         
 //可见光拼接帧的处理
 void visible_camera_widget::consumerThread(Frame frame) {  
-    std::unique_lock<std::mutex> lock(m_mutex, std::try_to_lock);
     double dec_to_stitch = 0.0;
     int active_cam_count = 0;
     for (int i = 0; i < MAX_CAM_SIZE; ++i) {
@@ -104,10 +103,6 @@ void visible_camera_widget::consumerThread(Frame frame) {
     
     if (active_cam_count > 0) {
         dec_to_stitch = dec_to_stitch / active_cam_count;
-    }
-    if (!lock.owns_lock()) {
-        av_frame_free(&frame.m_data);
-        return;
     }
 
     AVFrame* src_frame = frame.m_data;

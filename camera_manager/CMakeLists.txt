@@ -28,6 +28,7 @@ target_include_directories(camera_manager PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../core/config/include
     ${FFMPEG_INCLUDE_DIRS}
     ${TOP_DIR}/inc
+    ${TOP_DIR}/components/shm/include
 )
 
 # 链接库文件
@@ -42,4 +43,5 @@ target_link_libraries(camera_manager PRIVATE
   cuda 
   operator_nvidia
   utils
+  shm_lib
 )

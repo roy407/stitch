@@ -11,6 +11,11 @@ StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int
     m_status.height = height;
     m_channel2show = new FrameChannel();
     m_channel2rtsp = new FrameChannel();
+
+    m_shm_sender = new ShmSender("/stitch_view_shm");
+    if (!m_shm_sender->init()) {
+         LOG_ERROR("Failed to init Shared Memory Sender!");
+    }
 }
 
 void StitchConsumer::setChannels(std::vector<FrameChannel*> channels) {
@@ -28,6 +33,7 @@ FrameChannel* StitchConsumer::getChannel2Rtsp() {
 StitchConsumer::~StitchConsumer() {
     if(m_channel2show) delete m_channel2show;
     if(m_channel2rtsp) delete m_channel2rtsp;
+    if(m_shm_sender) delete m_shm_sender;
 }
 
 void StitchConsumer::start() {
@@ -85,6 +91,9 @@ void StitchConsumer::run() {
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
         
         if (out_image.m_data) {
+            if (m_shm_sender) {
+                m_shm_sender->sendFrame(out_image.m_data);
+            }
             if (m_channel2show) {
                 Frame refFrame = out_image;
                 refFrame.m_data = av_frame_alloc();
