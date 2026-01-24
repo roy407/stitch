@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 默认相机数量
 CAM_JSON=""
 ENABLE_KERNEL_TEST=0
 BUILD_DIR="build"
@@ -33,7 +32,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 根据数量选择配置文件
+# 根据名字选择配置文件
 case "$CAM_JSON" in
     "cam2")
         CONFIG_FILE="resource/cam2.json"
