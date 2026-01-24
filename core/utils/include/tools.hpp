@@ -1,19 +1,21 @@
 #pragma once
-#include <iostream>
-#include <fstream>
+
 #include <chrono>
-#include <string>
 #include <ctime>
+#include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <string>
+
 extern "C" {
-    #include "libavformat/avformat.h"
+    #include <libavformat/avformat.h>
     #include <libavutil/frame.h>
     #include <libavutil/hwcontext.h>
     #include <libswscale/swscale.h>
 }
-#include "log.hpp"
+
 #include "StitchTypes.h"
+#include "log.hpp"
 
 uint64_t get_now_time();
 std::string get_current_time_filename(const std::string& suffix = ".txt");

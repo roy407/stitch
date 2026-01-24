@@ -1,30 +1,19 @@
 #pragma once
-#pragma once
+
+#include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
-#include <mutex>
-#include <atomic>
-#include <iostream>
-#include <queue>
-#include <chrono>
 
-extern "C" {
-    #include "libavformat/avformat.h"
-    #include "libavcodec/avcodec.h"
-    #include "libavutil/pixfmt.h" 
-    #include "libavutil/pixdesc.h" 
-    #include "libavutil/opt.h"
-    #include "libavutil/log.h"
-    #include "libavcodec/bsf.h"
-}
-
-#include "safe_queue.hpp"
-#include "tools.hpp"
-#include "DecoderConsumer.h"
-#include "EncoderConsumer.h"
-#include "LogConsumer.h"
-#include "StitchImpl.h"
 #include "CallbackConsumer.h"
+#include "LogConsumer.h"
+
+class DecoderConsumer;
+class EncoderConsumer;
+class StitchConsumer;
+struct CameraConfig;
+struct PipelineConfig;
+class TaskManager;
 
 class Pipeline {
 private:

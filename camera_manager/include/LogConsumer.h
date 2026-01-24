@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Consumer.h"
-#include <vector>
 #include <mutex>
+#include <vector>
+
+#include "Consumer.h"
 
 // 每一帧图像的具体信息
 struct CamStatus {

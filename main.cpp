@@ -1,8 +1,13 @@
+#include <string>
+
 #include <QApplication>
+
+#include "config.h"
+
+#include "camera_manager.h"
+
 #include "mainwindow.h"
 #include "widget_for_test.h"
-#include "camera_manager.h"
-#include "config.h"
 void launch_with_no_window() {
     camera_manager* cam = camera_manager::GetInstance();
     cam->start();

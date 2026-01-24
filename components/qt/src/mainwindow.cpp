@@ -1,10 +1,14 @@
 #include "mainwindow.h"
+
 #include <QApplication>
-#include <QScreen>
-#include <QGridLayout>
-#include <QDebug>
 #include <QCloseEvent>
+#include <QDebug>
+#include <QGridLayout>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QScreen>
 #include <QScrollArea>
+
 #include "config.h"
 #include "infrared_camera_widget.h"
 StitchMainWindow::StitchMainWindow(QWidget *parent)

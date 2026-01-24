@@ -1,15 +1,16 @@
 #include "RtspConsumer.h"
-#include <iostream>
-#include <unistd.h>
-#include <sys/wait.h>
+
 #include <fcntl.h>
-#include "safe_queue.hpp"
+#include <sys/wait.h>
+#include <unistd.h>
+
 extern "C" {
-    #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
-    #include <libavutil/opt.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/log.h>
+    #include <libavutil/opt.h>
 }
+
 #include "log.hpp"
 
 RtspConsumer::RtspConsumer(const std::string &push_stream_url) {
