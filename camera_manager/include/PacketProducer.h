@@ -1,14 +1,17 @@
 #pragma once
 
-#include "Producer.h"
-#include "LogConsumer.h"
 #include <memory>
+
 extern "C" {
-    #include "libavformat/avformat.h"
-    #include "libavcodec/avcodec.h"
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
 }
+
 #include "config.h"
+
 #include "Channel.h"
+#include "LogConsumer.h"
+#include "Producer.h"
 
 class PacketProducer : public Producer {
 protected:

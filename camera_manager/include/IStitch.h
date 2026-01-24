@@ -1,15 +1,21 @@
 #pragma once
-#include <thread>
-#include <atomic>
+
+#include <stdexcept>
+#include <vector>
+
 #include <cuda_runtime.h>
+
 extern "C" {
-    #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
-    #include <libavutil/opt.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/log.h>
+    #include <libavutil/opt.h>
 }
-#include "cuda_handle_init.h"
+
 #include "config.h"
+
+
+#include "cuda_handle_init.h"
 
 template<int FormatValue>
 struct Format {

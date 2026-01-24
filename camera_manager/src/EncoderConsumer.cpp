@@ -1,12 +1,12 @@
 #include "EncoderConsumer.h"
-#include<iostream>
-#include "cuda_handle_init.h"
-#include "log.hpp"
 
 extern "C" {
-    #include <libavutil/opt.h>
     #include <libavutil/imgutils.h>
+    #include <libavutil/opt.h>
 }
+
+#include "cuda_handle_init.h"
+#include "log.hpp"
 
 
 EncoderConsumer::EncoderConsumer(const std::string& codec_name, int width, int height, int fps)

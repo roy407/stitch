@@ -1,23 +1,26 @@
 #ifndef VISIBLE_CAMERA_SHOW_H
 #define VISIBLE_CAMERA_SHOW_H
 
-#include <QGridLayout>
-#include <QOpenGLWidget>
-#include <QLabel>
-#include <QWidget>
-#include <QThread>
-#include <QImage>
-#include <vector>
 #include <atomic>
 #include <mutex>
-#include "camera_manager.h"
-#include "safe_queue.hpp"
-#include "config.h"
-#include "nv12render.h"
+#include <vector>
+
+#include <QGridLayout>
+#include <QImage>
+#include <QLabel>
+#include <QOpenGLWidget>
+#include <QThread>
+#include <QWidget>
 
 extern "C" {
-#include <libavutil/frame.h>
+    #include <libavutil/frame.h>
 }
+
+#include "config.h"
+
+#include "camera_manager.h"
+
+#include "nv12render.h"
 
 class CameraDisplayWidget : public QOpenGLWidget {
     Q_OBJECT

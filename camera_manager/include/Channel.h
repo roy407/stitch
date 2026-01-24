@@ -1,6 +1,8 @@
 #pragma once
-#include "safe_queue.hpp"
+
 #include <memory>
+
+#include "safe_queue.hpp"
 
 class PacketChannel {
     safe_queue<Packet> m_data;

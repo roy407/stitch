@@ -2,18 +2,21 @@
 #ifndef INFRARED_WIDGET_H
 #define INFRARED_WIDGET_H
 
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <vector>
+
 #include <QOpenGLWidget>
 #include <QThread>
-#include <mutex>
-#include <atomic>
-#include <vector>
-#include "nv12render.h"
-#include "camera_manager.h"
-#include "safe_queue.hpp"
 
 extern "C" {
-#include <libavutil/frame.h>
+    #include <libavutil/frame.h>
 }
+
+#include "camera_manager.h"
+
+#include "nv12render.h"
 
 class InfraredWidget : public QOpenGLWidget {
     Q_OBJECT

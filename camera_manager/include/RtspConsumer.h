@@ -1,14 +1,16 @@
 #pragma once
 
-#include "Consumer.h"
+#include <string>
+
 extern "C" {
-    #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
-    #include <libavutil/opt.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/log.h>
+    #include <libavutil/opt.h>
 }
 
 #include "Channel.h"
+#include "Consumer.h"
 
 class RtspConsumer : public Consumer {
 public:

@@ -1,11 +1,13 @@
 #pragma once
-#include <iostream>
+
+#include <atomic>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <atomic>
-#include <nlohmann/json.hpp>
+
 #include <cuda_runtime.h>
+
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 

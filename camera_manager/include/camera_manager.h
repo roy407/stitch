@@ -1,6 +1,7 @@
 #pragma once
+
 #include <vector>
-#include "safe_queue.hpp"
+
 #include "Pipeline.h"
 
 class camera_manager {

@@ -1,8 +1,16 @@
 #include "CallbackConsumer.h"
+
+#include <atomic>
+#include <fstream>
+#include <mutex>
+
 extern "C" {
-    #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
 }
+
+#include "log.hpp"
+#include "tools.hpp"
 static std::atomic<bool> s_isFirstWrite{true};
 static std::mutex s_watcher_mutex;;
 std::ofstream CallbackConsumer::createFile() {

@@ -1,19 +1,19 @@
 #pragma once
+
+#include <atomic>
+#include <string>
+
 extern "C" {
     #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/avutil.h>
     #include <libavutil/hwcontext.h>
-    #include <libavformat/avformat.h>
 }
 
-#include <string>
-#include <stdexcept>
-#include <atomic>
-#include <thread>
 #include "config.h"
-#include "Consumer.h"
+
 #include "Channel.h"
-#include <memory>
+#include "Consumer.h"
 
 
 

@@ -1,19 +1,14 @@
 #pragma once
+
 extern "C" {
     #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/avutil.h>
     #include <libavutil/hwcontext.h>
-    #include <libavformat/avformat.h>
 }
 
-#include <iostream>
-#include "safe_queue.hpp"
-#include <stdexcept>
-#include <atomic>
-#include <thread>
-#include <memory>
-#include "Consumer.h"
 #include "Channel.h"
+#include "Consumer.h"
 
 class DecoderConsumer : public Consumer {
 public:
