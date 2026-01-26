@@ -5,7 +5,6 @@
 # ========================================
 
 set -e  # 遇到错误立即退出
-
 # 颜色输出
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -151,6 +150,7 @@ check_cuda() {
     fi
 }
 
+>>>>>>> ca36d3b... [feat]: update set_env.sh
 # 安装 Qt5
 install_qt5() {
     print_info "检查 Qt5 安装..."
@@ -301,6 +301,7 @@ check_ffmpeg() {
     fi
 }
 
+<<<<<<< HEAD
 # 安装 Git hooks
 install_git_hooks() {
     print_info "安装 Git hooks..."
@@ -325,6 +326,8 @@ install_git_hooks() {
     fi
 }
 
+=======
+>>>>>>> ca36d3b... [feat]: update set_env.sh
 # 验证环境
 verify_environment() {
     print_info "验证环境配置..."
@@ -417,9 +420,12 @@ main() {
     # 检查 FFmpeg
     check_ffmpeg
     
+<<<<<<< HEAD
     # 安装 Git hooks
     install_git_hooks
     
+=======
+>>>>>>> ca36d3b... [feat]: update set_env.sh
     # 验证环境
     echo ""
     echo "========================================"
@@ -439,4 +445,11 @@ main() {
 }
 
 # 运行主函数
+<<<<<<< HEAD
 main
+=======
+main
+
+# 启动commit审查
+chmod +777 ./scripts/git-hooks/install-git-hooks.sh
+>>>>>>> ca36d3b... [feat]: update set_env.sh
