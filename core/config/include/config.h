@@ -1,11 +1,13 @@
 #pragma once
-#include <iostream>
+
+#include <atomic>
 #include <fstream>
 #include <string>
 #include <vector>
-#include <atomic>
-#include <nlohmann/json.hpp>
+
 #include <cuda_runtime.h>
+
+#include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
@@ -38,6 +40,8 @@ struct StitchConfig {
     std::string stitch_mode;  
     StitchImplConfig stitch_impl;
     std::string output_url;
+    double scale_factor = 1.0;
+    bool rtsp = false;
 };
 
 struct PipelineConfig {
@@ -51,6 +55,7 @@ struct PipelineConfig {
     std::string sub_stream; // 子码流相机数据文件
     std::vector<CameraConfig> cameras;
     StitchConfig stitch;
+    bool openTimingWatcher = false;
 };
 
 struct GlobalConfig {

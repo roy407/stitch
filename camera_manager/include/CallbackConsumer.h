@@ -1,8 +1,11 @@
 #pragma once
 
-#include "Consumer.h"
-#include "Channel.h"
 #include <functional>
+#include <fstream>
+#include <string>
+
+#include "Channel.h"
+#include "Consumer.h"
 
 using Callback_Handle = std::function<void(Frame)>;
 

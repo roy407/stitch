@@ -1,17 +1,19 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
-#include <QMainWindow>
-#include <QVBoxLayout>
 #include <QGridLayout>
-#include <QStackedLayout>
-#include <QWidget>
 #include <QLabel>
-#include "visible_camera_widget.h"
-#include "infrared_camera_widget.h"
-#include "visible_single_camera_widget.h"
-#include "full_stitch_widget.h"
+#include <QMainWindow>
+#include <QStackedLayout>
+#include <QVBoxLayout>
+#include <QWidget>
+
 #include "camera_manager.h"
+
+#include "full_stitch_widget.h"
+#include "infrared_camera_widget.h"
+#include "visible_camera_widget.h"
+#include "visible_single_camera_widget.h"
 
 class StitchMainWindow : public QMainWindow
 {

@@ -1,13 +1,17 @@
 // full_stitch_widget.cpp
 #include "full_stitch_widget.h"
-#include <QDebug>
-#include <QMetaObject>
+
 #include <memory>
+
+#include <QDebug>
 #include <QLoggingCategory>
+#include <QMetaObject>
+
 extern "C" {
-#include <libavutil/hwcontext.h>
-#include <libavutil/pixdesc.h>
+    #include <libavutil/hwcontext.h>
+    #include <libavutil/pixdesc.h>
 }
+
 #include "log.hpp"
 #include "tools.hpp"
 

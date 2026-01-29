@@ -1,7 +1,10 @@
 #pragma once
+
 #include "IStitch.h"
-#include "nvidia_kernel.h"
+
 #include "log.hpp"
+
+#include "nvidia_kernel.h"
 
 struct StitchOps {
     using StitchFunc = AVFrame* (*)(void*, AVFrame**);

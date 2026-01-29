@@ -2,18 +2,23 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#include <atomic>
+#include <chrono>
+#include <mutex>
+#include <vector>
+
 #include <QOpenGLWidget>
 #include <QThread>
-#include <mutex>
-#include <atomic>
-#include <vector>
-#include "nv12render.h"
-#include "camera_manager.h"
-#include "safe_queue.hpp"
-#include "tools.hpp"
+
 extern "C" {
-#include <libavutil/frame.h>
+    #include <libavutil/frame.h>
 }
+
+#include "tools.hpp"
+
+#include "camera_manager.h"
+
+#include "nv12render.h"
 
 class visible_camera_widget : public QOpenGLWidget {
     Q_OBJECT

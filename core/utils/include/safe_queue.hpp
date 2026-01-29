@@ -3,10 +3,18 @@
 /*---- C++模版必须全部写在头文件中！！！ -----*/
 /*---- 如果要写在cpp文件中，那么只有预设实例可以使用 -----*/
 
-#include <queue>
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
+
+extern "C" {
+    #include <libavformat/avformat.h>
+    #include <libavutil/frame.h>
+    #include <libavutil/hwcontext.h>
+    #include <libswscale/swscale.h>
+}
+
 #include "tools.hpp"
 template<typename T>
 class safe_queue {

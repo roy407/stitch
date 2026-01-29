@@ -18,8 +18,9 @@
             "sub_stream":"resource/cam5/group_substream.json",
             "stitch":{
                 "stitch_mode":"mapping_table"
-            }
+            },
+            "openTimingWatcher": true
         }
-       
+
     ]
 }

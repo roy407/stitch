@@ -145,13 +145,9 @@ void save_cost_times_to_timestamped_file(const costTimes& t, std::ofstream& ofs)
 
 void save_cost_table_csv(const costTimes& t, std::ofstream& ofs) {
     constexpr double scale = 1e-6; // 纳秒→毫秒；若你原始时间戳是毫秒，请改成 1.0
-    static bool isWriteHeader = false;
-
-    if(!isWriteHeader) {
+    if (ofs.tellp() == 0) {
         ofs << "Camera,FrameCount,Pkt->Dec(ms),Dec->Stitch(ms),Stitch->Show(ms),Total(ms)\n";
-        isWriteHeader = true;
     }
-
     for (int i = 0; i < MAX_CAM_SIZE; ++i) {
         if (t.when_get_packet[i] == 0 || t.when_get_decoded_frame[i] == 0)
             continue;

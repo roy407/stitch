@@ -1,13 +1,17 @@
 #pragma once
-#include <iostream>
+
 #include <fstream>
+#include <iostream>
+
 extern "C" {
     #include <libavutil/frame.h>
     #include <libavutil/hwcontext.h>
     #include <libswscale/swscale.h>
 }
+
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h> 
+
 #include "config.h"
 
 #define LOG_DEBUG(...) \

@@ -1,15 +1,14 @@
 #pragma once
-#include "Consumer.h"
 extern "C" {
-    #include "libavformat/avformat.h"
-    #include "libavcodec/avcodec.h"
-    #include "libavutil/pixfmt.h" 
-    #include "libavutil/pixdesc.h" 
-    #include "libavutil/opt.h"
-    #include "libavutil/log.h"
-    #include "libavcodec/bsf.h"
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
+    #include <libavutil/log.h>
+    #include <libavutil/opt.h>
+    #include <libavutil/pixdesc.h>
+    #include <libavutil/pixfmt.h>
 }
 #include "Channel.h"
+#include "Consumer.h"
 
 class SingleViewConsumer : public Consumer {
 public:

@@ -1,28 +1,31 @@
 #pragma once
 
-#include "Consumer.h"
+#include <string>
+
 extern "C" {
-    #include <libavformat/avformat.h>
     #include <libavcodec/avcodec.h>
-    #include <libavutil/opt.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/log.h>
+    #include <libavutil/opt.h>
 }
 
 #include "Channel.h"
+#include "Consumer.h"
 
 class RtspConsumer : public Consumer {
 public:
     RtspConsumer(const std::string& push_stream_url);
     void setChannel(PacketChannel* m_channel);
-    void setParamters(AVCodecParameters* codecpar, AVRational time_base);
+    void setParameters(AVCodecContext* enc_ctx); 
+    void setParameters(AVCodecParameters* codecpar, AVRational time_base);
     virtual void start();
     virtual void stop();
     virtual void run();
     virtual ~RtspConsumer();
 private:
-    AVFormatContext* out_ctx{nullptr};
-    AVCodecParameters* codecpar{nullptr};
-    AVRational time_base;
-    PacketChannel* m_channelFromAVFramePro;
-    std::string output_url;
+    std::string m_url;
+    PacketChannel* m_input_channel{nullptr};
+    AVFormatContext* m_out_ctx{nullptr};
+    AVStream* m_out_stream{nullptr};
+    AVRational m_in_time_base{1, 25};
 };

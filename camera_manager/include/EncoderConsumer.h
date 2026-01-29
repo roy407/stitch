@@ -1,36 +1,39 @@
 #pragma once
+
+#include <atomic>
+#include <string>
+
 extern "C" {
     #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/avutil.h>
     #include <libavutil/hwcontext.h>
-    #include <libavformat/avformat.h>
 }
 
-#include <string>
-#include <stdexcept>
-#include <atomic>
-#include <thread>
-#include "safe_queue.hpp"
-#include "tools.hpp"
-#include "TaskManager.h"
 #include "config.h"
 
-// 待修改
-class EncoderConsumer : public TaskManager {
+#include "Channel.h"
+#include "Consumer.h"
+
+
+
+class EncoderConsumer : public Consumer {
 public:
-    EncoderConsumer(int width, int height, safe_queue<Frame>& frame_input,safe_queue<Packet>& packet_output, const std::string& codec_name = CFG_HANDLE.GetGlobalConfig().encoder);
+    EncoderConsumer(const std::string& codec_name, int width, int height, int fps = 25);
     virtual ~EncoderConsumer();
-    void start_image_encoder();
-    void close_image_encoder();
-
-    void run();
-
+    AVCodecContext* GetCodecContext() const { return codec_ctx; }
+    void setInputChannel(FrameChannel* channel);
+    void setOutputChannel(PacketChannel* channel);
+    void start();
+    void stop();
+    virtual void run() override; 
+private:
     AVCodecContext* codec_ctx;
     const AVCodec* codec;
-    AVPacket* pkt;
-    safe_queue<Frame>& frame_input;
-    safe_queue<Packet>& packet_output;
-    std::atomic_bool is_created;
-    int width;
-    int height;
+    FrameChannel* m_input_channel{nullptr};
+    PacketChannel* m_output_channel{nullptr};
+    std::atomic_bool is_created{false};
+    int m_width;
+    int m_height;
+    int m_fps;
 };

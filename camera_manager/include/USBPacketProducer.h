@@ -1,7 +1,10 @@
 #pragma once
-#include "config.h"
-#include "PacketProducer.h"
+
 #include <linux/videodev2.h>
+
+#include "config.h"
+
+#include "PacketProducer.h"
 
 class USBPacketProducer : public PacketProducer {
 protected:

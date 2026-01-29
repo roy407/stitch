@@ -55,34 +55,35 @@ void SingleViewConsumer::run() {
         if(!m_channelFromDecoder->recv(tmp)) goto cleanup;
 
         // 当前的resize会出现抖动问题，暂时注释掉！！！
-        // const uint8_t* input_y = tmp.m_data->data[0];
-        // const uint8_t* input_uv = tmp.m_data->data[1];
-        // int input_linesize_y = tmp.m_data->linesize[0];
-        // int input_linesize_uv = tmp.m_data->linesize[1];
-        // out_image.m_data = av_frame_alloc();
-        // out_image.m_data->format = AV_PIX_FMT_CUDA;
-        // out_image.m_data->width = output_width;
-        // out_image.m_data->height = output_height;
-        // out_image.m_data->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
-        // if (av_hwframe_get_buffer(hw_frames_ctx, out_image.m_data, 0) < 0) {
-        //     throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
-        // }
-        // uint8_t* output_y = out_image.m_data->data[0];
-        // uint8_t* output_uv = out_image.m_data->data[1];
-        // int output_linesize_y = out_image.m_data->linesize[0];
-        // int output_linesize_uv = out_image.m_data->linesize[1];
+        const uint8_t* input_y = tmp.m_data->data[0];
+        const uint8_t* input_uv = tmp.m_data->data[1];
+        int input_linesize_y = tmp.m_data->linesize[0];
+        int input_linesize_uv = tmp.m_data->linesize[1];
+        out_image.m_data = av_frame_alloc();
+        out_image.m_data->format = AV_PIX_FMT_CUDA;
+        out_image.m_data->width = output_width;
+        out_image.m_data->height = output_height;
+        out_image.m_data->hw_frames_ctx = av_buffer_ref(hw_frames_ctx);
+        if (av_hwframe_get_buffer(hw_frames_ctx, out_image.m_data, 0) < 0) {
+            throw std::runtime_error("Failed to allocate GPU AVFrame buffer");
+        }
+        uint8_t* output_y = out_image.m_data->data[0];
+        uint8_t* output_uv = out_image.m_data->data[1];
+        int output_linesize_y = out_image.m_data->linesize[0];
+        int output_linesize_uv = out_image.m_data->linesize[1];
 
-        // ReSize(input_y, input_uv,
-        // width, height,
-        // input_linesize_y, input_linesize_uv,
-        // output_y, output_uv,
-        // output_width, output_height,
-        // output_linesize_y, output_linesize_uv,
-        // stream);
-        // cudaStreamSynchronize(stream);
-        // out_image.m_data->pts = tmp.m_data->pts;
-        m_channel2show->send(tmp);
-        // av_frame_free(&tmp.m_data);
+        ReSize(input_y, input_uv,
+        width, height,
+        input_linesize_y, input_linesize_uv,
+        output_y, output_uv,
+        output_width, output_height,
+        output_linesize_y, output_linesize_uv,
+        stream);
+        cudaStreamSynchronize(stream);
+        out_image.m_data->pts = tmp.m_data->pts;
+        
+        m_channel2show->send(out_image);
+        av_frame_free(&tmp.m_data);
     }
 cleanup:
     m_channelFromDecoder->clear();

@@ -1,16 +1,14 @@
 #pragma once
+
+#include <atomic>
+#include <stdexcept>
+
 extern "C" {
     #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
     #include <libavutil/avutil.h>
     #include <libavutil/hwcontext.h>
-    #include <libavformat/avformat.h>
 }
-
-#include <iostream>
-#include "safe_queue.hpp"
-#include <stdexcept>
-#include <atomic>
-#include <thread>
 
 class cuda_handle_init {
 public:

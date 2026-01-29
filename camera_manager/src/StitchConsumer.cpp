@@ -9,19 +9,25 @@ StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int
     this->output_width = output_width;
     m_status.width = output_width;
     m_status.height = height;
-    m_channel2show = new FrameChannel;
+    m_channel2show = new FrameChannel();
+    m_channel2rtsp = new FrameChannel();
 }
 
 void StitchConsumer::setChannels(std::vector<FrameChannel*> channels) {
     m_channelsFromDecoder = channels;
 }
 
-FrameChannel *StitchConsumer::getChannel2Show() {
+FrameChannel* StitchConsumer::getChannel2Show() {
     return m_channel2show;
 }
 
+FrameChannel* StitchConsumer::getChannel2Rtsp() {
+    return m_channel2rtsp;
+}
+
 StitchConsumer::~StitchConsumer() {
-    delete m_channel2show;
+    if(m_channel2show) delete m_channel2show;
+    if(m_channel2rtsp) delete m_channel2rtsp;
 }
 
 void StitchConsumer::start() {
@@ -77,7 +83,27 @@ void StitchConsumer::run() {
         out_image.m_data = ops->stitch(ops->obj, inputs);
         out_image.m_data->pts = inputs[0]->pts;
         out_image.m_costTimes.when_get_stitched_frame = get_now_time();
-        m_channel2show->send(out_image);
+        
+        if (out_image.m_data) {
+            if (m_channel2show) {
+                Frame refFrame = out_image;
+                refFrame.m_data = av_frame_alloc();
+                if (refFrame.m_data) {
+                    av_frame_ref(refFrame.m_data, out_image.m_data);
+                    m_channel2show->send(refFrame);
+                }
+            }
+            if (m_channel2rtsp) {
+                Frame refFrame = out_image;
+                refFrame.m_data = av_frame_alloc();
+                if (refFrame.m_data) {
+                    av_frame_ref(refFrame.m_data, out_image.m_data);
+                    m_channel2rtsp->send(refFrame);
+                }
+            }
+            av_frame_unref(out_image.m_data);
+            av_frame_free(&out_image.m_data); 
+        }
         m_status.frame_cnt ++;
         m_status.timestamp = get_now_time();
         #if !defined(KERNEL_TEST)

@@ -1,5 +1,7 @@
 #pragma once
+
 #include "config.h"
+
 #include "PacketProducer.h"
 
 class MP4PacketProducer : public PacketProducer {
