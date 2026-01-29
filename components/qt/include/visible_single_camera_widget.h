@@ -10,7 +10,7 @@
 #include <vector>
 #include <atomic>
 #include <mutex>
-#include "camera_manager.h"
+// #include "camera_manager.h" // [DECOUPLED]
 #include "safe_queue.hpp"
 #include "config.h"
 #include "nv12render.h"
@@ -35,7 +35,7 @@ protected:
 private:
     Nv12Render* m_render;
     AVFrame* cpu_frame;
-    camera_manager* cam;
+    // camera_manager* cam; // [DECOUPLED]
     std::mutex m_mutex;
     std::vector<uchar> m_buffer;
     int m_width;

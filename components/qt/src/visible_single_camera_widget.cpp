@@ -44,7 +44,6 @@ void CameraDisplayWidget::aligned_free(void* ptr) {
 CameraDisplayWidget::CameraDisplayWidget(CameraConfig camera_config, QWidget *parent) : 
     QOpenGLWidget(parent),
     m_render(nullptr),
-    cam(nullptr),
     m_width(0),
     m_height(0),
     m_y_stride(0),
@@ -54,9 +53,9 @@ CameraDisplayWidget::CameraDisplayWidget(CameraConfig camera_config, QWidget *pa
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
     cpu_frame = av_frame_alloc();
-    cam = camera_manager::GetInstance();
-    auto handle = std::bind(&CameraDisplayWidget::consumerThread, this, std::placeholders::_1);
-    cam->setCameraStreamCallback(camera_config.cam_id, handle);
+    // cam = camera_manager::GetInstance(); // [DECOUPLED]
+    // auto handle = std::bind(&CameraDisplayWidget::consumerThread, this, std::placeholders::_1);
+    // cam->setCameraStreamCallback(camera_config.cam_id, handle);
 }
 
 CameraDisplayWidget::~CameraDisplayWidget() {

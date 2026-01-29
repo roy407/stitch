@@ -21,7 +21,56 @@ ShmReceiver::ShmReceiver(const std::string& shm_name, size_t size)
 ShmReceiver::~ShmReceiver() {
     close();
 }
-// ... (init implementation is same) ... //
+bool ShmReceiver::init() {
+    m_shm_fd = shm_open(m_shm_name.c_str(), O_RDWR, 0666);
+    if (m_shm_fd == -1) {
+        // Log?
+        return false;
+    }
+
+    m_ptr = mmap(0, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_shm_fd, 0);
+    if (m_ptr == MAP_FAILED) {
+        std::cerr << "[ShmReceiver] mmap failed: " << strerror(errno) << std::endl;
+        ::close(m_shm_fd);
+        m_shm_fd = -1;
+        return false;
+    }
+
+    uint8_t* base = static_cast<uint8_t*>(m_ptr);
+    m_context = reinterpret_cast<ShmContextHeader*>(base);
+    
+    int retry = 0;
+    while (!m_context->initialized && retry < 100) {
+        usleep(10000); 
+        retry++;
+    }
+    if (!m_context->initialized) {
+        return false;
+    }
+
+    size_t offset = sizeof(ShmContextHeader);
+    for (int i = 0; i < BUFFER_COUNT; ++i) {
+        m_slots[i] = reinterpret_cast<ShmSlotHeader*>(base + offset);
+        offset += sizeof(ShmSlotHeader);
+    }
+    
+    if (offset % 64 != 0) {
+        offset += (64 - (offset % 64));
+    }
+    
+    for (int i = 0; i < BUFFER_COUNT; ++i) {
+        m_data_ptrs[i] = base + offset;
+        offset += m_context->slot_capacity;
+    }
+
+    // Ref count
+    pthread_mutex_lock(&m_context->mutex);
+    m_context->ref_count++;
+    m_attached = true;
+    pthread_mutex_unlock(&m_context->mutex);
+
+    return true;
+}
 
 bool ShmReceiver::recvFrame(AVFrame* frame, int timeout_ms) {
     if (!m_ptr || !m_context || !frame) return false;
@@ -58,8 +107,8 @@ bool ShmReceiver::recvFrame(AVFrame* frame, int timeout_ms) {
         int count = (write - oldest + BUFFER_COUNT) % BUFFER_COUNT;
         
         // 注意：如果 ring buffer 满了，write == oldest ? 
-        // 在 Sender 逻辑里，如果满了，Oldest 会被推走，所以 write 永远追不上 oldest 
-        // 也就是说 full 的时候，write == oldest 是不可能的，offset 始终保持 1 ?
+        // 在 Sender 逻辑里，如果满就是说 f了，Oldest 会被推走，所以 write 永远追不上 oldest 
+        // 也ull 的时候，write == oldest 是不可能的，offset 始终保持 1 ?
         // 不，m_context->write_index 指向下一个*空*位。
         // 如果 write == oldest，说明 buffer 是空的！
         // 因为 Sender 写完会把 write 移走。如果满，oldest 也会移走。
@@ -134,8 +183,24 @@ found:
 
 void ShmReceiver::close() {
     if (m_ptr != MAP_FAILED) {
+        bool should_unlink = false;
+        if (m_context && m_attached) {
+            pthread_mutex_lock(&m_context->mutex);
+            m_context->ref_count--;
+            if (m_context->ref_count <= 0) {
+                should_unlink = true;
+            }
+            pthread_mutex_unlock(&m_context->mutex);
+            m_attached = false;
+        }
+
         munmap(m_ptr, m_size);
         m_ptr = MAP_FAILED;
+        
+        if (should_unlink) {
+             shm_unlink(m_shm_name.c_str());
+             std::cout << "[ShmReceiver] Last user, unlinked shm: " << m_shm_name << std::endl;
+        }
     }
     if (m_shm_fd != -1) {
         ::close(m_shm_fd);

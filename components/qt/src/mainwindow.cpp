@@ -9,7 +9,6 @@
 #include "infrared_camera_widget.h"
 StitchMainWindow::StitchMainWindow(QWidget *parent)
     : QMainWindow(parent),
-      cam(nullptr),
       mainWidget(nullptr),
       mainLayout(nullptr),
       infraredStitchLabel(nullptr),
@@ -21,8 +20,14 @@ StitchMainWindow::StitchMainWindow(QWidget *parent)
       camerasLayout(nullptr)
 {
     // 统一启动摄像头管理器（只启动一次）
-    cam = camera_manager::GetInstance();
-    cam->start();
+    // cam = camera_manager::GetInstance(); // [DECOUPLED]
+    
+    // [MODIFIED BEGIN] - 移除UI中的摄像头启动逻辑
+    // cam->start(); 
+    // 现在 start() 只在后台进程(stitch_cam)中调用
+    // UI端只需要GetInstance()拿到句柄用于可能的配置读取，或者干脆只用于setStitchStreamCallback的空操作
+    // [MODIFIED END]
+
     central = new QWidget(this);
     setCentralWidget(central);
 
@@ -44,9 +49,11 @@ StitchMainWindow::~StitchMainWindow()
 
 void StitchMainWindow::closeEvent(QCloseEvent *event)
 {
-    if (cam) {
-        cam->stop();
-    }
+    // [MODIFIED BEGIN] - UI关闭时不停止后台服务
+    // if (cam) {
+    //    cam->stop();
+    // }
+    // [MODIFIED END]
     
     // 接受关闭事件
     event->accept();
@@ -132,7 +139,11 @@ void StitchMainWindow::setupUI()
     
     // 检查是否有红外相机配置
     auto& config = CFG_HANDLE;
-    auto cameras = config.GetCamerasConfig(1);
+    std::vector<CameraConfig> cameras;
+    // [MODIFIED] Check if pipeline 1 exists before requesting config to avoid exceptions
+    if (config.GetConfig().pipelines.size() > 1) {
+        cameras = config.GetCamerasConfig(1);
+    }
     
     // 注意：只有当camera_manager中create_channel_2()被调用时，才创建InfraredWidget
     // 目前create_channel_2()被注释掉了，所以暂时不创建InfraredWidget，避免段错误
@@ -189,7 +200,9 @@ void StitchMainWindow::setupUI()
  
     mainLayout->addWidget(visibleStitchWidget, 3);
     
-    if(cam->getCameraStreamCount() != 0) {
+    // [MODIFIED] Check config directly instead of using camera_manager
+    // auto& config = CFG_HANDLE; // Already declared above
+    if(config.GetCamerasConfig(0).size() != 0) {
         // ========== 下层：8路可见光相机 ==========
         camerasLabel = new QLabel("单路可见光相机", this);
         camerasLabel->setAlignment(Qt::AlignCenter);
@@ -222,7 +235,7 @@ void StitchMainWindow::setupUI()
 
 void StitchMainWindow::setupCameras()
 {
-    if(cam->getCameraStreamCount() == 0) return;
+    // if(cam->getCameraStreamCount() == 0) return; // [DECOUPLED]
     // 从配置文件读取摄像头信息
     auto& config = CFG_HANDLE;
     auto cameras = config.GetCamerasConfig(0);

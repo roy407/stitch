@@ -11,7 +11,7 @@
 #include "infrared_camera_widget.h"
 #include "visible_single_camera_widget.h"
 #include "full_stitch_widget.h"
-#include "camera_manager.h"
+// #include "camera_manager.h" // [DECOUPLED]
 
 class StitchMainWindow : public QMainWindow
 {
@@ -33,7 +33,7 @@ private:
     void setupCameras();  // 设置8路可见光相机（子码流）
     
     // 摄像头管理器（统一管理，避免重复启动）
-    camera_manager* cam;
+    // camera_manager* cam; // [DECOUPLED]
 
     QWidget *central{nullptr};
     QStackedLayout* stackedLayout{nullptr};

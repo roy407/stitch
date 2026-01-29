@@ -13,7 +13,7 @@ static const char* DEFAULT_SHM_NAME = "/stitch_view_shm";
 // 使用 Ring Buffer 模式，BUFFER_COUNT 越大，容忍的消费端抖动越强。
 static const size_t SHM_BUFFER_SIZE = 1024 * 1024 * 1024; // 1GB
 static const int BUFFER_COUNT = 6; 
-
+// 1. 单帧图像的头部信息 (Slot Header)
 struct ShmSlotHeader {
     uint32_t width;
     uint32_t height;
@@ -22,11 +22,12 @@ struct ShmSlotHeader {
     uint64_t timestamp;
     uint64_t frame_sequence;
 };
-
+// 2. 共享内存的总控制头 (Context Header)
 struct ShmContextHeader {
     pthread_mutex_t mutex;
     pthread_cond_t cond;
     bool initialized;
+    int ref_count;
     
     // 循环队列管理
     // write_index: 生产者下一个要写入的位置 (0 ~ N-1)

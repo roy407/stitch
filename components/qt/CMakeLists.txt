@@ -40,6 +40,9 @@ target_include_directories(qt PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/../../core/operator/include/nvidia
   ${FFMPEG_INCLUDE_DIRS}
   ${TOP_DIR}/inc
+  # [MODIFIED BEGIN] - 添加shm头文件路径
+  ${TOP_DIR}/components/shm/include
+  # [MODIFIED END]
 )
 target_link_libraries(qt PRIVATE Qt5::Widgets)
 target_link_options(qt PRIVATE -Wl,-rpath-link=/usr/local/lib)
@@ -56,4 +59,7 @@ target_link_libraries(qt PRIVATE
   config
   camera_manager
   utils
+  # [MODIFIED BEGIN] - 链接shm静态库
+  shm_lib
+  # [MODIFIED END]
 )

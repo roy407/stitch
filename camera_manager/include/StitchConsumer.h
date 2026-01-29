@@ -39,7 +39,7 @@ class StitchConsumer : public Consumer {
     StitchOps* ops;
     friend class LogConsumer;
 public:
-    StitchConsumer(StitchOps* ops, int single_width, int height, int output_width);
+    StitchConsumer(StitchOps* ops, int single_width, int height, int output_width, std::string shm_name = "");
     void setChannels(std::vector<FrameChannel*> channels);
     
     FrameChannel* getChannel2Show();

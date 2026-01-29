@@ -8,9 +8,13 @@
 #include <atomic>
 #include <vector>
 #include "nv12render.h"
-#include "camera_manager.h"
+// #include "camera_manager.h" // [DECOUPLED] Removed
 #include "safe_queue.hpp"
 #include "tools.hpp"
+// [MODIFIED BEGIN] - 适配ShmReceiver
+#include "ShmReceiver.h" 
+#include <thread>
+// [MODIFIED END]
 extern "C" {
 #include <libavutil/frame.h>
 }
@@ -31,7 +35,7 @@ private slots:
     void VisibleTitleTime(double dec_to_stitch);  
 private:
     Nv12Render* m_render;
-    camera_manager* cam;
+    // camera_manager* cam; // [DECOUPLED] Removed
     AVFrame* cpu_frame;
     std::mutex m_mutex;
     std::vector<uchar> m_buffer;
@@ -45,6 +49,14 @@ private:
     void cleanup();
     void* aligned_alloc(size_t size, size_t alignment);
     void aligned_free(void* ptr);
+
+    // [MODIFIED BEGIN] - 适配ShmReceiver
+    ShmReceiver* m_shm_receiver = nullptr;
+    std::thread m_recv_thread;
+    std::atomic<bool> m_running{false};
+    void shmLoop();
+    void processFrame(AVFrame* process_frame);
+    // [MODIFIED END]
 };
 
 #endif // WIDGET_H

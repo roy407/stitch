@@ -34,7 +34,6 @@ void visible_camera_widget::aligned_free(void* ptr) {
 visible_camera_widget::visible_camera_widget(QWidget *parent) : 
     QOpenGLWidget(parent),
     m_render(nullptr),
-    cam(nullptr),
     m_width(0),
     m_height(0),
     m_y_stride(0),
@@ -49,13 +48,33 @@ visible_camera_widget::visible_camera_widget(QWidget *parent) :
     QLoggingCategory::setFilterRules("*.debug=false\n*.warning=false");
     m_render = new Nv12Render();
     cpu_frame = av_frame_alloc();  
-    // 只获取实例，不启动（由主窗口统一管理）
-    cam = camera_manager::GetInstance();
-    auto callback_handle = std::bind(&visible_camera_widget::consumerThread, this, std::placeholders::_1);
-    cam->setStitchStreamCallback(0, callback_handle);
+    
+    // [MODIFIED BEGIN] - 以前使用回调，现在切换为ShmReceiver
+    // auto callback_handle = std::bind(&visible_camera_widget::consumerThread, this, std::placeholders::_1);
+    // cam->setStitchStreamCallback(0, callback_handle);
+    
+    m_shm_receiver = new ShmReceiver("/stitch_view_shm");
+    if (m_shm_receiver->init()) {
+        qDebug() << "ShmReceiver initialized successfully!";
+        m_running = true;
+        m_recv_thread = std::thread(&visible_camera_widget::shmLoop, this);
+    } else {
+        qCritical() << "Failed to init ShmReceiver!";
+    }
+    // [MODIFIED END]
 }
 //这边都是原来可见光拼接的
 visible_camera_widget::~visible_camera_widget() {
+    // [MODIFIED BEGIN] - 停止线程并释放资源
+    m_running = false;
+    if (m_recv_thread.joinable()) {
+        m_recv_thread.join();
+    }
+    if (m_shm_receiver) {
+        delete m_shm_receiver;
+        m_shm_receiver = nullptr;
+    }
+    // [MODIFIED END]
     cleanup();
 }
 
@@ -79,49 +98,34 @@ void visible_camera_widget::paintGL() {
         m_render->render(m_buffer.data(), m_width, m_height, m_y_stride, m_uv_stride);
     }
 }
-
-void visible_camera_widget::resizeGL(int w, int h) {
-    glViewport(0, 0, w, h);
+// [MODIFIED BEGIN] - 新增SHM拉流循环线程
+void visible_camera_widget::shmLoop() {
+    AVFrame* frame = av_frame_alloc();
+    
+    while (m_running) {
+        // 阻塞等待，超时时间 100ms
+        if (m_shm_receiver && m_shm_receiver->recvFrame(frame, 100)) {
+            // 收到新帧，进行处理
+            processFrame(frame);
+            
+            // 清理引用，准备接收下一帧
+            av_frame_unref(frame);
+        }
+    }
+    av_frame_free(&frame);
 }
-void visible_camera_widget::VisibleTitleTime(double cost_time){
-    QString title = QString("可见光拼接");
-    emit VisibleTitle(title);
-} 
 
-        
-//可见光拼接帧的处理
-void visible_camera_widget::consumerThread(Frame frame) {  
-    double dec_to_stitch = 0.0;
-    int active_cam_count = 0;
-    for (int i = 0; i < MAX_CAM_SIZE; ++i) {
-        if (frame.m_costTimes.when_get_packet[i] != 0) {
-            double cam_dec_to_stitch = (frame.m_costTimes.when_show_on_the_screen - frame.m_costTimes.when_get_packet[i]) * 1e-6;
-            dec_to_stitch += cam_dec_to_stitch;
-            active_cam_count++;
-        }
-    }
+// 提取原consumerThread中的渲染逻辑
+void visible_camera_widget::processFrame(AVFrame* process_frame) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     
-    if (active_cam_count > 0) {
-        dec_to_stitch = dec_to_stitch / active_cam_count;
-    }
-
-    AVFrame* src_frame = frame.m_data;
-    AVFrame* process_frame = src_frame;
-    
-    // 硬件帧转换到CPU
-    if (src_frame->format == AV_PIX_FMT_CUDA) {
-        if (av_hwframe_transfer_data(cpu_frame, src_frame, 0) < 0) {
-            qWarning() << "Failed to transfer frame to CPU";
-            av_frame_free(&frame.m_data);
-            return;
-        }
-        process_frame = cpu_frame;
-    }
-
     m_width = process_frame->width;
     m_height = process_frame->height;
     m_y_stride = process_frame->linesize[0];
     m_uv_stride = process_frame->linesize[1];
+    
+    // 可能还需要画线操作，如果 process_frame 对于画线函数是只读的或者可写的
+    // 注意：SHM出来的frame数据是新申请的内存，可以修改
     draw_vertical_line_nv12(process_frame, 200, "-120°", 150, 0);
     draw_vertical_line_nv12(process_frame, 5350, "-60°", 150, 0);
     draw_vertical_line_nv12(process_frame, 10500, "0°", 150, 0);
@@ -145,19 +149,28 @@ void visible_camera_widget::consumerThread(Frame frame) {
         m_buffer.resize(total_size);
     }
     
-    
     // 复制Y和UV数据
     memcpy(m_buffer.data(), process_frame->data[0], process_frame->linesize[0] * m_height);
     memcpy(m_buffer.data() + y_size, process_frame->data[1], process_frame->linesize[1] * (m_height / 2));
     
-    av_frame_free(&frame.m_data);
-    
-    auto now = std::chrono::steady_clock::now();
-    if (now - last_title_update >= update_interval) {
-    
-    QMetaObject::invokeMethod(this, "VisibleTitleTime", Qt::QueuedConnection, 
-                            Q_ARG(double, dec_to_stitch));
-            last_title_update = now;  // 更新时间戳
-    }
+    // 触发界面刷新
     QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
+}
+// [MODIFIED END] -- 原 consumerThread 可保留作为兼容或者删除
+
+void visible_camera_widget::resizeGL(int w, int h) {
+    glViewport(0, 0, w, h);
+}
+void visible_camera_widget::VisibleTitleTime(double cost_time){
+    QString title = QString("可见光拼接");
+    emit VisibleTitle(title);
+} 
+
+// [MODIFIED] - 旧的回调函数，已废弃。保留空壳防止链接错误，但移除实现。
+void visible_camera_widget::consumerThread(Frame frame) {  
+    // 释放可能传入的AVFrame，防止内存泄漏，但不再进行渲染
+    if (frame.m_data) {
+        av_frame_free(&frame.m_data);
+    }
+    // qWarning() << "Old consumerThread called unexpectedly! Ignoring frame.";
 }

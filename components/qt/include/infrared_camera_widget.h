@@ -8,8 +8,10 @@
 #include <atomic>
 #include <vector>
 #include "nv12render.h"
-#include "camera_manager.h"
+// #include "camera_manager.h" // [DECOUPLED]
 #include "safe_queue.hpp"
+#include "ShmReceiver.h"
+#include <thread>
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -32,7 +34,6 @@ private slots:
     void IRTitleTime(double dec_to_stitch);  
 private:
     Nv12Render* m_render;
-    camera_manager* cam;
     AVFrame* cpu_frame;
     std::mutex m_mutex;
     std::chrono::steady_clock::time_point last_title_update;
@@ -44,6 +45,14 @@ private:
     int m_uv_stride;
     
     void cleanup();
+
+    // [MODIFIED BEGIN] - 适配ShmReceiver
+    ShmReceiver* m_shm_receiver = nullptr;
+    std::thread m_recv_thread;
+    std::atomic<bool> m_running{false};
+    void shmLoop();
+    void processFrame(AVFrame* process_frame);
+    // [MODIFIED END]
 };
 
 #endif // INFRARED_WIDGET_H

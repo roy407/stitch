@@ -31,4 +31,5 @@ private:
     // 消费者记录自己想要读的下一帧 SEQ
     // 用于确保连续性
     uint64_t m_next_expected_seq;
+    bool m_attached = false;
 };

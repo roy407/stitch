@@ -10,6 +10,7 @@
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/hwcontext.h>
 }
 
 ShmSender::ShmSender(const std::string& shm_name, size_t size) 
@@ -87,6 +88,7 @@ bool ShmSender::init() {
 
     m_context->write_index = 0;
     m_context->oldest_index = 0;
+    m_context->ref_count = 1;
     m_context->initialized = true;
     
     return true;
@@ -95,11 +97,34 @@ bool ShmSender::init() {
 bool ShmSender::sendFrame(const AVFrame* frame) {
     if (!m_ptr || !frame || !m_context) return false;
 
-    int size = av_image_get_buffer_size((AVPixelFormat)frame->format, frame->width, frame->height, 1);
-    if (size < 0) return false;
+    AVFrame* cpu_frame = nullptr;
+    const AVFrame* src_frame = frame;
+
+    // 如果是 CUDA 帧，先下载到 CPU
+    if (frame->format == AV_PIX_FMT_CUDA) {
+        cpu_frame = av_frame_alloc();
+        if (!cpu_frame) return false;
+        
+        // 从 GPU 显存下载到 CPU 内存
+        if (av_hwframe_transfer_data(cpu_frame, frame, 0) < 0) {
+            std::cerr << "[ShmSender] Failed to transfer data from GPU to CPU" << std::endl;
+            av_frame_free(&cpu_frame);
+            return false;
+        }
+        
+        // 现在源数据变成了临时的 cpu_frame
+        src_frame = cpu_frame; 
+    }
+
+    int size = av_image_get_buffer_size((AVPixelFormat)src_frame->format, src_frame->width, src_frame->height, 1);
+    if (size < 0) {
+        if (cpu_frame) av_frame_free(&cpu_frame);
+        return false;
+    }
 
     if (size > m_context->slot_capacity) {
         std::cerr << "[ShmSender] Frame too large for slot! Required: " << size << ", Cap: " << m_context->slot_capacity << std::endl;
+        if (cpu_frame) av_frame_free(&cpu_frame);
         return false;
     }
 
@@ -121,19 +146,22 @@ bool ShmSender::sendFrame(const AVFrame* frame) {
     
     ShmSlotHeader* header = m_slots[target_slot];
     // 先把 Header 的部分关键信息写好，但 SEQ 最后写
-    header->width = frame->width;
-    header->height = frame->height;
-    header->pixel_format = frame->format;
+    header->width = src_frame->width;
+    header->height = src_frame->height;
+    header->pixel_format = src_frame->format;
     header->data_size = size;
-    header->timestamp = frame->pts;
+    header->timestamp = src_frame->pts;
     
     uint8_t* dst_ptr = m_data_ptrs[target_slot];
     
     int ret = av_image_copy_to_buffer(dst_ptr, m_context->slot_capacity,
-                                      (const uint8_t* const*)frame->data, frame->linesize,
-                                      (AVPixelFormat)frame->format, frame->width, frame->height, 1);
+                                      (const uint8_t* const*)src_frame->data, src_frame->linesize,
+                                      (AVPixelFormat)src_frame->format, src_frame->width, src_frame->height, 1);
     
-    if (ret < 0) return false;
+    if (ret < 0) {
+        if (cpu_frame) av_frame_free(&cpu_frame);
+        return false;
+    }
 
     // 3. 提交更新 (加锁)
     pthread_mutex_lock(&m_context->mutex);
@@ -163,13 +191,33 @@ bool ShmSender::sendFrame(const AVFrame* frame) {
     
     pthread_mutex_unlock(&m_context->mutex);
 
+    // 清理临时帧
+    if (cpu_frame) {
+        av_frame_free(&cpu_frame); 
+    }
+
     return true;
 }
 
 void ShmSender::close() {
     if (m_ptr != MAP_FAILED) {
+        bool should_unlink = false;
+        if (m_context) {
+            pthread_mutex_lock(&m_context->mutex);
+            m_context->ref_count--;
+            if (m_context->ref_count <= 0) {
+                should_unlink = true;
+            }
+            pthread_mutex_unlock(&m_context->mutex);
+        }
+
         munmap(m_ptr, m_size);
         m_ptr = MAP_FAILED;
+        
+        if (should_unlink) {
+            shm_unlink(m_shm_name.c_str());
+            std::cout << "[ShmSender] Last user, unlinked shm: " << m_shm_name << std::endl;
+        }
     }
     if (m_shm_fd != -1) {
         ::close(m_shm_fd);

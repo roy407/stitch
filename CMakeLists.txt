@@ -38,6 +38,50 @@ set(COMMON_INCLUDE_DIRS
 
 add_executable(stitch_app main.cpp)
 
+# [MODIFIED BEGIN] - 添加独立进程目标
+# 1. 后台相机服务进程 (Backend)
+add_executable(stitch_cam main_cam.cpp)
+target_include_directories(stitch_cam PRIVATE 
+    ${COMMON_INCLUDE_DIRS}
+    core/config/include
+    core/utils/include
+    core/operator/include
+    core/operator/include/nvidia # For nvidia specific headers
+)
+target_link_libraries(stitch_cam PRIVATE 
+    camera_manager
+    shm_lib         # 依赖SHM
+    spdlog::spdlog
+    pthread
+)
+
+# 2. 前端UI显示进程 (Frontend)
+add_executable(stitch_ui main_ui.cpp)
+target_include_directories(stitch_ui PRIVATE 
+    ${COMMON_INCLUDE_DIRS}
+    core/config/include
+    core/utils/include
+    core/operator/include 
+    core/operator/include/nvidia
+)
+target_link_directories(stitch_ui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/components/qt/include
+)
+
+# UI 进程依赖 Qt 和 shm_lib(用于拉流)，也依赖 camera_manager(用于数据结构定义)
+# 但实际上 UI 进程只用到 camera_manager 的头文件定义 和 可能少量的存根代码
+target_link_libraries(stitch_ui PRIVATE 
+    # camera_manager  # [DECOUPLED] UI no longer links against backend logic
+    Qt5::Widgets
+    qt
+    shm_lib
+    spdlog::spdlog
+    ${CUDA_LIBRARIES} # Link CUDA if needed for rendering/memory
+    utils # Link utils if config/logs are used
+    config # Link config
+)
+# [MODIFIED END]
+
 set(TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(core)

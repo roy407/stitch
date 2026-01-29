@@ -149,6 +149,6 @@
         },
         "output_url":"rtsp://127.0.0.1:8554/stitch_group0",
         "scale_factor": 0.1,
-        "rtsp": false
+        "rtsp": true
     }
 }

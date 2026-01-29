@@ -1,7 +1,7 @@
 #include "StitchConsumer.h"
 #include "StitchImpl.h"
 
-StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int output_width) {
+StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int output_width, std::string shm_name) {
     m_name += "stitch";
     this->ops = ops;
     this->single_width = single_width;
@@ -12,9 +12,14 @@ StitchConsumer::StitchConsumer(StitchOps* ops, int single_width, int height, int
     m_channel2show = new FrameChannel();
     m_channel2rtsp = new FrameChannel();
 
-    m_shm_sender = new ShmSender("/stitch_view_shm");
-    if (!m_shm_sender->init()) {
-         LOG_ERROR("Failed to init Shared Memory Sender!");
+    if (!shm_name.empty()) {
+        m_shm_sender = new ShmSender(shm_name);
+        if (!m_shm_sender->init()) {
+            LOG_ERROR("Failed to init Shared Memory Sender!");
+            // 初始化失败时，应该清理并设置为空，避免非法访问
+            // 但init失败时m_shm_sender对象仍有效，只是sendFrame会检查m_shm_fd
+            // 建议：如果不需要抛出异常，这里只打日志即可
+        }
     }
 }
 

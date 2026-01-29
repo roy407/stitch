@@ -8,8 +8,10 @@
 #include <atomic>
 #include <vector>
 #include "nv12render.h"
-#include "camera_manager.h"
+// #include "camera_manager.h" // [DECOUPLED]
 #include "safe_queue.hpp"
+#include "ShmReceiver.h"
+#include <thread>
 
 extern "C" {
 #include <libavutil/frame.h>
@@ -29,7 +31,14 @@ protected:
 
 private:
     Nv12Render* m_render;
-    camera_manager* cam;
+    // camera_manager* cam; // [DECOUPLED]
+    
+    // [ADDED for Decoupling]
+    ShmReceiver* m_shm_receiver = nullptr;
+    std::thread m_recv_thread;
+    std::atomic<bool> m_running{false};
+    void shmLoop();
+    void processFrame(AVFrame* frame);
     AVFrame* cpu_frame;
     std::mutex m_mutex;
     std::vector<uchar> m_buffer;
